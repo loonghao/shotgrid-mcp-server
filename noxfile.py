@@ -5,20 +5,86 @@ import sys
 # Import third-party modules
 import nox
 
-
 ROOT = os.path.dirname(__file__)
 
-# Ensure maya_umbrella is importable.
+# Ensure shotgrid_mcp_server is importable
 if ROOT not in sys.path:
     sys.path.append(ROOT)
 
-# Import third-party modules
-from nox_actions import codetest  # noqa: E402
-from nox_actions import lint  # noqa: E402
-from nox_actions import release  # noqa: E402
+# Import local modules
+from nox_actions import lint
+from nox_actions import release
 
 
-nox.session(lint.lint, name="lint")
-nox.session(lint.lint_fix, name="lint-fix")
-nox.session(codetest.pytest, name="pytest")
-nox.session(release.build_exe, name="build-exe")
+@nox.session()
+def tests(session: nox.Session) -> None:
+    """Run the test suite with pytest."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", "-e", ".[test]", external=True)
+
+    # Run tests
+    session.run(
+        "python",
+        "-m",
+        "pytest",
+        "tests/test_server.py",
+        "-v",
+        "--cov=shotgrid_mcp_server",
+        "--cov-report=term-missing",
+        env={"PYTHONPATH": ROOT},
+    )
+
+
+@nox.session(name="lint")
+def lint_check(session: nox.Session) -> None:
+    """Run the linter."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
+
+    # Run linter
+    lint.lint(session)
+
+
+@nox.session(name="lint-fix")
+def lint_fix(session: nox.Session) -> None:
+    """Run the linter and fix issues."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
+
+    # Run linter and fix issues
+    lint.lint_fix(session)
+
+
+@nox.session
+def build_exe(session: nox.Session) -> None:
+    """Build the executable."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", "-e", ".[build]", external=True)
+
+    # Build executable
+    release.build_exe(session)
+
+
+@nox.session(name="build-wheel")
+def build_wheel(session: nox.Session) -> None:
+    """Build Python wheel package."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", "-e", ".[build]", external=True)
+
+    # Build wheel
+    release.build_wheel(session)

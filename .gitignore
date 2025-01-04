@@ -20,3 +20,8 @@ target/*
 /build/
 /coverage.xml
 /.zip/
+/.env
+/.windsurfrules
+/docs/
+/dist/
+/.venv/
