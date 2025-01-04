@@ -8,10 +8,20 @@ from nox_actions.utils import THIS_ROOT
 
 
 def pytest(session: nox.Session) -> None:
-    session.install(".")
-    session.install("pytest", "pytest_cov", "pytest_mock")
+    """Run pytest with coverage report."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Use uv to install dependencies
+    session.run("uv", "pip", "install", ".", external=True)
+    session.run("uv", "pip", "install", "pytest", "pytest-cov", "pytest-mock", external=True)
+
+    # Run tests
     test_root = os.path.join(THIS_ROOT, "tests")
-    session.run("pytest", f"--cov={PACKAGE_NAME}",
-                "--cov-report=xml:coverage.xml",
-                f"--rootdir={test_root}",
-                env={"PYTHONPATH": THIS_ROOT.as_posix()})
+    session.run(
+        "pytest",
+        f"--cov={PACKAGE_NAME}",
+        "--cov-report=xml:coverage.xml",
+        f"--rootdir={test_root}",
+        env={"PYTHONPATH": THIS_ROOT.as_posix()},
+    )

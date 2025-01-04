@@ -1,17 +1,37 @@
+# Import built-in modules
+
 # Import third-party modules
 import nox
-from nox_actions.utils import PACKAGE_NAME
 
 
 def lint(session: nox.Session) -> None:
-    session.install("isort", "ruff")
-    session.run("isort", "--check-only", PACKAGE_NAME)
-    session.run("ruff", "check")
+    """Run linters."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Install linting tools using uv
+    session.run("uv", "pip", "install", "ruff", "black", "mypy", external=True)
+
+    # Run black check
+    session.run("black", ".", "--check")
+
+    # Run ruff
+    session.run("ruff", "check", ".")
+
+    # Run mypy
+    session.run("mypy", "src", "--ignore-missing-imports")
 
 
 def lint_fix(session: nox.Session) -> None:
-    session.install("isort", "ruff", "pre-commit", "autoflake")
-    session.run("ruff", "check", "--fix")
-    session.run("isort", ".")
-    session.run("pre-commit", "run", "--all-files")
-    session.run("autoflake", "--in-place", "--remove-all-unused-imports", "--remove-unused-variables")
+    """Run linters and fix issues."""
+    # Install uv if not already installed
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+
+    # Install linting tools using uv
+    session.run("uv", "pip", "install", "ruff", "black", external=True)
+
+    # Run black with fix
+    session.run("black", ".")
+
+    # Run ruff with fix
+    session.run("ruff", "check", ".", "--fix")

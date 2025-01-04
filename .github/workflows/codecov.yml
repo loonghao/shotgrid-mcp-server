@@ -24,7 +24,7 @@ jobs:
           poetry --version
       - name: Run tests and collect coverage
         run: |
-          nox -s pytest
+          nox -s tests
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
