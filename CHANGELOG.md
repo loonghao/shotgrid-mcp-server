@@ -1,3 +1,9 @@
+## v0.2.1 (2025-01-05)
+
+### Refactor
+
+- **workflows**: Update dependency installation in workflows
+
 ## v0.2.0 (2025-01-05)
 
 ### Feat
