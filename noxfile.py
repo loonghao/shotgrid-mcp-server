@@ -5,6 +5,7 @@ import sys
 # Import third-party modules
 import nox
 
+
 ROOT = os.path.dirname(__file__)
 
 # Ensure shotgrid_mcp_server is importable
@@ -12,8 +13,7 @@ if ROOT not in sys.path:
     sys.path.append(ROOT)
 
 # Import local modules
-from nox_actions import lint
-from nox_actions import release
+from nox_actions import lint, release
 
 
 @nox.session()
@@ -24,6 +24,9 @@ def tests(session: nox.Session) -> None:
 
     # Use uv to install dependencies
     session.run("uv", "pip", "install", "-e", ".[test]", external=True)
+
+    # Install six package
+    session.run("uv", "pip", "install", "six", external=True)
 
     # Run tests
     session.run(

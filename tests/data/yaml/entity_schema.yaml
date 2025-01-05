@@ -1,0 +1,411 @@
+Department:
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+EventLogEntry:
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  entity:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+        - Shot
+        - HumanUser
+        - Group
+        - Department
+        - PermissionRuleSet
+  event_type:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  user:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+Group:
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+HumanUser:
+  department:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Department
+  email:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  groups:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Group
+  login:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  name:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  permission_rule_set:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - PermissionRuleSet
+PermissionRuleSet:
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+Project:
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  name:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_status:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_type:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  users:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+Shot:
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  image:
+    data_type:
+      value: image
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - image
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+Asset:
+  code:
+    data_type:
+      value: text
+    properties:
+      description: Asset code
+      summary_default: true
+      editable: true
+      entity_type: Asset
+      visible: true
+  project:
+    data_type:
+      value: entity
+    properties:
+      description: Project that contains this asset
+      summary_default: true
+      editable: true
+      entity_type: Project
+      visible: true
+  sg_asset_type:
+    data_type:
+      value: text
+    properties:
+      description: Type of asset (Character, Prop, Environment, etc.)
+      summary_default: true
+      editable: true
+      entity_type: Asset
+      visible: true
+  description:
+    data_type:
+      value: text
+    properties:
+      description: Asset description
+      summary_default: false
+      editable: true
+      entity_type: Asset
+      visible: true
+  sg_status_list:
+    data_type:
+      value: status_list
+    properties:
+      description: Asset status
+      summary_default: true
+      editable: true
+      entity_type: Asset
+      visible: true
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      description: User who created this asset
+      summary_default: false
+      editable: false
+      entity_type: HumanUser
+      visible: true
+  image:
+    data_type:
+      value: image
+    properties:
+      description: Thumbnail for the asset
+      summary_default: false
+      editable: true
+      entity_type: Asset
+      visible: true
+Step:
+  code:
+    data_type:
+      value: text
+    properties:
+      description: Step code
+      summary_default: true
+      editable: true
+      entity_type: Step
+      visible: true
+  short_name:
+    data_type:
+      value: text
+    properties:
+      description: Short name for the step
+      summary_default: true
+      editable: true
+      entity_type: Step
+      visible: true
+  description:
+    data_type:
+      value: text
+    properties:
+      description: Step description
+      summary_default: false
+      editable: true
+      entity_type: Step
+      visible: true
+Task:
+  content:
+    data_type:
+      value: text
+    properties:
+      description: Task content
+      summary_default: true
+      editable: true
+      entity_type: Task
+      visible: true
+  project.Project.id:
+    data_type:
+      value: entity
+    properties:
+      description: Project that the task belongs to
+      summary_default: true
+      editable: true
+      entity_type: Project
+      visible: true
+  step.Step.id:
+    data_type:
+      value: entity
+    properties:
+      description: Pipeline step for this task
+      summary_default: true
+      editable: true
+      entity_type: Step
+      visible: true
+  entity.Asset.id:
+    data_type:
+      value: entity
+    properties:
+      description: The entity this task is linked to
+      summary_default: true
+      editable: true
+      entity_type: Entity
+      visible: true
+  task_assignees.HumanUser.id:
+    data_type:
+      value: multi_entity
+    properties:
+      description: Users assigned to this task
+      summary_default: true
+      editable: true
+      entity_type: HumanUser
+      visible: true
+  sg_status_list:
+    data_type:
+      value: status_list
+    properties:
+      description: Status of the task
+      summary_default: true
+      editable: true
+      entity_type: Task
+      visible: true
+  due_date:
+    data_type:
+      value: date
+    properties:
+      description: When this task is due
+      summary_default: true
+      editable: true
+      entity_type: Task
+      visible: true
+  duration:
+    data_type:
+      value: number
+    properties:
+      description: Duration in days
+      summary_default: true
+      editable: true
+      entity_type: Task
+      visible: true
+  created_by.HumanUser.id:
+    data_type:
+      value: entity
+    properties:
+      description: User who created this task
+      summary_default: false
+      editable: false
+      entity_type: HumanUser
+      visible: true

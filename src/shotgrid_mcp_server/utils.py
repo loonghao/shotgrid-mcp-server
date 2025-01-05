@@ -10,7 +10,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -145,10 +144,10 @@ def chunk_data(data: Any, chunk_size: int = 1000) -> List[Any]:
         List of data chunks.
     """
     if isinstance(data, list):
-        return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+        return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
     elif isinstance(data, dict):
         items = list(data.items())
-        chunks = [dict(items[i:i + chunk_size]) for i in range(0, len(items), chunk_size)]
+        chunks = [dict(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
         return chunks
     else:
         return [data]
@@ -186,5 +185,8 @@ def filter_essential_fields(data: Dict[str, Any], essential_fields: Set[str]) ->
     """
     if not isinstance(data, dict):
         return data
-    return {k: filter_essential_fields(v, essential_fields) if isinstance(v, dict) else v 
-            for k, v in data.items() if k in essential_fields}
+    return {
+        k: filter_essential_fields(v, essential_fields) if isinstance(v, dict) else v
+        for k, v in data.items()
+        if k in essential_fields
+    }
