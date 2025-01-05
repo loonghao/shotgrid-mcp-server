@@ -100,4 +100,50 @@ SCRIPT_KEY=your_script_key
 
 ## 📄 许可证
 
-MIT License - 查看[LICENSE](LICENSE)文件了解详细信息。
+MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
+
+## 🔌 MCP客户端配置
+
+在MCP客户端中使用ShotGrid MCP服务器时，需要在客户端设置中添加以下配置：
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SCRIPT_NAME": "XXX",
+        "SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_entities",
+        "create_entity",
+        "batch_create",
+        "find_entity",
+        "get_entity_types",
+        "update_entity",
+        "download_thumbnail",
+        "batch_update",
+        "delete_entity",
+        "batch_delete"
+      ]
+    }
+  }
+}
+```
+
+### 🔑 凭证设置
+
+请将以下值替换为您的ShotGrid凭证：
+- `SCRIPT_NAME`: 您的ShotGrid脚本名称
+- `SCRIPT_KEY`: 您的ShotGrid脚本密钥
+- `SHOTGRID_URL`: 您的ShotGrid服务器URL
+
+### 🛡️ 工具权限
+
+`alwaysAllow`部分列出了可以无需用户确认即可执行的工具。这些工具经过精心选择，确保操作安全。
