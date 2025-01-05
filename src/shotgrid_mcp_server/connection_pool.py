@@ -153,14 +153,14 @@ class ShotGridConnectionPool:
             ValueError: If required environment variables are missing.
         """
         url = os.getenv("SHOTGRID_URL")
-        script_name = os.getenv("SCRIPT_NAME")
-        script_key = os.getenv("SCRIPT_KEY")
+        script_name = os.getenv("SHOTGRID_SCRIPT_NAME")
+        script_key = os.getenv("SHOTGRID_SCRIPT_KEY")
 
         if not all([url, script_name, script_key]):
             logger.error("Missing required environment variables for ShotGrid connection")
             logger.debug("SHOTGRID_URL: %s", url)
-            logger.debug("SCRIPT_NAME: %s", script_name)
-            logger.debug("SCRIPT_KEY: %s", script_key)
+            logger.debug("SHOTGRID_SCRIPT_NAME: %s", script_name)
+            logger.debug("SHOTGRID_SCRIPT_KEY: %s", script_key)
             raise ValueError("Missing required environment variables for ShotGrid connection")
 
         # At this point, we know these values are not None

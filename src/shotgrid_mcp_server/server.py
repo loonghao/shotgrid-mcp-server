@@ -399,9 +399,9 @@ def create_server() -> FastMCP:
         # Set up logging
         setup_logging()
         logger.info("Starting ShotGrid MCP server...")
+        mcp = FastMCP(name="shotgrid-server")
 
         # Create server instance
-        mcp = FastMCP(name="shotgrid-server")
         logger.info("Created FastMCP instance")
 
         # Create tools instance and register tools using connection context
@@ -422,10 +422,13 @@ def create_server() -> FastMCP:
         raise
 
 
+# for fastmcp to run development server.
+app = create_server()
+
+
 def main() -> None:
     """Entry point for the ShotGrid MCP server."""
-    server = create_server()
-    server.run()
+    app.run()
 
 
 if __name__ == "__main__":
