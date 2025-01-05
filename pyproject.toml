@@ -25,6 +25,12 @@ test = [
     "pytest-cov>=4.0.0",
     "PyYAML",
 ]
+lint = [
+    "ruff",
+    "black",
+    "mypy",
+    "types-requests",
+]
 
 [project.scripts]
 shotgrid-mcp-server = "shotgrid_mcp_server.server:main"
@@ -55,7 +61,7 @@ shotgun-api3 = { git = "https://github.com/shotgunsoftware/python-api", tag = "v
 
 
 [tool.coverage.run]
-source = ["wecom_bot_mcp_server"]
+source = ["shotgrid_mcp_server"]
 branch = true
 
 [tool.coverage.report]
@@ -81,6 +87,11 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
+mypy_path = "src"
+packages = ["shotgrid_mcp_server"]
+ignore_missing_imports = true
+namespace_packages = false
+explicit_package_bases = false
 
 [tool.black]
 line-length = 120
@@ -111,8 +122,23 @@ include_trailing_comma = true
 lines_after_imports = 2
 lines_between_types = 1
 use_parentheses = true
-src_paths = ["src", "tests"]
+src_paths = ["shotgrid_mcp_server", "tests"]
 filter_files = true
+known_first_party = "shotgrid_mcp_server"
+
+# Enforce import section headers.
+import_heading_future = "Import future modules"
+import_heading_stdlib = "Import built-in modules"
+import_heading_thirdparty = "Import third-party modules"
+import_heading_firstparty = "Import local modules"
+
+force_sort_within_sections = true
+force_single_line = true
+
+# All project unrelated unknown imports belong to third-party.
+default_section = "THIRDPARTY"
+skip_glob = []
+
 
 [tool.ruff]
 line-length = 120
@@ -133,19 +159,3 @@ ignore = []
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "noxfile.py" = ["E402", "I001"]
-
-[tool.nox]
-sessions = ["lint", "test"]
-
-[tool.nox.session.lint]
-deps = [
-    "ruff",
-    "black",
-    "isort",
-    "mypy",
-]
-commands = [
-    "ruff check .",
-    "ruff format --check .",
-    "mypy src/wecom_bot_mcp_server --strict"
-]

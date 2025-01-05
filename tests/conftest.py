@@ -1,9 +1,6 @@
 """Test fixtures for the ShotGrid MCP server."""
 
 # Import built-in modules
-import json
-import os
-from typing import Any, Dict, List, Optional, Union
 import pickle
 from pathlib import Path
 
@@ -14,7 +11,6 @@ from fastmcp import FastMCP
 
 # Import local modules
 from shotgrid_mcp_server.connection_pool import MockShotgunFactory, ShotGridConnectionContext
-from shotgrid_mcp_server.mockgun_ext import MockgunExt
 from shotgrid_mcp_server.server import ShotGridTools
 
 

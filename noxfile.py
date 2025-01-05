@@ -16,7 +16,7 @@ if ROOT not in sys.path:
 from nox_actions import lint, release
 
 
-@nox.session()
+@nox.session(name="tests")
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""
     # Install uv if not already installed
@@ -24,9 +24,6 @@ def tests(session: nox.Session) -> None:
 
     # Use uv to install dependencies
     session.run("uv", "pip", "install", "-e", ".[test]", external=True)
-
-    # Install six package
-    session.run("uv", "pip", "install", "six", external=True)
 
     # Run tests
     session.run(
@@ -51,7 +48,8 @@ def lint_check(session: nox.Session) -> None:
     session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
 
     # Run linter
-    lint.lint(session)
+    commands = ["ruff check src", "ruff format --check src", "mypy src"]
+    lint.lint(session, commands)
 
 
 @nox.session(name="lint-fix")
@@ -62,22 +60,8 @@ def lint_fix(session: nox.Session) -> None:
 
     # Use uv to install dependencies
     session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
-
-    # Run linter and fix issues
+    # Run linter
     lint.lint_fix(session)
-
-
-@nox.session
-def build_exe(session: nox.Session) -> None:
-    """Build the executable."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Use uv to install dependencies
-    session.run("uv", "pip", "install", "-e", ".[build]", external=True)
-
-    # Build executable
-    release.build_exe(session)
 
 
 @nox.session(name="build-wheel")
@@ -88,6 +72,10 @@ def build_wheel(session: nox.Session) -> None:
 
     # Use uv to install dependencies
     session.run("uv", "pip", "install", "-e", ".[build]", external=True)
+
+    # Install build and hatchling
+    session.run("python", "-m", "pip", "install", "uv", silent=True)
+    session.run("uv", "pip", "install", "build", "hatchling", external=True)
 
     # Build wheel
     release.build_wheel(session)
