@@ -1,14 +1,21 @@
-import datetime
-from typing import Any, Dict, List, Optional
+"""ShotGrid mock client implementation with extended functionality."""
 
+# Import built-in modules
+import datetime
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast
+
+# Import third-party modules
 from shotgun_api3 import ShotgunError
 from shotgun_api3.lib.mockgun import Shotgun
 
+T = TypeVar("T")
+AttachmentResult = Union[bytes, str]
 
-class MockgunExt(Shotgun):
-    """Extended Mockgun class with additional functionality"""
 
-    def __init__(self, base_url, *args, **kwargs):
+class MockgunExt(Shotgun):  # type: ignore
+    """Extended Mockgun class with additional functionality."""
+
+    def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
         """Initialize MockgunExt.
 
         Args:
@@ -17,7 +24,7 @@ class MockgunExt(Shotgun):
             **kwargs: Additional keyword arguments.
         """
         super().__init__(base_url, *args, **kwargs)
-        self._db = {}
+        self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
             self._db[entity_type] = {}
 
@@ -160,6 +167,41 @@ class MockgunExt(Shotgun):
             else:
                 self._validate_simple_field(entity_type, field, item, field_info)
 
+    def _validate_entity_exists(self, entity_type: str, entity_id: int) -> bool:
+        """Validate that an entity exists in the database.
+
+        Args:
+            entity_type: Type of entity.
+            entity_id: ID of the entity.
+
+        Returns:
+            bool: True if entity exists, False otherwise.
+        """
+        return entity_type in self._db and entity_id in self._db[entity_type]
+
+    def _validate_entity_type(self, entity_type: str) -> bool:
+        """Validate that an entity type exists in the schema.
+
+        Args:
+            entity_type: Type of entity.
+
+        Returns:
+            bool: True if entity type exists, False otherwise.
+        """
+        return entity_type in self._schema
+
+    def _get_field_info(self, entity_type: str, field: str) -> Dict[str, Any]:
+        """Get field information from the schema.
+
+        Args:
+            entity_type: Type of entity.
+            field: Field name.
+
+        Returns:
+            dict: Field information from schema.
+        """
+        return cast(Dict[str, Any], self._schema[entity_type].get(field, {}))
+
     def create(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create an entity in the mock database.
 
@@ -180,22 +222,22 @@ class MockgunExt(Shotgun):
 
         return entity
 
-    def delete(self, entity_type, entity_id):
+    def delete(self, entity_type: str, entity_id: int) -> None:
         """Delete an entity from the mock database.
 
         Args:
-            entity_type (str): Type of entity to delete.
-            entity_id (int): ID of the entity.
+            entity_type: Type of entity to delete.
+            entity_id: ID of the entity.
         """
         if entity_type in self._db and entity_id in self._db[entity_type]:
             del self._db[entity_type][entity_id]
 
-    def download_attachment(self, attachment_data, file_path=None):
+    def download_attachment(self, attachment_data: Dict[str, Any], file_path: Optional[str] = None) -> AttachmentResult:
         """Download an attachment from the mock database.
 
         Args:
-            attachment_data (dict): Attachment data containing URL or ID.
-            file_path (str, optional): Path to save the file. Defaults to None.
+            attachment_data: Attachment data containing URL or ID.
+            file_path: Path to save the file.
 
         Returns:
             bytes: Mock attachment data.
@@ -209,7 +251,7 @@ class MockgunExt(Shotgun):
             return file_path
         return mock_data
 
-    def _apply_filter(self, entity: Any, filter_item: List[Any]) -> bool:
+    def _apply_filter(self, entity: Dict[str, Any], filter_item: List[Any]) -> bool:
         """Apply a single filter to an entity.
 
         Args:
@@ -219,31 +261,33 @@ class MockgunExt(Shotgun):
         Returns:
             bool: True if entity matches filter, False otherwise.
         """
-        field, operator, value = filter_item
+        field_name = filter_item[0]
+        operator = filter_item[1]
+        value = filter_item[2]
+
+        if field_name not in entity:
+            return False
+
+        entity_value = entity[field_name]
 
         if operator == "is":
-            if isinstance(entity, dict):
-                return entity.get(field) == value
-            return getattr(entity, field, None) == value
-
+            return bool(entity_value == value)
         if operator == "is_not":
-            if isinstance(entity, dict):
-                return entity.get(field) != value
-            return getattr(entity, field, None) != value
-
+            return bool(entity_value != value)
+        if operator == "less_than":
+            return bool(entity_value < value)
+        if operator == "greater_than":
+            return bool(entity_value > value)
+        if operator == "contains":
+            return bool(value in entity_value)
         if operator == "in":
-            if isinstance(entity, dict):
-                return entity.get(field) in value
-            return getattr(entity, field, None) in value
-
-        if operator == "not_in":
-            if isinstance(entity, dict):
-                return entity.get(field) not in value
-            return getattr(entity, field, None) not in value
+            return bool(entity_value in value)
 
         return False
 
-    def _apply_filters(self, entity: Any, filters: List[List[Any]], filter_operator: str = "and") -> bool:
+    def _apply_filters(
+        self, entity: Dict[str, Any], filters: List[List[Any]], filter_operator: Optional[str] = "and"
+    ) -> bool:
         """Apply filters to an entity.
 
         Args:
@@ -321,7 +365,7 @@ class MockgunExt(Shotgun):
                 if field.startswith("-"):
                     field = field[1:]
                     reverse = True
-                entities.sort(key=lambda x: x.get(field), reverse=reverse)
+                entities.sort(key=lambda x: cast(Any, x.get(field)), reverse=reverse)
 
         # Apply limit
         if limit is not None and limit > 0:
@@ -354,7 +398,7 @@ class MockgunExt(Shotgun):
         results = self.find(entity_type, filters, fields, order, filter_operator, limit=1)
         if not results:
             return None
-            
+
         # Add type field to entity
         entity = results[0]
         if isinstance(entity, dict):
@@ -383,19 +427,19 @@ class MockgunExt(Shotgun):
         entity = self.find_one(entity_type, [["id", "is", entity_id]])
         if not entity:
             raise ShotgunError(f"Entity {entity_type} with id {entity_id} not found")
-        
+
         if field_name not in entity or not entity[field_name]:
             raise ShotgunError(f"Entity {entity_type} with id {entity_id} has no {field_name}")
-        
+
         return "https://example.com/thumbnail.jpg"
 
-    def get_attachment_download_url(self, entity_type, entity_id, field_name):
+    def get_attachment_download_url(self, entity_type: str, entity_id: int, field_name: str) -> str:
         """Get the download URL for an attachment.
 
         Args:
-            entity_type (str): Type of entity.
-            entity_id (int): ID of the entity.
-            field_name (str): Name of the attachment field.
+            entity_type: Type of entity.
+            entity_id: ID of the entity.
+            field_name: Name of the attachment field.
 
         Returns:
             str: Mock download URL.
@@ -410,28 +454,29 @@ class MockgunExt(Shotgun):
 
         # Check if entity has attachment field
         if field_name not in entity or not entity[field_name]:
-            return None
+            raise ShotgunError(f"Entity {entity_type} with ID {entity_id} has no attachment in field {field_name}")
 
         # Get URL from attachment field
         attachment = entity[field_name]
         if isinstance(attachment, dict):
             if "url" in attachment:
-                return attachment["url"]
+                return cast(str, attachment["url"])
             elif "name" in attachment:
-                return attachment["name"]
+                return cast(str, attachment["name"])
             elif "type" in attachment and attachment["type"] == "Attachment":
-                return attachment.get("url", None)
+                if "url" not in attachment:
+                    raise ShotgunError(f"Attachment in {entity_type}.{field_name} has no URL")
+                return cast(str, attachment["url"])
         elif isinstance(attachment, str):
             return attachment
 
-        # No valid URL found
-        return None
+        raise ShotgunError(f"Invalid attachment format in {entity_type}.{field_name}")
 
-    def schema_read(self, entity_type=None):
+    def schema_read(self, entity_type: Optional[str] = None) -> Dict[str, Any]:
         """Read schema information from the mock database.
 
         Args:
-            entity_type (str, optional): Type of entity to get schema for. Defaults to None.
+            entity_type: Type of entity to get schema for.
 
         Returns:
             dict: Schema information for the entity type.
@@ -466,3 +511,49 @@ class MockgunExt(Shotgun):
         if entity_type:
             return schema.get(entity_type, {"type": "entity", "fields": {}})
         return schema
+
+    def batch(self, requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Process a batch request.
+
+        Args:
+            requests: List of request dictionaries.
+                Each request should have:
+                - request_type: Type of request (create, update, delete)
+                - entity_type: Type of entity
+                - data: Entity data for create/update
+                - entity_id: Entity ID for update/delete
+
+        Returns:
+            List[Dict[str, Any]]: List of results, one per request.
+
+        Raises:
+            ShotgunError: If any request fails.
+        """
+        results = []
+        for request in requests:
+            request_type = request["request_type"]
+            entity_type = request["entity_type"]
+
+            try:
+                if request_type == "create":
+                    # Validate data
+                    self._validate_entity_data(entity_type, request["data"])
+
+                    # Create entity
+                    entity_id = len(self._db[entity_type]) + 1
+                    entity = {"id": entity_id, "type": entity_type, **request["data"]}
+                    self._db[entity_type][entity_id] = entity
+                    results.append(entity)
+                elif request_type == "update":
+                    result = self.update(entity_type, request["entity_id"], request["data"])
+                    results.append(result)
+                elif request_type == "delete":
+                    self.delete(entity_type, request["entity_id"])
+                    # Return a dictionary for delete operation to maintain consistent return type
+                    results.append({"id": request["entity_id"], "type": entity_type, "status": "deleted"})
+                else:
+                    raise ShotgunError(f"Unknown request type: {request_type}")
+            except Exception as err:
+                raise ShotgunError(f"Batch operation failed: {str(err)}") from err
+
+        return results

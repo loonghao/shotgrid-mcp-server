@@ -4,17 +4,17 @@
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Import third-party modules
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
-from shotgrid_mcp_server.logger import setup_logging
-
 # Import local modules
-from .utils import DateTimeEncoder
+from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
+from shotgrid_mcp_server.logger import setup_logging
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -53,17 +53,18 @@ class ShotGridTools:
             error_msg = error_msg.replace("Error downloading thumbnail: ", "")
         if "Error executing tool" in error_msg:
             error_msg = error_msg.split(": ", 1)[1]
-        
+
         # Standardize error messages
         error_msg = error_msg.replace("with id", "with ID")
         if "has no image" in error_msg:
             error_msg = "No thumbnail URL found"
-            
+
         logger.error("Error in %s: %s", operation, error_msg)
         raise ToolError(f"Error executing tool {operation}: {error_msg}") from err
 
     def _register_create_tools(self) -> None:
         """Register create tools."""
+
         @self.server.tool("create_entity")
         def create_entity(
             entity_type: str,
@@ -83,41 +84,49 @@ class ShotGridTools:
             """
             try:
                 result = self.sg.create(entity_type, data)
-                return result
+                if result is None:
+                    raise ToolError(f"Failed to create {entity_type}")
+                return dict(result)  # Ensure we return a Dict[str, Any]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="create_entity")
+                raise  # This is needed to satisfy the type checker
 
         @self.server.tool("batch_create_entities")
         def batch_create_entities(
             entity_type: str,
             data_list: List[Dict[str, Any]],
-        ) -> List[Dict[str, Any]]:
+        ) -> List[Dict[str, str]]:
             """Create multiple entities in ShotGrid.
 
             Args:
                 entity_type: Type of entity to create.
-                data_list: List of data to set on each entity.
+                data_list: List of data dictionaries for each entity.
 
             Returns:
-                List[Dict[str, Any]]: List of created entities.
+                List[Dict[str, str]]: List of created entities.
 
             Raises:
                 ToolError: If the batch create operation fails.
             """
             try:
-                result = self.sg.batch(
-                    [{"request_type": "create", "entity_type": entity_type, "data": d} for d in data_list]
-                )
-                return result
+                # Create batch requests
+                requests = [{"request_type": "create", "entity_type": entity_type, "data": data} for data in data_list]
+
+                # Execute batch operation
+                result = self.sg.batch(requests)
+                if not result:
+                    raise ToolError(f"Failed to create {entity_type} entities")
+
+                return [{"text": json.dumps({"entities": result})}]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="batch_create_entities")
+                raise  # This is needed to satisfy the type checker
 
     def _register_read_tools(self) -> None:
         """Register read tools."""
+
         @self.server.tool("get_schema")
-        def get_schema(
-            entity_type: str,
-        ) -> Dict[str, Any]:
+        def get_schema(entity_type: str) -> Dict[str, Any]:
             """Get schema for an entity type.
 
             Args:
@@ -131,19 +140,26 @@ class ShotGridTools:
             """
             try:
                 result = self.sg.schema_field_read(entity_type)
-                result["type"] = {"data_type": {"value": "text"}, "properties": {"default_value": {"value": entity_type}}}
-                return {"fields": result}
+                if result is None:
+                    raise ToolError(f"Failed to read schema for {entity_type}")
+                result["type"] = {
+                    "data_type": {"value": "text"},
+                    "properties": {"default_value": {"value": entity_type}},
+                }
+                return {"fields": dict(result)}  # Ensure we return Dict[str, Any]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="get_schema")
+                raise  # This is needed to satisfy the type checker
 
     def _register_update_tools(self) -> None:
         """Register update tools."""
+
         @self.server.tool("update_entity")
         def update_entity(
             entity_type: str,
             entity_id: int,
             data: Dict[str, Any],
-        ) -> Dict[str, Any]:
+        ) -> None:
             """Update an entity in ShotGrid.
 
             Args:
@@ -151,25 +167,23 @@ class ShotGridTools:
                 entity_id: ID of entity to update.
                 data: Data to update on the entity.
 
-            Returns:
-                Dict[str, Any]: Updated entity.
-
             Raises:
                 ToolError: If the update operation fails.
             """
             try:
                 result = self.sg.update(entity_type, entity_id, data)
-                return result
+                if result is None:
+                    raise ToolError(f"Failed to update {entity_type} with ID {entity_id}")
+                return None
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="update_entity")
+                raise  # This is needed to satisfy the type checker
 
     def _register_delete_tools(self) -> None:
         """Register delete tools."""
+
         @self.server.tool("delete_entity")
-        def delete_entity(
-            entity_type: str,
-            entity_id: int,
-        ) -> None:
+        def delete_entity(entity_type: str, entity_id: int) -> None:
             """Delete an entity in ShotGrid.
 
             Args:
@@ -180,12 +194,23 @@ class ShotGridTools:
                 ToolError: If the delete operation fails.
             """
             try:
-                self.sg.delete(entity_type, entity_id)
+                # First check if the entity exists
+                entity = self.sg.find_one(entity_type, [["id", "is", entity_id]])
+                if entity is None:
+                    raise ToolError(f"Entity {entity_type} with ID {entity_id} not found")
+
+                # Then try to delete it
+                result = self.sg.delete(entity_type, entity_id)
+                if result is False:  # ShotGrid API returns False on failure
+                    raise ToolError(f"Failed to delete {entity_type} with ID {entity_id}")
+                return None
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="delete_entity")
+                raise  # This is needed to satisfy the type checker
 
     def _register_search_tools(self) -> None:
         """Register search tools."""
+
         @self.server.tool("search_entities")
         def search_entities(
             entity_type: str,
@@ -219,8 +244,7 @@ class ShotGridTools:
                         # Handle special values
                         if value == "$today":
                             value = datetime.now().strftime("%Y-%m-%d")
-                    else:
-                        processed_filters.append([field, operator, value])
+                    processed_filters.append([field, operator, value])
 
                 result = self.sg.find(
                     entity_type,
@@ -230,9 +254,12 @@ class ShotGridTools:
                     filter_operator=filter_operator,
                     limit=limit,
                 )
+                if result is None:
+                    return [{"text": json.dumps({"entities": []})}]
                 return [{"text": json.dumps({"entities": result})}]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="search_entities")
+                raise  # This is needed to satisfy the type checker
 
         @self.server.tool("find_one_entity")
         def find_one_entity(
@@ -265,12 +292,16 @@ class ShotGridTools:
                     order=order,
                     filter_operator=filter_operator,
                 )
-                return [{"text": json.dumps({"text": result})}] if result else [{"text": json.dumps({"text": None})}]
+                if result is None:
+                    return [{"text": json.dumps({"text": None})}]
+                return [{"text": json.dumps({"text": result})}]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="find_one_entity")
+                raise  # This is needed to satisfy the type checker
 
     def _register_thumbnail_tools(self) -> None:
         """Register thumbnail tools."""
+
         @self.server.tool("get_thumbnail_url")
         def get_thumbnail_url(
             entity_type: str,
@@ -296,9 +327,10 @@ class ShotGridTools:
                 result = self.sg.get_thumbnail_url(entity_type, entity_id, field_name)
                 if not result:
                     raise ToolError("No thumbnail URL found")
-                return result
+                return str(result)
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="get_thumbnail_url")
+                raise  # This is needed to satisfy the type checker
 
         @self.server.tool("download_thumbnail")
         def download_thumbnail(
@@ -329,9 +361,12 @@ class ShotGridTools:
 
                 # Download thumbnail
                 result = self.sg.download_attachment({"url": url}, file_path)
-                return {"file_path": result}
+                if result is None:
+                    raise ToolError("Failed to download thumbnail")
+                return {"file_path": str(result)}
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="download_thumbnail")
+                raise  # This is needed to satisfy the type checker
 
     def register_tools(self) -> None:
         """Register all tools with the FastMCP server."""
@@ -369,11 +404,11 @@ def create_server() -> FastMCP:
         mcp = FastMCP(name="shotgrid-server")
         logger.info("Created FastMCP instance")
 
-        # Create tools instance and register tools
-        sg = Shotgun(os.getenv("SHOTGRID_URL"), os.getenv("SCRIPT_NAME"), os.getenv("SCRIPT_KEY"))
-        tools = ShotGridTools(mcp, sg)
-        tools.register_tools()
-        logger.info("Registered all tools")
+        # Create tools instance and register tools using connection context
+        with ShotGridConnectionContext() as sg:
+            tools = ShotGridTools(mcp, sg)
+            tools.register_tools()
+            logger.info("Registered all tools")
 
         # Log environment information
         logger.info("Environment information:")
@@ -387,7 +422,7 @@ def create_server() -> FastMCP:
         raise
 
 
-def main():
+def main() -> None:
     """Entry point for the ShotGrid MCP server."""
     server = create_server()
     server.run()

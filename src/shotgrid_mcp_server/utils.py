@@ -1,11 +1,13 @@
-"""Utility functions for the ShotGrid MCP server."""
+"""Utility functions for ShotGrid MCP server."""
 
+# Import built-in modules
 import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, TypeVar, Union
 
+# Import third-party modules
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -13,24 +15,44 @@ from urllib3.util.retry import Retry
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Type variables
+T = TypeVar("T")
+
+# Default entity types to support
+ENTITY_TYPES: Set[str] = {
+    "Asset",
+    "Project",
+    "Shot",
+    "Sequence",
+    "Task",
+    "HumanUser",
+    "Group",
+    "Department",
+    "Step",
+    "Pipeline",
+    "Version",
+    "PublishedFile",
+    "Note",
+    "Attachment",
+}
+
 
 def create_session() -> requests.Session:
     """Create a requests session with retry logic.
 
     Returns:
-        Session configured with retry logic.
+        requests.Session: Configured session with retry logic.
     """
     session = requests.Session()
 
     # Configure retry strategy
     retries = Retry(
-        total=3,  # number of retries
-        backoff_factor=0.5,  # wait 0.5s * (2 ** (retry - 1)) between retries
-        status_forcelist=[500, 502, 503, 504],  # retry on these status codes
-        allowed_methods=["GET", "HEAD"],  # only retry these methods
+        total=3,
+        backoff_factor=0.3,
+        status_forcelist=[500, 502, 503, 504],
     )
 
-    # Add retry adapter to session
+    # Mount retry adapter
     adapter = HTTPAdapter(max_retries=retries)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
@@ -116,60 +138,64 @@ class DateTimeEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def get_entity_types() -> set[str]:
-    """Get all available entity types.
+def get_entity_types() -> Set[str]:
+    """Get the set of entity types to support.
 
     Returns:
-        Set of entity type names.
+        Set[str]: Set of entity type names.
     """
-    # Start with default entity types
-    entity_types = set()
+    # Get entity types from environment variable
+    env_types = os.getenv("ENTITY_TYPES")
+    if env_types:
+        try:
+            types = {t.strip() for t in env_types.split(",")}
+            logger.info("Using entity types from environment: %s", types)
+            return types
+        except Exception as e:
+            logger.error("Failed to parse ENTITY_TYPES: %s", str(e))
 
-    # Add custom entity types from environment variable
-    custom_types = os.getenv("ENTITY_TYPES", "")
-    if custom_types:
-        entity_types.update(t.strip() for t in custom_types.split(",") if t.strip())
-
-    return entity_types
+    # Return default types
+    logger.info("Using default entity types: %s", ENTITY_TYPES)
+    return ENTITY_TYPES
 
 
-def chunk_data(data: Any, chunk_size: int = 1000) -> List[Any]:
-    """Split large data into smaller chunks.
+def chunk_data(data: Union[List[Dict[str, Any]], Dict[str, Any]], chunk_size: int = 50) -> List[List[Dict[str, Any]]]:
+    """Split data into chunks.
 
     Args:
-        data: Data to be chunked (list, dict, or other data types).
-        chunk_size: Maximum size of each chunk.
+        data: Data to split.
+        chunk_size: Size of each chunk.
 
     Returns:
-        List of data chunks.
+        List[List[Dict[str, Any]]]: List of data chunks.
+
+    Raises:
+        ValueError: If data is not a list or dict.
     """
-    if isinstance(data, list):
-        return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
-    elif isinstance(data, dict):
-        items = list(data.items())
-        chunks = [dict(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
-        return chunks
-    else:
-        return [data]
+    if isinstance(data, dict):
+        data = [data]
+    elif not isinstance(data, list):
+        raise ValueError("Data must be a list or dict")
+
+    return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
 
 
-def truncate_long_strings(data: Any, max_length: int = 1000) -> Any:
-    """Truncate long string values in data structures.
+def truncate_long_strings(data: T, max_length: int = 1000) -> T:
+    """Truncate long string values in data structure.
 
     Args:
-        data: Data structure containing strings to truncate.
+        data: Data structure to process.
         max_length: Maximum length for string values.
 
     Returns:
-        Data structure with truncated strings.
+        T: Processed data structure.
     """
-    if isinstance(data, dict):
-        return {k: truncate_long_strings(v, max_length) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [truncate_long_strings(item, max_length) for item in data]
-    elif isinstance(data, str) and len(data) > max_length:
-        return data[:max_length] + "..."
-
+    if isinstance(data, str):
+        return data[:max_length] if len(data) > max_length else data  # type: ignore
+    elif isinstance(data, dict):
+        return {k: truncate_long_strings(v, max_length) for k, v in data.items()}  # type: ignore
+    elif isinstance(data, (list, tuple)):
+        return type(data)(truncate_long_strings(x, max_length) for x in data)  # type: ignore
     return data
 
 
@@ -177,16 +203,10 @@ def filter_essential_fields(data: Dict[str, Any], essential_fields: Set[str]) ->
     """Filter data to keep only essential fields.
 
     Args:
-        data: Dictionary containing data.
+        data: Data to filter.
         essential_fields: Set of field names to keep.
 
     Returns:
-        Filtered dictionary containing only essential fields.
+        Dict[str, Any]: Filtered data containing only essential fields.
     """
-    if not isinstance(data, dict):
-        return data
-    return {
-        k: filter_essential_fields(v, essential_fields) if isinstance(v, dict) else v
-        for k, v in data.items()
-        if k in essential_fields
-    }
+    return {k: v for k, v in data.items() if k in essential_fields}

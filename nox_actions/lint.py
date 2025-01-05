@@ -4,7 +4,12 @@
 import nox
 
 
-def lint(session: nox.Session) -> None:
+def get_default_commands() -> list[str]:
+    """Get default linting commands."""
+    return ["ruff check .", "ruff format --check .", "mypy ."]
+
+
+def lint(session: nox.Session, commands: list[str] | None = None) -> None:
     """Run linters."""
     # Install uv if not already installed
     session.run("python", "-m", "pip", "install", "uv", silent=True)
@@ -12,14 +17,14 @@ def lint(session: nox.Session) -> None:
     # Install linting tools using uv
     session.run("uv", "pip", "install", "ruff", "black", "mypy", external=True)
 
-    # Run black check
-    session.run("black", ".", "--check")
+    if commands is None:
+        # Run default linting commands
+        commands = get_default_commands()
 
-    # Run ruff
-    session.run("ruff", "check", ".")
-
-    # Run mypy
-    session.run("mypy", "src", "--ignore-missing-imports")
+    # Run commands
+    for cmd in commands:
+        parts = cmd.split()
+        session.run(*parts)
 
 
 def lint_fix(session: nox.Session) -> None:
@@ -28,10 +33,10 @@ def lint_fix(session: nox.Session) -> None:
     session.run("python", "-m", "pip", "install", "uv", silent=True)
 
     # Install linting tools using uv
-    session.run("uv", "pip", "install", "ruff", "black", external=True)
+    session.run("uv", "pip", "install", "ruff", "black", "mypy", external=True)
 
-    # Run black with fix
-    session.run("black", ".")
+    # Run ruff format
+    session.run("ruff", "format", "src")
 
-    # Run ruff with fix
-    session.run("ruff", "check", ".", "--fix")
+    # Run ruff check with fix
+    session.run("ruff", "check", "src", "--fix")

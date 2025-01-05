@@ -9,14 +9,16 @@ import os
 import queue
 import threading
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional, Type
 
 # Import third-party modules
 from shotgun_api3 import Shotgun
+
+# Import local modules
 from src.shotgrid_mcp_server.mockgun_ext import MockgunExt
 
 # Configure logging
-logger = logging.getLogger("mcp_shotgrid_server.connection_pool")
+logger = logging.getLogger(__name__)
 
 
 class ShotgunClientFactory(ABC):
@@ -42,7 +44,7 @@ class RealShotgunFactory(ShotgunClientFactory):
         script_key: str,
         http_proxy: Optional[str] = None,
         ca_certs: Optional[str] = None,
-    ):
+    ) -> None:
         """Initialize the factory.
 
         Args:
@@ -82,7 +84,7 @@ class RealShotgunFactory(ShotgunClientFactory):
 class MockShotgunFactory(ShotgunClientFactory):
     """Factory for creating mock ShotGrid clients."""
 
-    def __init__(self, schema_path: str, schema_entity_path: str):
+    def __init__(self, schema_path: str, schema_entity_path: str) -> None:
         """Initialize the factory.
 
         Args:
@@ -98,8 +100,13 @@ class MockShotgunFactory(ShotgunClientFactory):
         Returns:
             MockgunExt: A new mock ShotGrid client instance.
         """
+        # Set schema paths before creating the instance
         MockgunExt.set_schema_paths(self.schema_path, self.schema_entity_path)
-        sg = MockgunExt("https://test.shotgunstudio.com", script_name="test_script", api_key="test_key")
+        sg = MockgunExt(
+            "https://test.shotgunstudio.com",
+            script_name="test_script",
+            api_key="test_key",
+        )
         logger.debug("Created mock ShotGrid connection")
         return sg
 
@@ -107,14 +114,23 @@ class MockShotgunFactory(ShotgunClientFactory):
 class ShotGridConnectionPool:
     """A thread-safe connection pool for ShotGrid API."""
 
-    _instance = None
-    _lock = threading.Lock()
+    _instance: Optional["ShotGridConnectionPool"] = None
+    _lock: threading.Lock = threading.Lock()
+    _pool_size: int = 10
+    _connection_queue: queue.Queue[Shotgun]
+    _initialized: bool = False
+    _factory: ShotgunClientFactory
 
-    def __new__(cls, factory: Optional[ShotgunClientFactory] = None):
+    def __new__(
+        cls: Type["ShotGridConnectionPool"], factory: Optional[ShotgunClientFactory] = None
+    ) -> "ShotGridConnectionPool":
         """Create a singleton instance of the connection pool.
 
         Args:
             factory: Factory for creating ShotGrid clients
+
+        Returns:
+            ShotGridConnectionPool: The singleton instance.
         """
         with cls._lock:
             if cls._instance is None:
@@ -147,6 +163,11 @@ class ShotGridConnectionPool:
             logger.debug("SCRIPT_KEY: %s", script_key)
             raise ValueError("Missing required environment variables for ShotGrid connection")
 
+        # At this point, we know these values are not None
+        assert url is not None
+        assert script_name is not None
+        assert script_key is not None
+
         return RealShotgunFactory(
             url=url,
             script_name=script_name,
@@ -155,7 +176,7 @@ class ShotGridConnectionPool:
             ca_certs=os.getenv("SHOTGUN_API_CACERTS"),
         )
 
-    def __init__(self, factory: Optional[ShotgunClientFactory] = None):
+    def __init__(self, factory: Optional[ShotgunClientFactory] = None) -> None:
         """Initialize the connection pool.
 
         Args:
@@ -167,7 +188,7 @@ class ShotGridConnectionPool:
             self._init_pool()
             self._initialized = True
 
-    def _init_pool(self):
+    def _init_pool(self) -> None:
         """Initialize the connection pool with connections."""
         try:
             for i in range(self._pool_size):
@@ -200,17 +221,18 @@ class ShotGridConnectionPool:
             logger.error("Failed to get connection from pool: timeout after %s seconds", timeout)
             raise
 
-    def return_connection(self, connection: Shotgun):
+    def return_connection(self, connection: Shotgun) -> None:
         """Return a connection to the pool.
 
         Args:
-            connection: The ShotGrid connection to return to the pool.
+            connection: Connection to return to the pool.
         """
         try:
             self._connection_queue.put(connection)
             logger.debug("Returned connection to pool (available: %d)", self._connection_queue.qsize())
-        except queue.Full:
-            logger.warning("Connection pool is full, discarding connection")
+        except Exception as e:
+            logger.error("Failed to return connection to pool: %s", str(e), exc_info=True)
+            raise
 
 
 class ShotGridConnectionContext:
@@ -221,7 +243,7 @@ class ShotGridConnectionContext:
         pool: Optional[ShotGridConnectionPool] = None,
         factory: Optional[ShotgunClientFactory] = None,
         timeout: Optional[float] = None,
-    ):
+    ) -> None:
         """Initialize the context manager.
 
         Args:
@@ -231,7 +253,7 @@ class ShotGridConnectionContext:
         """
         self.pool = pool if pool is not None else ShotGridConnectionPool(factory)
         self.timeout = timeout
-        self.connection = None
+        self.connection: Optional[Shotgun] = None
 
     def __enter__(self) -> Shotgun:
         """Get a connection from the pool.
@@ -249,7 +271,9 @@ class ShotGridConnectionContext:
             logger.error("Failed to acquire connection: %s", str(e), exc_info=True)
             raise
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[Any]
+    ) -> None:
         """Return the connection to the pool."""
         if self.connection:
             self.pool.return_connection(self.connection)

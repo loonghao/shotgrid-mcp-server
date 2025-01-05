@@ -37,7 +37,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(log_dir: str = None) -> None:
+def setup_logging(log_dir: Optional[str] = None) -> None:
     """Set up logging configuration.
 
     Args:
@@ -62,7 +62,10 @@ def setup_logging(log_dir: str = None) -> None:
 
     # Create file handler with rotation
     file_handler = logging.handlers.RotatingFileHandler(
-        log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10MB
+        str(log_file),  # Convert Path to str for compatibility
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=5,
+        encoding="utf-8",
     )
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.DEBUG)
