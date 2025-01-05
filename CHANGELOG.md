@@ -1,3 +1,9 @@
+## v0.2.2 (2025-01-05)
+
+### Refactor
+
+- **server**: Refactor import statements in connection_pool and add test_imports script
+
 ## v0.2.1 (2025-01-05)
 
 ### Refactor
