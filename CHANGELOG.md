@@ -1,3 +1,9 @@
+## v0.2.3 (2025-01-05)
+
+### Refactor
+
+- **deps**: Update dependencies and lock file
+
 ## v0.2.2 (2025-01-05)
 
 ### Refactor
