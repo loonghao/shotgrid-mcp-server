@@ -1,6 +1,6 @@
 [project]
 name = "shotgrid-mcp-server"
-version = "0.2.4"
+version = "0.2.5"
 description = "A Model Context Protocol (MCP) server implementation using fastmcp"
 readme = "README.md"
 requires-python = ">=3.10,<3.11"
@@ -70,7 +70,7 @@ shotgrid-mcp-server = "shotgrid_mcp_server.server:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.4"
+version = "0.2.5"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
