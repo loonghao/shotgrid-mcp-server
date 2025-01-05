@@ -3,8 +3,8 @@ import os
 
 # Import third-party modules
 import nox
-from nox_actions.utils import PACKAGE_NAME
-from nox_actions.utils import THIS_ROOT
+
+from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 
 
 def pytest(session: nox.Session) -> None:

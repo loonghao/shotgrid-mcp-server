@@ -1,0 +1,918 @@
+Department:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+EventLogEntry:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  entity:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+        - Shot
+        - HumanUser
+        - Group
+        - Department
+        - PermissionRuleSet
+  event_type:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  user:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+Group:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+HumanUser:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  department:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Department
+  email:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  groups:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Group
+  login:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  name:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  permission_rule_set:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - PermissionRuleSet
+PermissionRuleSet:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+Project:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  name:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_status:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_type:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  users:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+Shot:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  sg_sequence:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Sequence
+  sg_status_list:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_cut_in:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  sg_cut_out:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  sg_cut_duration:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  sg_working_duration:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  updated_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  image:
+    data_type:
+      value: image
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - image
+Sequence:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+Asset:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Asset code"
+      summary_default: true
+      editable: true
+      entity_type: "Asset"
+      visible: true
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+      description: "Project that contains this asset"
+      summary_default: true
+      editable: true
+      entity_type: "Project"
+      visible: true
+  sg_asset_type:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Type of asset (Character, Prop, Environment, etc.)"
+      summary_default: true
+      editable: true
+      entity_type: "Asset"
+      visible: true
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Asset description"
+      summary_default: false
+      editable: true
+      entity_type: "Asset"
+      visible: true
+  sg_status_list:
+    data_type:
+      value: status_list
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - status_list
+      description: "Asset status"
+      summary_default: true
+      editable: true
+      entity_type: "Asset"
+      visible: true
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+      description: "User who created this asset"
+      summary_default: false
+      editable: false
+      entity_type: "HumanUser"
+      visible: true
+  image:
+    data_type:
+      value: image
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - image
+      description: "Thumbnail for the asset"
+      summary_default: false
+      editable: true
+      entity_type: "Asset"
+      visible: true
+Step:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Step code"
+      summary_default: true
+      editable: true
+      entity_type: "Step"
+      visible: true
+  short_name:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Short name for the step"
+      summary_default: true
+      editable: true
+      entity_type: "Step"
+      visible: true
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+      description: "Step description"
+      summary_default: false
+      editable: true
+      entity_type: "Step"
+      visible: true
+Task:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  content:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  step:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Step
+  entity:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Asset
+        - Shot
+  task_assignees:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - HumanUser
+  sg_status_list:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  due_date:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  duration:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  upstream_tasks:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Task
+Version:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  entity:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Asset
+        - Shot
+  sg_task:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Task
+  user:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_status_list:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_path_to_frames:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  sg_path_to_movie:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  sg_first_frame:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  sg_last_frame:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  frame_count:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+Playlist:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  code:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  description:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  versions:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Version
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+
+Note:
+  id:
+    data_type:
+      value: number
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - number
+  project:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - Project
+  content:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text
+  note_links:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Version
+  user:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  addressings_to:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - HumanUser
+  tasks:
+    data_type:
+      value: multi_entity
+    properties:
+      default_value:
+        value: []
+      valid_types:
+        value:
+        - Task
+  created_by:
+    data_type:
+      value: entity
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - HumanUser
+  sg_status_list:
+    data_type:
+      value: text
+    properties:
+      default_value:
+        value: null
+      valid_types:
+        value:
+        - text

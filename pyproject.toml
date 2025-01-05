@@ -3,7 +3,7 @@ name = "shotgrid-mcp-server"
 version = "0.1.0"
 description = "A Model Context Protocol (MCP) server implementation using fastmcp"
 readme = "README.md"
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "fastmcp>=0.4.1",
     "mcp>=1.2.0",
@@ -21,9 +21,13 @@ dependencies = [
 test = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
+    "pytest-cov>=4.0.0",
+    "PyYAML",
 ]
+
+[project.scripts]
+shotgrid-mcp-server = "shotgrid_mcp_server.server:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -40,18 +44,108 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/shotgrid_mcp_server"]
 
-[tool.ruff]
-line-length = 120
-target-version = "py310"
-
-[tool.black]
-line-length = 120
-target-version = ["py310"]
-
 [tool.pytest.ini_options]
+asyncio_mode = "strict"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --tb=short"
+addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
 
 [tool.uv.sources]
 shotgun-api3 = { git = "https://github.com/shotgunsoftware/python-api", tag = "v3.7.0" }
+
+
+[tool.coverage.run]
+source = ["wecom_bot_mcp_server"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[tool.black]
+line-length = 120
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.nox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+profile = "black"
+atomic = true
+include_trailing_comma = true
+lines_after_imports = 2
+lines_between_types = 1
+use_parentheses = true
+src_paths = ["src", "tests"]
+filter_files = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"noxfile.py" = ["E402", "I001"]
+
+[tool.nox]
+sessions = ["lint", "test"]
+
+[tool.nox.session.lint]
+deps = [
+    "ruff",
+    "black",
+    "isort",
+    "mypy",
+]
+commands = [
+    "ruff check .",
+    "ruff format --check .",
+    "mypy src/wecom_bot_mcp_server --strict"
+]

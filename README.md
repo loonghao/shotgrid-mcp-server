@@ -1,21 +1,38 @@
-# ShotGrid MCP Server
+# 🎯 ShotGrid MCP Server
 
-A Model Context Protocol (MCP) server implementation for ShotGrid using fastmcp. This server provides a standardized interface for interacting with ShotGrid through MCP tools.
+English | [简体中文](README_zh.md)
 
-## Features
+<div align="center">
 
-- Create, read, update, and delete ShotGrid entities
-- Download thumbnails and attachments
-- Connection pooling for efficient resource management
-- Comprehensive test coverage
+A high-performance ShotGrid Model Context Protocol (MCP) server implementation based on fastmcp
 
-## Installation
+[![Python Version](https://img.shields.io/pypi/pyversions/shotgrid-mcp-server.svg)](https://pypi.org/project/shotgrid-mcp-server/)
+[![License](https://img.shields.io/github/license/loonghao/shotgrid-mcp-server.svg)](LICENSE)
+[![PyPI version](https://badge.fury.io/py/shotgrid-mcp-server.svg)](https://badge.fury.io/py/shotgrid-mcp-server)
+[![Downloads](https://pepy.tech/badge/shotgrid-mcp-server)](https://pepy.tech/project/shotgrid-mcp-server)
 
+</div>
+
+## ✨ Features
+
+- 🚀 High-performance implementation based on fastmcp
+- 🛠 Complete CRUD operation toolset
+- 🖼 Dedicated thumbnail download/upload tools
+- 🔄 Efficient connection pool management
+- ✅ Comprehensive test coverage with pytest
+- 📦 Dependency management with UV
+- 🌐 Cross-platform support (Windows, macOS, Linux)
+
+## 🚀 Quick Start
+
+### Installation
+
+Install using UV:
 ```bash
 uv pip install shotgrid-mcp-server
 ```
 
-## Development Setup
+### Development Setup
 
 1. Clone the repository:
 ```bash
@@ -25,32 +42,62 @@ cd shotgrid-mcp-server
 
 2. Install development dependencies:
 ```bash
-uv pip install -e ".[test]"
+pip install -r requirements-dev.txt
 ```
 
-3. Run tests:
+3. Development Commands
+All development commands are managed through nox. Check `noxfile.py` for available commands:
 ```bash
-python -m nox -s tests
+# Run tests
+nox -s tests
+
+# Run linting
+nox -s lint
+
+# Run type checking
+nox -s type_check
+
+# And more...
 ```
 
-4. Start development server:
-```bash
-uv run fastmcp dev src/shotgrid_mcp_server/server.py
-```
+## ⚙️ Configuration
 
-## Environment Variables
+### Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Create a `.env` file with the following variables:
 ```bash
 SHOTGRID_URL=your_shotgrid_url
 SCRIPT_NAME=your_script_name
 SCRIPT_KEY=your_script_key
 ```
 
-## Version
+## 🔧 Available Tools
 
-Current version: 0.0.1
+- `create`: Create ShotGrid entities
+- `read`: Read entity information
+- `update`: Update entity data
+- `delete`: Delete entities
+- `download_thumbnail`: Download entity thumbnails
+- `upload_thumbnail`: Upload entity thumbnails
 
-## License
+## 📚 API Documentation
 
-MIT License
+For detailed API documentation, please refer to the documentation files in the `/docs` directory.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please ensure:
+
+1. Follow Google Python Style Guide
+2. Write tests using pytest
+3. Update documentation
+4. Use absolute imports
+5. Follow the project's coding standards
+
+## 📝 Version History
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+
+## 📄 License
+
+MIT License - see the [LICENSE](LICENSE) file for details.

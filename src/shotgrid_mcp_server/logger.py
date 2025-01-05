@@ -6,9 +6,9 @@ This module provides a centralized logging configuration for the entire applicat
 # Import built-in modules
 import logging
 import logging.handlers
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 from typing import Optional
 
 # Import third-party modules
