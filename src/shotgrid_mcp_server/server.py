@@ -3,7 +3,6 @@
 # Import built-in modules
 import json
 import logging
-import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -13,7 +12,10 @@ from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 # Import local modules
-from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
+from shotgrid_mcp_server.connection_pool import (
+    ShotGridConnectionContext,
+    ShotgunClientFactory,
+)
 from shotgrid_mcp_server.logger import setup_logging
 
 # Configure logger
@@ -62,19 +64,38 @@ class ShotGridTools:
         logger.error("Error in %s: %s", operation, error_msg)
         raise ToolError(f"Error executing tool {operation}: {error_msg}") from err
 
+    @staticmethod
+    def _serialize_entity(entity: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize entity data for JSON response.
+
+        Args:
+            entity: Entity data to serialize.
+
+        Returns:
+            Dict[str, Any]: Serialized entity data.
+        """
+
+        def _serialize_value(value: Any) -> Any:
+            if isinstance(value, datetime):
+                return value.isoformat()
+            elif isinstance(value, dict):
+                return {k: _serialize_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [_serialize_value(v) for v in value]
+            return value
+
+        return _serialize_value(entity)
+
     def _register_create_tools(self) -> None:
         """Register create tools."""
 
         @self.server.tool("create_entity")
-        def create_entity(
-            entity_type: str,
-            data: Dict[str, Any],
-        ) -> Dict[str, Any]:
+        def create_entity(entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
             """Create an entity in ShotGrid.
 
             Args:
                 entity_type: Type of entity to create.
-                data: Data to set on the entity.
+                data: Entity data.
 
             Returns:
                 Dict[str, Any]: Created entity.
@@ -83,44 +104,43 @@ class ShotGridTools:
                 ToolError: If the create operation fails.
             """
             try:
+                # Create entity
                 result = self.sg.create(entity_type, data)
                 if result is None:
                     raise ToolError(f"Failed to create {entity_type}")
-                return dict(result)  # Ensure we return a Dict[str, Any]
+
+                # Return serialized entity
+                return self._serialize_entity(result)
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="create_entity")
-                raise  # This is needed to satisfy the type checker
 
         @self.server.tool("batch_create_entities")
-        def batch_create_entities(
-            entity_type: str,
-            data_list: List[Dict[str, Any]],
-        ) -> List[Dict[str, str]]:
+        def batch_create_entities(entity_type: str, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             """Create multiple entities in ShotGrid.
 
             Args:
                 entity_type: Type of entity to create.
-                data_list: List of data dictionaries for each entity.
+                data_list: List of entity data.
 
             Returns:
-                List[Dict[str, str]]: List of created entities.
+                List[Dict[str, Any]]: List of created entities.
 
             Raises:
-                ToolError: If the batch create operation fails.
+                ToolError: If any create operation fails.
             """
             try:
-                # Create batch requests
-                requests = [{"request_type": "create", "entity_type": entity_type, "data": data} for data in data_list]
+                # Create entities one by one
+                results = []
+                for data in data_list:
+                    result = self.sg.create(entity_type, data)
+                    if result is None:
+                        raise ToolError(f"Failed to create {entity_type}")
+                    results.append(result)
 
-                # Execute batch operation
-                result = self.sg.batch(requests)
-                if not result:
-                    raise ToolError(f"Failed to create {entity_type} entities")
-
-                return [{"text": json.dumps({"entities": result})}]
+                # Return serialized entities
+                return [self._serialize_entity(result) for result in results]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="batch_create_entities")
-                raise  # This is needed to satisfy the type checker
 
     def _register_read_tools(self) -> None:
         """Register read tools."""
@@ -294,7 +314,7 @@ class ShotGridTools:
                 )
                 if result is None:
                     return [{"text": json.dumps({"text": None})}]
-                return [{"text": json.dumps({"text": result})}]
+                return [{"text": json.dumps({"text": self._serialize_entity(result)})}]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="find_one_entity")
                 raise  # This is needed to satisfy the type checker
@@ -389,47 +409,47 @@ class ShotGridTools:
         self._register_thumbnail_tools()
 
 
-def create_server() -> FastMCP:
-    """Create and configure the MCP server.
+def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
+    """Create a FastMCP server instance.
+
+    Args:
+        factory: Optional factory for creating ShotGrid clients, used in testing.
 
     Returns:
-        FastMCP: The configured server instance.
+        FastMCP: The server instance.
+
+    Raises:
+        Exception: If server creation fails.
     """
     try:
-        # Set up logging
-        setup_logging()
-        logger.info("Starting ShotGrid MCP server...")
         mcp = FastMCP(name="shotgrid-server")
-
-        # Create server instance
-        logger.info("Created FastMCP instance")
+        logger.debug("Created FastMCP instance")
 
         # Create tools instance and register tools using connection context
-        with ShotGridConnectionContext() as sg:
+        with ShotGridConnectionContext(factory=factory) as sg:
             tools = ShotGridTools(mcp, sg)
             tools.register_tools()
-            logger.info("Registered all tools")
-
-        # Log environment information
-        logger.info("Environment information:")
-        logger.info("  ShotGrid URL: %s", os.getenv("SHOTGRID_URL"))
-        logger.info("  Script Name: %s", os.getenv("SCRIPT_NAME"))
-
-        return mcp
-
+            logger.debug("Registered all tools")
+            return mcp
     except Exception as err:
         logger.error("Failed to create server: %s", str(err), exc_info=True)
         raise
 
 
-# for fastmcp to run development server.
-app = create_server()
-
-
 def main() -> None:
     """Entry point for the ShotGrid MCP server."""
+    app = create_server()
     app.run()
 
 
 if __name__ == "__main__":
     main()
+else:
+    # When imported, create a mock server for testing
+    from shotgrid_mcp_server.connection_pool import MockShotgunFactory
+
+    mock_factory = MockShotgunFactory(
+        schema_path="tests/data/schema.bin",
+        schema_entity_path="tests/data/entity_schema.bin",
+    )
+    app = create_server(factory=mock_factory)
