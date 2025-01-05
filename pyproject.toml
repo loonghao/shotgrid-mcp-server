@@ -13,13 +13,13 @@ dependencies = [
     "platformdirs>=4.1.0",
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
-    "shotgun-api3 @ git+https://github.com/shotgunsoftware/python-api.git",
+    "shotgun-api3>=3.5",
 ]
 authors = [
     { name = "Hal Long", email = "hal.long@outlook.com" },
 ]
 license = { text = "MIT" }
-keywords = ["shotgrid", "mcp", "server", "api"]
+keywords = ["shotgrid", "mcp", "server", "api", "Flow Production Tracking"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -191,3 +191,8 @@ asyncio_mode = "strict"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
+
+[tool.uvx]
+dependencies = [
+    "git+https://github.com/shotgunsoftware/python-api.git#egg=shotgun-api3"
+]
