@@ -101,3 +101,49 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 ## 📄 License
 
 MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔌 MCP Client Configuration
+
+To use the ShotGrid MCP server in your MCP client, add the following configuration to your client's settings:
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SCRIPT_NAME": "XXX",
+        "SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_entities",
+        "create_entity",
+        "batch_create",
+        "find_entity",
+        "get_entity_types",
+        "update_entity",
+        "download_thumbnail",
+        "batch_update",
+        "delete_entity",
+        "batch_delete"
+      ]
+    }
+  }
+}
+```
+
+### 🔑 Credentials Setup
+
+Replace the following values with your ShotGrid credentials:
+- `SCRIPT_NAME`: Your ShotGrid script name
+- `SCRIPT_KEY`: Your ShotGrid script key
+- `SHOTGRID_URL`: Your ShotGrid server URL
+
+### 🛡️ Tool Permissions
+
+The `alwaysAllow` section lists the tools that can be executed without requiring user confirmation. These tools are carefully selected for safe operations.
