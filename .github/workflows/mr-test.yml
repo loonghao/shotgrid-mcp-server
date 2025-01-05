@@ -24,8 +24,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        shell: bash
         run: |
-          python -m pip install -r requirements-dev.txt
+          python -m pip install uv
+          uv venv
+          if [ "${{ matrix.target.os }}" = "windows-latest" ]; then
+            source .venv/Scripts/activate
+          else
+            source .venv/bin/activate
+          fi
+          uv pip install -r requirements-dev.txt
       - name: lint
+        shell: bash
         run: |
+          if [ "${{ matrix.target.os }}" = "windows-latest" ]; then
+            source .venv/Scripts/activate
+          else
+            source .venv/bin/activate
+          fi
           nox -s lint
