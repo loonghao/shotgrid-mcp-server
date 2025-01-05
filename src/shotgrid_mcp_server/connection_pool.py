@@ -15,7 +15,7 @@ from typing import Any, Optional, Type
 from shotgun_api3 import Shotgun
 
 # Import local modules
-from src.shotgrid_mcp_server.mockgun_ext import MockgunExt
+from shotgrid_mcp_server.mockgun_ext import MockgunExt
 
 # Configure logging
 logger = logging.getLogger(__name__)
