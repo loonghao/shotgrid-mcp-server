@@ -1,3 +1,9 @@
+## v0.2.4 (2025-01-05)
+
+### Refactor
+
+- **deps**: Update shotgun-api3 dependency and add uvx tool configuration
+
 ## v0.2.3 (2025-01-05)
 
 ### Refactor
