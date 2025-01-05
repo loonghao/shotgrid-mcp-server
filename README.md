@@ -64,7 +64,7 @@ nox -s type_check
 
 Here's a simple example of querying entities using the ShotGrid MCP server:
 
-![ShotGrid MCP Server Demo](images/2025-01-05_231449.png)
+![ShotGrid MCP Server Demo](images/sg-mcp.gif)
 
 ## Development
 

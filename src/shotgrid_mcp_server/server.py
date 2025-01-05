@@ -65,7 +65,7 @@ class ShotGridTools:
         raise ToolError(f"Error executing tool {operation}: {error_msg}") from err
 
     @staticmethod
-    def _serialize_entity(entity: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_entity(entity: Any) -> Dict[str, Any]:
         """Serialize entity data for JSON response.
 
         Args:
@@ -84,7 +84,9 @@ class ShotGridTools:
                 return [_serialize_value(v) for v in value]
             return value
 
-        return _serialize_value(entity)
+        if not isinstance(entity, dict):
+            return {}
+        return {k: _serialize_value(v) for k, v in entity.items()}
 
     def _register_create_tools(self) -> None:
         """Register create tools."""
@@ -113,6 +115,7 @@ class ShotGridTools:
                 return self._serialize_entity(result)
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="create_entity")
+                raise  # This is needed to satisfy the type checker
 
         @self.server.tool("batch_create_entities")
         def batch_create_entities(entity_type: str, data_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -141,6 +144,7 @@ class ShotGridTools:
                 return [self._serialize_entity(result) for result in results]
             except Exception as err:
                 ShotGridTools.handle_error(err, operation="batch_create_entities")
+                raise  # This is needed to satisfy the type checker
 
     def _register_read_tools(self) -> None:
         """Register read tools."""
