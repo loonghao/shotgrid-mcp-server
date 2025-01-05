@@ -1,4 +1,4 @@
-# 🎯 ShotGrid MCP Server
+# ShotGrid MCP Server
 
 English | [简体中文](README_zh.md)
 
@@ -60,6 +60,29 @@ nox -s type_check
 # And more...
 ```
 
+## Quick Demo
+
+Here's a simple example of querying entities using the ShotGrid MCP server:
+
+![ShotGrid MCP Server Demo](images/2025-01-05_231449.png)
+
+## Development
+
+#### Environment Setup
+
+1. Set up environment variables:
+```powershell
+$env:SHOTGRID_URL='your_shotgrid_url'
+$env:SHOTGRID_SCRIPT_NAME='your_script_name'
+$env:SHOTGRID_SCRIPT_KEY='your_script_key'
+```
+
+2. Run the development server:
+```bash
+uv run fastmcp dev src\shotgrid_mcp_server\server.py:app
+```
+The server will start in development mode with hot reloading enabled.
+
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -67,8 +90,8 @@ nox -s type_check
 Create a `.env` file with the following variables:
 ```bash
 SHOTGRID_URL=your_shotgrid_url
-SCRIPT_NAME=your_script_name
-SCRIPT_KEY=your_script_key
+SHOTGRID_SCRIPT_NAME=your_script_name
+SHOTGRID_SCRIPT_KEY=your_script_key
 ```
 
 ## 🔧 Available Tools
@@ -115,8 +138,8 @@ To use the ShotGrid MCP server in your MCP client, add the following configurati
         "shotgrid-mcp-server"
       ],
       "env": {
-        "SCRIPT_NAME": "XXX",
-        "SCRIPT_KEY": "XX",
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
       },
       "disabled": false,
@@ -140,8 +163,8 @@ To use the ShotGrid MCP server in your MCP client, add the following configurati
 ### 🔑 Credentials Setup
 
 Replace the following values with your ShotGrid credentials:
-- `SCRIPT_NAME`: Your ShotGrid script name
-- `SCRIPT_KEY`: Your ShotGrid script key
+- `SHOTGRID_SCRIPT_NAME`: Your ShotGrid script name
+- `SHOTGRID_SCRIPT_KEY`: Your ShotGrid script key
 - `SHOTGRID_URL`: Your ShotGrid server URL
 
 ### 🛡️ Tool Permissions

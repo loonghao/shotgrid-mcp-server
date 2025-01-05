@@ -2,8 +2,7 @@
 
 [English](README.md) | 简体中文
 
-<div align="center">
-
+<div align="center ">
 基于fastmcp的高性能ShotGrid Model Context Protocol (MCP) 服务器实现
 
 [![Python Version](https://img.shields.io/pypi/pyversions/shotgrid-mcp-server.svg)](https://pypi.org/project/shotgrid-mcp-server/)
@@ -22,6 +21,12 @@
 - ✅ 使用pytest的全面测试覆盖
 - 📦 使用UV进行依赖管理
 - 🌐 跨平台支持 (Windows, macOS, Linux)
+
+## 🎯 快速演示
+
+这是使用 ShotGrid MCP 服务器查询实体的简单示例：
+
+![ShotGrid MCP 服务器演示](images/2025-01-05_231449.png)
 
 ## 🚀 快速开始
 
@@ -60,6 +65,23 @@ nox -s type_check
 # 更多命令...
 ```
 
+### 🔧 开发
+
+#### 环境设置
+
+1. 设置环境变量：
+```powershell
+$env:SHOTGRID_URL='你的_shotgrid_url'
+$env:SHOTGRID_SCRIPT_NAME='你的_script_name'
+$env:SHOTGRID_SCRIPT_KEY='你的_script_key'
+```
+
+2. 运行开发服务器：
+```bash
+uv run fastmcp dev src\shotgrid_mcp_server\server.py:app
+```
+服务器将以开发模式启动，并启用热重载功能。
+
 ## ⚙️ 配置
 
 ### 环境变量
@@ -67,8 +89,8 @@ nox -s type_check
 创建`.env`文件并配置以下变量：
 ```bash
 SHOTGRID_URL=your_shotgrid_url
-SCRIPT_NAME=your_script_name
-SCRIPT_KEY=your_script_key
+SHOTGRID_SCRIPT_NAME=your_script_name
+SHOTGRID_SCRIPT_KEY=your_script_key
 ```
 
 ## 🔧 可用工具
@@ -115,8 +137,8 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
         "shotgrid-mcp-server"
       ],
       "env": {
-        "SCRIPT_NAME": "XXX",
-        "SCRIPT_KEY": "XX",
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
       },
       "disabled": false,
@@ -140,8 +162,8 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 ### 🔑 凭证设置
 
 请将以下值替换为您的ShotGrid凭证：
-- `SCRIPT_NAME`: 您的ShotGrid脚本名称
-- `SCRIPT_KEY`: 您的ShotGrid脚本密钥
+- `SHOTGRID_SCRIPT_NAME`: 您的ShotGrid脚本名称
+- `SHOTGRID_SCRIPT_KEY`: 您的ShotGrid脚本密钥
 - `SHOTGRID_URL`: 您的ShotGrid服务器URL
 
 ### 🛡️ 工具权限
