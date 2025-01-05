@@ -10,10 +10,33 @@ dependencies = [
     "uvicorn>=0.22.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
-    "platformdirs>=2.5.4",
+    "platformdirs>=4.1.0",
     "aiohttp>=3.9.0",
-    "requests>=2.32.3",
+    "requests>=2.31.0",
+    "shotgun-api3 @ git+https://github.com/shotgunsoftware/python-api.git",
 ]
+authors = [
+    { name = "Hal Long", email = "hal.long@outlook.com" },
+]
+license = { text = "MIT" }
+keywords = ["shotgrid", "mcp", "server", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/loonghao/shotgrid-mcp-server"
+Repository = "https://github.com/loonghao/shotgrid-mcp-server.git"
+Issues = "https://github.com/loonghao/shotgrid-mcp-server/issues"
+Changelog = "https://github.com/loonghao/shotgrid-mcp-server/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = [
@@ -28,6 +51,18 @@ lint = [
     "black",
     "mypy",
     "types-requests",
+]
+dev = [
+    "black>=23.12.1",
+    "coverage>=7.4.0",
+    "flake8>=7.0.0",
+    "isort>=5.13.2",
+    "mypy>=1.8.0",
+    "nox>=2023.4.22",
+    "pytest>=7.4.4",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.11",
+    "uv>=0.1.12",
 ]
 
 [project.scripts]
@@ -48,48 +83,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/shotgrid_mcp_server"]
 
-[tool.pytest.ini_options]
-asyncio_mode = "strict"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
-
-[tool.uv.sources]
-shotgun-api3 = { git = "https://github.com/shotgunsoftware/python-api.git" }
-
-
-[tool.coverage.run]
-source = ["shotgrid_mcp_server"]
-branch = true
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if __name__ == .__main__.:",
-    "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-]
-
-[tool.mypy]
-python_version = "3.10"
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-mypy_path = "src"
-packages = ["shotgrid_mcp_server"]
-ignore_missing_imports = true
-namespace_packages = false
-explicit_package_bases = false
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.black]
 line-length = 120
@@ -137,7 +132,6 @@ force_single_line = true
 default_section = "THIRDPARTY"
 skip_glob = []
 
-
 [tool.ruff]
 line-length = 120
 target-version = "py310"
@@ -152,8 +146,48 @@ select = [
     "C",  # flake8-comprehensions
     "B",  # flake8-bugbear
 ]
-ignore = []
+ignore = ["E501", "PLR0913", "RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "noxfile.py" = ["E402", "I001"]
+"tests/*" = ["S101"]
+
+[tool.coverage.run]
+source = ["shotgrid_mcp_server"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+mypy_path = "src"
+packages = ["shotgrid_mcp_server"]
+ignore_missing_imports = true
+namespace_packages = false
+explicit_package_bases = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
