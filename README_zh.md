@@ -26,7 +26,7 @@
 
 这是使用 ShotGrid MCP 服务器查询实体的简单示例：
 
-![ShotGrid MCP 服务器演示](images/2025-01-05_231449.png)
+![ShotGrid MCP 服务器演示](images/sg-mcp.gif)
 
 ## 🚀 快速开始
 
