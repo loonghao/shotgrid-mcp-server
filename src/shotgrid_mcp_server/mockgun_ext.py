@@ -39,8 +39,8 @@ class MockgunExt(Shotgun):  # type: ignore
             **kwargs: Additional keyword arguments.
         """
         # Extract schema paths from kwargs to avoid passing them to parent class
-        schema_path = kwargs.pop('schema_path', None) or self._schema_path
-        schema_entity_path = kwargs.pop('schema_entity_path', None) or self._schema_entity_path
+        schema_path = kwargs.pop("schema_path", None) or self._schema_path
+        schema_entity_path = kwargs.pop("schema_entity_path", None) or self._schema_entity_path
 
         # Initialize parent class
         super().__init__(base_url, *args, **kwargs)
@@ -150,8 +150,7 @@ class MockgunExt(Shotgun):  # type: ignore
             }[sg_type]
         except KeyError as err:
             err_msg = (
-                f"Field {entity_type}.{field}: "
-                f"Handling for Flow Production Tracking type {sg_type} is not implemented"
+                f"Field {entity_type}.{field}: Handling for Flow Production Tracking type {sg_type} is not implemented"
             )
             raise ShotgunError(err_msg) from err
 

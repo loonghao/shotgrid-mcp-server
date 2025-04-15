@@ -28,3 +28,4 @@ target/*
 /tests/data/convert_schema.py
 /tests/data/schema.bin
 /tests/data/entity_schema.bin
+__pycache__
