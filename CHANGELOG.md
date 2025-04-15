@@ -1,3 +1,10 @@
+## v0.3.2 (2025-04-15)
+
+### Fix
+
+- handle direct git dependencies for PyPI publishing
+- ensure virtual environment is activated in all workflow steps
+
 ## v0.3.1 (2025-04-15)
 
 ### Refactor
