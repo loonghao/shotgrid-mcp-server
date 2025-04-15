@@ -1,3 +1,10 @@
+## v0.3.3 (2025-04-15)
+
+### Fix
+
+- use uvx for all commands to avoid pip module issues
+- use Python built-in venv module instead of uv venv
+
 ## v0.3.2 (2025-04-15)
 
 ### Fix
