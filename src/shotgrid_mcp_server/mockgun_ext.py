@@ -37,13 +37,17 @@ class MockgunExt(Shotgun):  # type: ignore
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        # Override schema paths if set at class level
-        if self._schema_path and 'schema_path' not in kwargs:
-            kwargs['schema_path'] = self._schema_path
-        if self._schema_entity_path and 'schema_entity_path' not in kwargs:
-            kwargs['schema_entity_path'] = self._schema_entity_path
+        # Extract schema paths from kwargs to avoid passing them to parent class
+        schema_path = kwargs.pop('schema_path', None) or self._schema_path
+        schema_entity_path = kwargs.pop('schema_entity_path', None) or self._schema_entity_path
 
+        # Initialize parent class
         super().__init__(base_url, *args, **kwargs)
+
+        # Load schema files if provided
+        if schema_path and schema_entity_path:
+            from shotgun_api3.lib.mockgun.schema import SchemaFactory
+            self._schema, self._schema_entity = SchemaFactory.get_schemas(schema_path, schema_entity_path)
         self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
             self._db[entity_type] = {}
