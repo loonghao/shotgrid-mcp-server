@@ -86,8 +86,17 @@ jobs:
       shell: bash
       run: |
         source .venv/bin/activate
+        # Install build dependencies
         python -m pip install build hatchling
+        # Install shotgun-api3 from GitHub
+        python -m pip install git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
+        # Create a temporary pyproject.toml without direct references
+        cp pyproject.toml pyproject.toml.bak
+        sed -i 's|"shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",|"shotgun-api3",|g' pyproject.toml
+        # Build the package
         python -m build --wheel --no-isolation
+        # Restore original pyproject.toml
+        mv pyproject.toml.bak pyproject.toml
 
     # Note that we don't need credentials.
     # We rely on https://docs.pypi.org/trusted-publishers/.
