@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 # Import third-party modules
 from shotgun_api3 import ShotgunError
 from shotgun_api3.lib.mockgun import Shotgun
+from shotgun_api3.lib.mockgun.schema import SchemaFactory
 
 T = TypeVar("T")
 AttachmentResult = Union[bytes, str]
@@ -46,7 +47,6 @@ class MockgunExt(Shotgun):  # type: ignore
 
         # Load schema files if provided
         if schema_path and schema_entity_path:
-            from shotgun_api3.lib.mockgun.schema import SchemaFactory
             self._schema, self._schema_entity = SchemaFactory.get_schemas(schema_path, schema_entity_path)
         self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
