@@ -13,7 +13,7 @@ dependencies = [
     "platformdirs>=4.1.0",
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
-    "shotgun-api3>=3.5.0",
+    "shotgun-api3 @ git+https://github.com/shotgunsoftware/python-api.git",
 ]
 authors = [
     { name = "Hal Long", email = "hal.long@outlook.com" },
