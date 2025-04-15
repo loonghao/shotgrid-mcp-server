@@ -1,3 +1,10 @@
+## v0.2.5 (2025-01-05)
+
+### Refactor
+
+- **server**: Refactor imports and add serialization method for entities
+- **server**: Update environment variable names and logging for ShotGrid connection pool
+
 ## v0.2.4 (2025-01-05)
 
 ### Refactor

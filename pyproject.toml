@@ -70,7 +70,7 @@ shotgrid-mcp-server = "shotgrid_mcp_server.server:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.4"
+version = "0.2.5"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
