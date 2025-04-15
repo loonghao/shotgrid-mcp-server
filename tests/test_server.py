@@ -147,6 +147,7 @@ class TestDownloadTools:
         response_dict = json.loads(response_text)
 
         # Verify download
+        assert isinstance(response_dict, dict)
         assert "text" in response_dict
         file_path_dict = json.loads(response_dict["text"])
         assert "file_path" in file_path_dict
@@ -191,6 +192,7 @@ class TestSearchTools:
         response_dict = json.loads(response_text)
 
         # Verify response structure
+        assert isinstance(response_dict, dict)
         assert "text" in response_dict
         entities_dict = json.loads(response_dict["text"])
         assert "entities" in entities_dict
@@ -221,6 +223,7 @@ class TestSearchTools:
         assert response_dict is not None
 
         # Parse the inner text
+        assert isinstance(response_dict, dict)
         assert "text" in response_dict
         inner_dict = json.loads(response_dict["text"])
         assert isinstance(inner_dict, dict)
@@ -264,6 +267,7 @@ class TestGetThumbnailUrl:
         response_dict = json.loads(response_text)
 
         # Verify URL
+        assert isinstance(response_dict, dict)
         assert "text" in response_dict
         assert response_dict["text"] == "https://example.com/thumbnail.jpg"
 
