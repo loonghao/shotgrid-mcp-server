@@ -1,3 +1,11 @@
+## v0.2.6 (2025-04-15)
+
+### Fix
+
+- resolve ruff linting issues with unused imports
+- resolve type checking issues and update tests
+- resolve ruff linting issues with imports
+
 ## v0.2.5 (2025-01-05)
 
 ### Refactor
