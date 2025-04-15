@@ -450,10 +450,42 @@ if __name__ == "__main__":
     main()
 else:
     # When imported, create a mock server for testing
+    import os
+    import pathlib
     from shotgrid_mcp_server.connection_pool import MockShotgunFactory
 
+    # Try different locations for schema files
+    # 1. First try package data directory
+    package_dir = pathlib.Path(__file__).parent
+    schema_path = os.path.join(package_dir, "data", "schema.bin")
+    schema_entity_path = os.path.join(package_dir, "data", "entity_schema.bin")
+
+    # 2. If not found, try tests directory in package
+    if not (os.path.exists(schema_path) and os.path.exists(schema_entity_path)):
+        package_root = package_dir.parent.parent
+        schema_path = os.path.join(package_root, "tests", "data", "schema.bin")
+        schema_entity_path = os.path.join(package_root, "tests", "data", "entity_schema.bin")
+
+    # 3. If still not found, try current directory and parent directories
+    if not (os.path.exists(schema_path) and os.path.exists(schema_entity_path)):
+        current_dir = pathlib.Path.cwd()
+        for _ in range(5):  # Look up to 5 levels up
+            test_schema_path = os.path.join(current_dir, "tests", "data", "schema.bin")
+            test_schema_entity_path = os.path.join(current_dir, "tests", "data", "entity_schema.bin")
+
+            if os.path.exists(test_schema_path) and os.path.exists(test_schema_entity_path):
+                schema_path = test_schema_path
+                schema_entity_path = test_schema_entity_path
+                break
+
+            current_dir = current_dir.parent
+
+    # Log the paths we're using
+    logger.info(f"Using schema files: {schema_path} and {schema_entity_path}")
+
+    # Create mock factory with resolved paths
     mock_factory = MockShotgunFactory(
-        schema_path="tests/data/schema.bin",
-        schema_entity_path="tests/data/entity_schema.bin",
+        schema_path=schema_path,
+        schema_entity_path=schema_entity_path,
     )
     app = create_server(factory=mock_factory)

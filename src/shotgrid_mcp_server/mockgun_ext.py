@@ -15,6 +15,20 @@ AttachmentResult = Union[bytes, str]
 class MockgunExt(Shotgun):  # type: ignore
     """Extended Mockgun class with additional functionality."""
 
+    _schema_path: Optional[str] = None
+    _schema_entity_path: Optional[str] = None
+
+    @classmethod
+    def set_schema_paths(cls, schema_path: str, schema_entity_path: str) -> None:
+        """Set schema paths for Mockgun.
+
+        Args:
+            schema_path: Path to schema file
+            schema_entity_path: Path to schema entity file
+        """
+        cls._schema_path = schema_path
+        cls._schema_entity_path = schema_entity_path
+
     def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
         """Initialize MockgunExt.
 
@@ -23,6 +37,12 @@ class MockgunExt(Shotgun):  # type: ignore
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        # Override schema paths if set at class level
+        if self._schema_path and 'schema_path' not in kwargs:
+            kwargs['schema_path'] = self._schema_path
+        if self._schema_entity_path and 'schema_entity_path' not in kwargs:
+            kwargs['schema_entity_path'] = self._schema_entity_path
+
         super().__init__(base_url, *args, **kwargs)
         self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
