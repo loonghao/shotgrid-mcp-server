@@ -213,7 +213,7 @@ def process_filters(filters: List[Filter]) -> List[Tuple[str, str, Any]]:
             if value == "$today":
                 value = datetime.now().strftime("%Y-%m-%d")
         processed_filters.append([field, operator, value])
-    return processed_filters
+    return processed_filters  # type: ignore[return-value]
 
 
 def prepare_fields_with_related(

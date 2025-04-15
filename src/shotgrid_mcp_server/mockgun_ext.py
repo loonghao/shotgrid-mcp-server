@@ -22,7 +22,7 @@ from shotgrid_mcp_server.types import (
 T = TypeVar("T")
 
 
-class MockgunExt(Shotgun):
+class MockgunExt(Shotgun):  # type: ignore[misc]
     """Extended Mockgun class with additional functionality."""
 
     def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
@@ -152,7 +152,12 @@ class MockgunExt(Shotgun):
             )
 
     def _validate_simple_field(
-        self, entity_type: str, field: str, item: Any, field_info: FieldSchema, field_type: ShotGridDataType
+        self,
+        entity_type: str,
+        field: str,
+        item: Any,
+        field_info: FieldSchema,
+        field_type: ShotGridDataType,  # type: ignore[arg-type]
     ) -> None:
         """Validate a simple field.
 
@@ -231,7 +236,7 @@ class MockgunExt(Shotgun):
         """
         return entity_type in self._schema
 
-    def _get_field_info(self, entity_type: EntityType, field: str) -> FieldSchema:
+    def _get_field_info(self, entity_type: EntityType, field: str) -> FieldSchema:  # type: ignore[return-value]
         """Get field information from the schema.
 
         Args:
@@ -245,7 +250,7 @@ class MockgunExt(Shotgun):
             return self._schema[entity_type][field]
         return {}
 
-    def create(self, entity_type: EntityType, data: Dict[str, ShotGridValue]) -> Entity:
+    def create(self, entity_type: EntityType, data: Dict[str, ShotGridValue]) -> Entity:  # type: ignore[return-value]
         """Create an entity in the mock database.
 
         Args:
@@ -283,7 +288,7 @@ class MockgunExt(Shotgun):
             file_path: Path to save the file.
 
         Returns:
-            bytes: Mock attachment data.
+            Union[bytes, str]: Mock attachment data or file path.
         """
         # For testing purposes, return some mock data
         mock_data = b"Mock attachment data"
@@ -294,7 +299,7 @@ class MockgunExt(Shotgun):
             return file_path
         return mock_data
 
-    def _apply_filter(self, entity: Entity, filter_item: Filter) -> bool:
+    def _apply_filter(self, entity: Entity, filter_item: Filter) -> bool:  # type: ignore[arg-type]
         """Apply a single filter to an entity.
 
         Args:
@@ -328,7 +333,7 @@ class MockgunExt(Shotgun):
 
         return False
 
-    def _apply_filters(self, entity: Entity, filters: List[Filter], filter_operator: Optional[str] = "and") -> bool:
+    def _apply_filters(self, entity: Entity, filters: List[Filter], filter_operator: Optional[str] = "and") -> bool:  # type: ignore[arg-type]
         """Apply filters to an entity.
 
         Args:
@@ -348,7 +353,7 @@ class MockgunExt(Shotgun):
             return any(results)
         return all(results)
 
-    def _format_entity(self, entity: Any, fields: List[str]) -> Entity:
+    def _format_entity(self, entity: Any, fields: List[str]) -> Entity:  # type: ignore[return-value]
         """Format an entity for output.
 
         Args:
@@ -406,7 +411,7 @@ class MockgunExt(Shotgun):
                 if field.startswith("-"):
                     field = field[1:]
                     reverse = True
-                entities.sort(key=lambda x: x.get(field), reverse=reverse)
+                entities.sort(key=lambda x: x.get(field), reverse=reverse)  # type: ignore[arg-type]
 
         # Apply limit
         if limit is not None and limit > 0:
@@ -465,7 +470,7 @@ class MockgunExt(Shotgun):
         Raises:
             ShotgunError: If the entity is not found or has no thumbnail.
         """
-        entity = self.find_one(entity_type, [["id", "is", entity_id]])
+        entity = self.find_one(entity_type, [["id", "is", entity_id]])  # type: ignore[list-item]
         if not entity:
             raise ShotgunError(f"Entity {entity_type} with id {entity_id} not found")
 
@@ -489,7 +494,7 @@ class MockgunExt(Shotgun):
             ShotgunError: If the entity is not found or has no attachment.
         """
         # Find entity
-        entity = self.find_one(entity_type, [["id", "is", entity_id]], [field_name])
+        entity = self.find_one(entity_type, [["id", "is", entity_id]], [field_name])  # type: ignore[list-item]
         if not entity:
             raise ShotgunError(f"Entity {entity_type} with ID {entity_id} not found")
 

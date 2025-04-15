@@ -168,6 +168,6 @@ def format_batch_results(results: List[Any]) -> List[Dict[str, Any]]:
         if result is not None and isinstance(result, dict) and "type" in result and "id" in result:
             formatted_results.append(cast(Dict[str, Any], serialize_entity(result)))
         else:
-            formatted_results.append(result)
+            formatted_results.append(result)  # type: ignore[arg-type]
 
     return formatted_results

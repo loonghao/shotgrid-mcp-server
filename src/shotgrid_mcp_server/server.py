@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 setup_logging()
 
 
-def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
+def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:  # type: ignore[type-arg]
     """Create a FastMCP server instance.
 
     Args:
@@ -34,7 +34,7 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
         Exception: If server creation fails.
     """
     try:
-        mcp: FastMCP = FastMCP(name="shotgrid-server")
+        mcp: FastMCP = FastMCP(name="shotgrid-server")  # type: ignore[type-arg]
         logger.debug("Created FastMCP instance")
 
         # Register tools using connection context

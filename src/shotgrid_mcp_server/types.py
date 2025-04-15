@@ -144,7 +144,7 @@ class UrlField(TypedDict):
 class LocalUrlField(UrlField):
     """ShotGrid local file URL field."""
 
-    link_type: Literal["local"]
+    # Note: link_type is already defined in UrlField
     local_path: Optional[str]
     local_path_linux: Optional[str]
     local_path_mac: Optional[str]
