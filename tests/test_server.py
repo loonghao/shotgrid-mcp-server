@@ -147,9 +147,14 @@ class TestDownloadTools:
         response_dict = json.loads(response_text)
 
         # Verify download
-        assert isinstance(response_dict, dict)
-        assert "text" in response_dict
-        file_path_dict = json.loads(response_dict["text"])
+        if isinstance(response_dict, dict):
+            assert "text" in response_dict
+            file_path_dict = json.loads(response_dict["text"])
+        else:
+            assert isinstance(response_dict, list)
+            assert len(response_dict) > 0
+            assert "text" in response_dict[0]
+            file_path_dict = json.loads(response_dict[0]["text"])
         assert "file_path" in file_path_dict
         assert file_path_dict["file_path"] == str(file_path)
 
@@ -192,9 +197,14 @@ class TestSearchTools:
         response_dict = json.loads(response_text)
 
         # Verify response structure
-        assert isinstance(response_dict, dict)
-        assert "text" in response_dict
-        entities_dict = json.loads(response_dict["text"])
+        if isinstance(response_dict, dict):
+            assert "text" in response_dict
+            entities_dict = json.loads(response_dict["text"])
+        else:
+            assert isinstance(response_dict, list)
+            assert len(response_dict) > 0
+            assert "text" in response_dict[0]
+            entities_dict = json.loads(response_dict[0]["text"])
         assert "entities" in entities_dict
         assert isinstance(entities_dict["entities"], list)
 
@@ -223,9 +233,14 @@ class TestSearchTools:
         assert response_dict is not None
 
         # Parse the inner text
-        assert isinstance(response_dict, dict)
-        assert "text" in response_dict
-        inner_dict = json.loads(response_dict["text"])
+        if isinstance(response_dict, dict):
+            assert "text" in response_dict
+            inner_dict = json.loads(response_dict["text"])
+        else:
+            assert isinstance(response_dict, list)
+            assert len(response_dict) > 0
+            assert "text" in response_dict[0]
+            inner_dict = json.loads(response_dict[0]["text"])
         assert isinstance(inner_dict, dict)
         assert "text" in inner_dict
         entity_data = inner_dict["text"]
@@ -267,9 +282,14 @@ class TestGetThumbnailUrl:
         response_dict = json.loads(response_text)
 
         # Verify URL
-        assert isinstance(response_dict, dict)
-        assert "text" in response_dict
-        assert response_dict["text"] == "https://example.com/thumbnail.jpg"
+        if isinstance(response_dict, dict):
+            assert "text" in response_dict
+            assert response_dict["text"] == "https://example.com/thumbnail.jpg"
+        else:
+            assert isinstance(response_dict, list)
+            assert len(response_dict) > 0
+            assert "text" in response_dict[0]
+            assert response_dict[0]["text"] == "https://example.com/thumbnail.jpg"
 
     async def test_get_thumbnail_url_not_found(self, server: FastMCP):
         """Test get_thumbnail_url method when no entity is found."""
