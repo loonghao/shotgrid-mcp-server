@@ -2,7 +2,7 @@
 
 # Import built-in modules
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 # Import third-party modules
 from fastmcp import FastMCP
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 setup_logging()
 
 
-def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP[Any]:
+def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
     """Create a FastMCP server instance.
 
     Args:
@@ -34,7 +34,7 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP[Any
         Exception: If server creation fails.
     """
     try:
-        mcp: FastMCP[Any] = FastMCP(name="shotgrid-server")
+        mcp: FastMCP = FastMCP(name="shotgrid-server")
         logger.debug("Created FastMCP instance")
 
         # Register tools using connection context

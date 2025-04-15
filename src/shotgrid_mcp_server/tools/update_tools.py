@@ -13,7 +13,7 @@ from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.types import EntityType
 
 
-def register_update_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_update_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register update tools with the server.
 
     Args:

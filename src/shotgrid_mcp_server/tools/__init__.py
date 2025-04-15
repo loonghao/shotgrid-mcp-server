@@ -4,7 +4,7 @@ This package contains all the tools that can be registered with the ShotGrid MCP
 Each module in this package contains a set of related tools.
 """
 
-from typing import Any
+from typing import Any  # noqa
 
 from shotgun_api3.lib.mockgun import Shotgun
 
@@ -17,7 +17,7 @@ from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.tools.update_tools import register_update_tools
 
 
-def register_all_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_all_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register all tools with the server.
 
     Args:
