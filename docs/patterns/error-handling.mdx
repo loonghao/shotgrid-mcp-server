@@ -1,0 +1,562 @@
+---
+title: Error Handling
+sidebarTitle: Error Handling
+description: Best practices for handling errors in ShotGrid MCP Server
+icon: shield-exclamation
+---
+
+# Error Handling
+
+Robust error handling is essential for building reliable applications with ShotGrid MCP Server. This page covers best practices and patterns for handling errors at different levels of your application.
+
+## Types of Errors
+
+When working with ShotGrid MCP Server, you may encounter several types of errors:
+
+1. **ShotGrid API Errors**: Errors returned by the ShotGrid API.
+2. **Connection Errors**: Network or authentication issues.
+3. **Validation Errors**: Invalid input data or parameters.
+4. **Schema Errors**: Issues with entity types or fields.
+5. **MCP Protocol Errors**: Errors in the MCP communication.
+6. **Application Logic Errors**: Errors in your application code.
+
+## Error Handling in Tools
+
+### Basic Error Handling
+
+The simplest way to handle errors in tools is to use try-except blocks:
+
+```python
+@server.tool()
+def update_shot_status(shot_id: int, status: str) -> dict:
+    """Update a shot's status with error handling."""
+    try:
+        # Validate the status
+        valid_statuses = ["wtg", "rdy", "ip", "cmpt", "fin"]
+        if status not in valid_statuses:
+            raise ValueError(
+                f"Invalid status: {status}. Must be one of: {', '.join(valid_statuses)}"
+            )
+        
+        # Check if the shot exists
+        shot = server.connection.find_one("Shot", [["id", "is", shot_id]])
+        if not shot:
+            raise ValueError(f"Shot with ID {shot_id} not found")
+        
+        # Update the shot
+        updated_shot = server.connection.update("Shot", shot_id, {"sg_status_list": status})
+        
+        return {
+            "success": True,
+            "shot": updated_shot
+        }
+    except ValueError as e:
+        # Handle validation errors
+        return {
+            "success": False,
+            "error": "Validation Error",
+            "message": str(e)
+        }
+    except Exception as e:
+        # Handle unexpected errors
+        return {
+            "success": False,
+            "error": "Unexpected Error",
+            "message": str(e)
+        }
+```
+
+### Raising Errors
+
+For MCP tools, it's often better to raise exceptions rather than returning error objects. The MCP protocol will automatically convert exceptions to appropriate error responses:
+
+```python
+@server.tool()
+def update_shot_status(shot_id: int, status: str) -> dict:
+    """Update a shot's status with proper error raising."""
+    # Validate the status
+    valid_statuses = ["wtg", "rdy", "ip", "cmpt", "fin"]
+    if status not in valid_statuses:
+        raise ValueError(
+            f"Invalid status: {status}. Must be one of: {', '.join(valid_statuses)}"
+        )
+    
+    # Check if the shot exists
+    shot = server.connection.find_one("Shot", [["id", "is", shot_id]])
+    if not shot:
+        raise ValueError(f"Shot with ID {shot_id} not found")
+    
+    # Update the shot
+    updated_shot = server.connection.update("Shot", shot_id, {"sg_status_list": status})
+    
+    return updated_shot
+```
+
+### Custom Error Classes
+
+For more structured error handling, define custom error classes:
+
+```python
+# Define custom error classes
+class ShotGridError(Exception):
+    """Base class for ShotGrid-related errors."""
+    pass
+
+class EntityNotFoundError(ShotGridError):
+    """Raised when an entity is not found."""
+    def __init__(self, entity_type, entity_id):
+        self.entity_type = entity_type
+        self.entity_id = entity_id
+        message = f"{entity_type} with ID {entity_id} not found"
+        super().__init__(message)
+
+class ValidationError(ShotGridError):
+    """Raised when validation fails."""
+    pass
+
+class PermissionError(ShotGridError):
+    """Raised when permission is denied."""
+    pass
+
+# Use custom error classes in tools
+@server.tool()
+def update_entity(entity_type: str, entity_id: int, data: dict) -> dict:
+    """Update an entity with custom error handling."""
+    # Check if the entity exists
+    entity = server.connection.find_one(entity_type, [["id", "is", entity_id]])
+    if not entity:
+        raise EntityNotFoundError(entity_type, entity_id)
+    
+    # Validate the data
+    if not data:
+        raise ValidationError("No data provided for update")
+    
+    # Update the entity
+    try:
+        updated_entity = server.connection.update(entity_type, entity_id, data)
+        return updated_entity
+    except Exception as e:
+        if "Permission denied" in str(e):
+            raise PermissionError(f"Permission denied to update {entity_type} {entity_id}")
+        else:
+            # Re-raise other exceptions
+            raise
+```
+
+## Handling ShotGrid API Errors
+
+### Catching Specific ShotGrid Errors
+
+The ShotGrid API can raise various errors that you should handle specifically:
+
+```python
+from shotgun_api3.shotgun import ShotgunError, Fault
+
+@server.tool()
+def create_entity_with_error_handling(entity_type: str, data: dict) -> dict:
+    """Create an entity with specific ShotGrid error handling."""
+    try:
+        entity = server.connection.create(entity_type, data)
+        return {
+            "success": True,
+            "entity": entity
+        }
+    except Fault as e:
+        # Handle ShotGrid API faults
+        if "Entity of type" in str(e) and "cannot be created" in str(e):
+            return {
+                "success": False,
+                "error": "Creation Denied",
+                "message": f"Cannot create {entity_type}. You may not have permission."
+            }
+        elif "field" in str(e) and "does not exist" in str(e):
+            return {
+                "success": False,
+                "error": "Invalid Field",
+                "message": str(e)
+            }
+        else:
+            return {
+                "success": False,
+                "error": "ShotGrid Fault",
+                "message": str(e)
+            }
+    except ShotgunError as e:
+        # Handle other ShotGrid errors
+        return {
+            "success": False,
+            "error": "ShotGrid Error",
+            "message": str(e)
+        }
+    except Exception as e:
+        # Handle unexpected errors
+        return {
+            "success": False,
+            "error": "Unexpected Error",
+            "message": str(e)
+        }
+```
+
+### Retry Logic for Transient Errors
+
+Some ShotGrid API errors are transient and can be resolved by retrying:
+
+```python
+import time
+from shotgun_api3.shotgun import ShotgunError
+
+@server.tool()
+def find_with_retry(
+    entity_type: str,
+    filters: list,
+    fields: list,
+    max_retries: int = 3,
+    retry_delay: float = 1.0
+) -> dict:
+    """Find entities with retry logic for transient errors."""
+    retries = 0
+    last_error = None
+    
+    while retries <= max_retries:
+        try:
+            # Attempt the operation
+            entities = server.connection.find(entity_type, filters, fields)
+            
+            # If successful, return the results
+            return {
+                "success": True,
+                "entities": entities
+            }
+        except ShotgunError as e:
+            # Check if this is a transient error
+            error_str = str(e).lower()
+            is_transient = (
+                "timeout" in error_str or
+                "connection" in error_str or
+                "network" in error_str or
+                "temporarily" in error_str
+            )
+            
+            if not is_transient:
+                # Non-transient error, don't retry
+                return {
+                    "success": False,
+                    "error": "ShotGrid Error",
+                    "message": str(e)
+                }
+            
+            # Store the error
+            last_error = str(e)
+            
+            # Increment retry counter
+            retries += 1
+            
+            if retries <= max_retries:
+                # Wait before retrying
+                time.sleep(retry_delay)
+                # Increase delay for next retry (exponential backoff)
+                retry_delay *= 2
+            else:
+                # Max retries reached, give up
+                break
+    
+    # If we get here, all retries failed
+    return {
+        "success": False,
+        "error": "Max Retries Exceeded",
+        "message": last_error,
+        "retries": retries
+    }
+```
+
+## Connection Pool Error Handling
+
+The Connection Pool in ShotGrid MCP Server already handles many connection-related errors, but you can add additional error handling:
+
+```python
+@server.tool()
+async def safe_find_one(entity_type: str, entity_id: int) -> dict:
+    """Find an entity with connection pool error handling."""
+    try:
+        # Get a connection from the pool
+        async with server.connection_pool.connection() as sg:
+            entity = sg.find_one(entity_type, [["id", "is", entity_id]])
+            
+            if not entity:
+                return {
+                    "success": False,
+                    "error": "Not Found",
+                    "message": f"{entity_type} with ID {entity_id} not found"
+                }
+            
+            return {
+                "success": True,
+                "entity": entity
+            }
+    except Exception as e:
+        # The connection pool will handle connection errors,
+        # but we still need to handle other exceptions
+        return {
+            "success": False,
+            "error": "Error",
+            "message": str(e)
+        }
+```
+
+## Validation Patterns
+
+### Input Validation
+
+Validate input parameters before using them:
+
+```python
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, validator
+
+class CreateTaskRequest(BaseModel):
+    """Request model for creating a task."""
+    content: str = Field(..., min_length=1, max_length=100)
+    entity_type: str
+    entity_id: int
+    status: Optional[Literal["wtg", "rdy", "ip", "cmpt", "fin"]] = "wtg"
+    
+    @validator("entity_type")
+    def validate_entity_type(cls, v):
+        valid_types = ["Asset", "Shot", "Sequence"]
+        if v not in valid_types:
+            raise ValueError(f"entity_type must be one of: {', '.join(valid_types)}")
+        return v
+
+@server.tool()
+def create_task(request: CreateTaskRequest) -> dict:
+    """Create a task with input validation using Pydantic."""
+    # Pydantic has already validated the input
+    
+    # Check if the entity exists
+    entity = server.connection.find_one(
+        request.entity_type,
+        [["id", "is", request.entity_id]]
+    )
+    
+    if not entity:
+        raise ValueError(f"{request.entity_type} with ID {request.entity_id} not found")
+    
+    # Create the task
+    task_data = {
+        "content": request.content,
+        "entity": {"type": request.entity_type, "id": request.entity_id},
+        "sg_status_list": request.status
+    }
+    
+    task = server.connection.create("Task", task_data)
+    
+    return task
+```
+
+### Schema Validation
+
+Validate entity types and fields against the schema:
+
+```python
+@server.tool()
+def validate_entity_field(entity_type: str, field_name: str) -> dict:
+    """Validate if a field exists for an entity type."""
+    schema = server.schema_loader.get_schema()
+    
+    # Check if the entity type exists
+    if entity_type not in schema:
+        return {
+            "valid": False,
+            "error": "Invalid Entity Type",
+            "message": f"Entity type '{entity_type}' does not exist in the schema"
+        }
+    
+    # Check if the field exists
+    if field_name not in schema[entity_type]:
+        return {
+            "valid": False,
+            "error": "Invalid Field",
+            "message": f"Field '{field_name}' does not exist for entity type '{entity_type}'"
+        }
+    
+    # Get field information
+    field_info = schema[entity_type][field_name]
+    
+    return {
+        "valid": True,
+        "field_type": field_info.get("data_type", {}).get("value"),
+        "editable": field_info.get("editable", {}).get("value", False)
+    }
+```
+
+## Logging Errors
+
+Implement logging to track errors:
+
+```python
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("shotgrid_mcp.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger("shotgrid_mcp")
+
+@server.tool()
+def create_entity_with_logging(entity_type: str, data: dict) -> dict:
+    """Create an entity with error logging."""
+    try:
+        logger.info(f"Creating {entity_type} with data: {data}")
+        
+        entity = server.connection.create(entity_type, data)
+        
+        logger.info(f"Created {entity_type} with ID {entity['id']}")
+        
+        return entity
+    except Exception as e:
+        logger.error(f"Error creating {entity_type}: {str(e)}", exc_info=True)
+        raise
+```
+
+## Error Handling in Batch Operations
+
+Batch operations require special error handling:
+
+```python
+@server.tool()
+def batch_operations_with_error_handling(operations: list) -> dict:
+    """Perform batch operations with detailed error handling."""
+    try:
+        results = server.connection.batch(operations)
+        
+        return {
+            "success": True,
+            "results": results
+        }
+    except Exception as e:
+        # For batch operations, we need to determine which operation failed
+        error_message = str(e)
+        
+        # Try to identify the failed operation
+        failed_operation_index = None
+        
+        # Look for patterns like "Error in operation 3:"
+        import re
+        match = re.search(r"Error in operation (\d+):", error_message)
+        if match:
+            failed_operation_index = int(match.group(1))
+        
+        error_response = {
+            "success": False,
+            "error": "Batch Operation Failed",
+            "message": error_message
+        }
+        
+        if failed_operation_index is not None:
+            error_response["failed_operation_index"] = failed_operation_index
+            if 0 <= failed_operation_index < len(operations):
+                error_response["failed_operation"] = operations[failed_operation_index]
+        
+        return error_response
+```
+
+## Graceful Degradation
+
+Implement graceful degradation for non-critical features:
+
+```python
+@server.tool()
+def find_entities_with_thumbnails(entity_type: str, filters: list) -> dict:
+    """Find entities with thumbnails, gracefully handling thumbnail errors."""
+    try:
+        # Find the entities
+        entities = server.connection.find(
+            entity_type,
+            filters,
+            ["id", "code", "image"]
+        )
+        
+        # Try to get thumbnails, but don't fail if they're not available
+        entities_with_thumbnails = []
+        for entity in entities:
+            try:
+                if entity.get("image"):
+                    # Get thumbnail URL
+                    thumbnail_url = server.connection.get_thumbnail_url(
+                        entity_type,
+                        entity["id"]
+                    )
+                    entity["thumbnail_url"] = thumbnail_url
+                else:
+                    entity["thumbnail_url"] = None
+            except Exception as e:
+                # Log the error but continue
+                logger.warning(f"Error getting thumbnail for {entity_type} {entity['id']}: {e}")
+                entity["thumbnail_url"] = None
+            
+            entities_with_thumbnails.append(entity)
+        
+        return {
+            "success": True,
+            "entities": entities_with_thumbnails
+        }
+    except Exception as e:
+        # If the main query fails, that's a critical error
+        logger.error(f"Error finding {entity_type}: {e}")
+        raise
+```
+
+## Client-Side Error Handling
+
+When using the MCP client, handle errors appropriately:
+
+```python
+from mcp.client import Client
+from mcp.errors import MCPError, ToolExecutionError
+
+async def handle_client_errors():
+    client = Client("http://localhost:8000")
+    
+    try:
+        # Call a tool that might fail
+        result = await client.call_tool(
+            "update_shot",
+            {
+                "shot_id": 999999,  # Non-existent shot
+                "status": "invalid_status"
+            }
+        )
+        
+        print(f"Success: {result}")
+    except ToolExecutionError as e:
+        # Handle tool execution errors
+        print(f"Tool execution failed: {e.message}")
+        print(f"Error details: {e.details}")
+    except MCPError as e:
+        # Handle MCP protocol errors
+        print(f"MCP protocol error: {e}")
+    except Exception as e:
+        # Handle unexpected errors
+        print(f"Unexpected error: {e}")
+```
+
+## Best Practices Summary
+
+1. **Be Specific**: Catch specific exceptions rather than using broad except blocks.
+2. **Provide Context**: Include relevant information in error messages.
+3. **Use Custom Errors**: Define custom error classes for different error types.
+4. **Validate Early**: Validate input data before performing operations.
+5. **Log Errors**: Implement logging to track errors.
+6. **Retry Transient Errors**: Implement retry logic for transient errors.
+7. **Graceful Degradation**: Allow non-critical features to fail gracefully.
+8. **Consistent Error Format**: Use a consistent format for error responses.
+9. **Detailed Batch Errors**: Provide detailed information for batch operation errors.
+10. **Client-Side Handling**: Implement proper error handling on the client side.
+
+By following these patterns, you can build robust applications that handle errors gracefully and provide a better experience for your users.

@@ -1,0 +1,12 @@
+{
+  "name": "shotgrid-mcp-server-docs",
+  "version": "1.0.0",
+  "description": "Documentation for ShotGrid MCP Server",
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify build"
+  },
+  "dependencies": {
+    "mintlify": "^3.0.0"
+  }
+}

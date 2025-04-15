@@ -11,7 +11,7 @@ from fastmcp import FastMCP
 
 # Import local modules
 from shotgrid_mcp_server.connection_pool import MockShotgunFactory, ShotGridConnectionContext
-from shotgrid_mcp_server.server import ShotGridTools
+from shotgrid_mcp_server.tools import register_all_tools
 
 
 @pytest.fixture(scope="session")
@@ -407,11 +407,11 @@ def mock_context(mock_factory):
 
 
 @pytest.fixture
-def server(mock_context, mock_sg):
+def server(mock_sg):
     """Create a FastMCP server instance."""
     server = FastMCP(name="test-server")
 
-    # Initialize tools with mock context and client
-    ShotGridTools(server=server, sg=mock_sg)
+    # Register tools with mock client
+    register_all_tools(server, mock_sg)
 
     return server

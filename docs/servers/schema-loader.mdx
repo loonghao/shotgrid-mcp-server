@@ -1,0 +1,202 @@
+---
+title: Schema Loader
+sidebarTitle: Schema Loader
+description: Working with ShotGrid schemas
+icon: sitemap
+---
+
+# Schema Loader
+
+The Schema Loader is a component of ShotGrid MCP Server that loads, caches, and provides access to the ShotGrid schema. Understanding the schema is essential for working with ShotGrid data, as it defines entity types, fields, and relationships.
+
+## Why Schema Loading Matters
+
+ShotGrid's schema defines the structure of all entity types and their fields. Loading the schema provides several benefits:
+
+1. **Field Validation**: Ensures that field names and types are valid before making API calls.
+2. **Relationship Understanding**: Maps relationships between different entity types.
+3. **Performance**: Caching the schema reduces API calls and improves performance.
+4. **Mockgun Support**: Provides schema information for Mockgun in testing environments.
+
+## How Schema Loading Works
+
+When ShotGrid MCP Server starts, it loads two types of schema information:
+
+1. **Field Schema**: Defines the fields available for each entity type, their data types, and validation rules.
+2. **Entity Schema**: Defines the entity types available in ShotGrid and their relationships.
+
+The schema is loaded from one of three sources, in order of preference:
+
+1. **Cached Schema Files**: If schema files are provided, they are loaded directly.
+2. **ShotGrid API**: If no schema files are available, the schema is fetched from the ShotGrid API.
+3. **Default Schema**: If neither of the above is available and Mockgun is used, a default schema is loaded.
+
+## Using Schema Files
+
+### Loading Schema Files
+
+You can provide paths to cached schema files when creating the server:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+server = ShotGridMCPServer(
+    name="ShotGrid Assistant",
+    shotgrid_url="https://your-site.shotgunstudio.com",
+    script_name="your_script_name",
+    api_key="your_api_key",
+    
+    # Schema file paths
+    schema_path="path/to/schema.bin",
+    entity_schema_path="path/to/entity_schema.bin"
+)
+```
+
+### Creating Schema Files
+
+You can create schema files using the `schema_loader` module:
+
+```python
+from shotgrid_mcp_server.schema_loader import SchemaLoader
+import shotgun_api3
+
+# Connect to ShotGrid
+sg = shotgun_api3.Shotgun(
+    "https://your-site.shotgunstudio.com",
+    script_name="your_script_name",
+    api_key="your_api_key"
+)
+
+# Create a schema loader
+schema_loader = SchemaLoader()
+
+# Load the schema from ShotGrid
+schema_loader.load_from_shotgun(sg)
+
+# Save the schema to files
+schema_loader.save_schema("schema.bin")
+schema_loader.save_entity_schema("entity_schema.bin")
+```
+
+These files can then be distributed with your application or stored in a shared location.
+
+## Accessing Schema Information
+
+### Getting Entity Fields
+
+You can access field information for an entity type:
+
+```python
+@server.tool()
+def get_entity_fields(entity_type: str) -> dict:
+    """Get all fields for an entity type."""
+    schema = server.schema_loader.get_schema()
+    
+    if entity_type not in schema:
+        raise ValueError(f"Unknown entity type: {entity_type}")
+    
+    return {
+        "entity_type": entity_type,
+        "fields": list(schema[entity_type].keys())
+    }
+```
+
+### Checking Field Validity
+
+You can check if a field exists for an entity type:
+
+```python
+@server.tool()
+def validate_field(entity_type: str, field_name: str) -> dict:
+    """Check if a field exists for an entity type."""
+    schema = server.schema_loader.get_schema()
+    
+    if entity_type not in schema:
+        raise ValueError(f"Unknown entity type: {entity_type}")
+    
+    field_exists = field_name in schema[entity_type]
+    
+    if field_exists:
+        field_info = schema[entity_type][field_name]
+        return {
+            "valid": True,
+            "field_type": field_info.get("data_type", {}).get("value"),
+            "editable": field_info.get("editable", {}).get("value", False)
+        }
+    else:
+        return {
+            "valid": False,
+            "message": f"Field '{field_name}' does not exist for entity type '{entity_type}'"
+        }
+```
+
+### Getting Entity Relationships
+
+You can explore relationships between entity types:
+
+```python
+@server.tool()
+def get_entity_relationships(entity_type: str) -> dict:
+    """Get all relationships for an entity type."""
+    schema = server.schema_loader.get_schema()
+    entity_schema = server.schema_loader.get_entity_schema()
+    
+    if entity_type not in schema:
+        raise ValueError(f"Unknown entity type: {entity_type}")
+    
+    relationships = {}
+    
+    for field_name, field_info in schema[entity_type].items():
+        data_type = field_info.get("data_type", {}).get("value")
+        
+        if data_type == "entity":
+            # This is a relationship field
+            valid_types = field_info.get("properties", {}).get("valid_types", {}).get("value", [])
+            relationships[field_name] = valid_types
+    
+    return {
+        "entity_type": entity_type,
+        "relationships": relationships
+    }
+```
+
+## Schema and Mockgun
+
+When using Mockgun for testing, the schema is particularly important:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+# Create a server with Mockgun and schema files
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True,
+    schema_path="tests/data/schema.bin",
+    entity_schema_path="tests/data/entity_schema.bin"
+)
+
+# The schema files provide Mockgun with the necessary
+# information about entity types and fields
+```
+
+If no schema files are provided when using Mockgun, a default schema is loaded that includes common entity types like Project, Shot, Asset, Task, etc.
+
+## Best Practices
+
+1. **Cache Schema Files**: For production use, always cache schema files to avoid unnecessary API calls.
+
+2. **Update Schema Periodically**: ShotGrid schemas can change over time as fields are added or modified. Update your cached schema files periodically.
+
+3. **Validate Fields**: Always validate field names against the schema before using them in queries.
+
+4. **Handle Missing Fields**: Be prepared to handle cases where fields might not exist in a particular ShotGrid instance.
+
+5. **Test with Real Schema**: When using Mockgun for testing, use a real schema from your production ShotGrid instance for the most accurate tests.
+
+## Next Steps
+
+Now that you understand the Schema Loader, you can:
+
+- Learn about [Mockgun](/servers/mockgun) for testing without a real ShotGrid instance
+- Explore [optimized queries](/patterns/optimized-queries) that leverage schema information
+- See how to handle [errors](/patterns/error-handling) related to schema validation

@@ -1,0 +1,392 @@
+---
+title: Tools
+sidebarTitle: Tools
+description: Expose ShotGrid functionality to LLMs through MCP tools
+icon: wrench
+---
+
+# Tools
+
+Tools are the core building blocks that allow LLMs to interact with your ShotGrid data. In ShotGrid MCP Server, tools are Python functions that are exposed to LLMs through the MCP protocol.
+
+## What Are Tools?
+
+Tools in ShotGrid MCP Server transform regular Python functions into capabilities that LLMs can invoke during conversations. When an LLM decides to use a tool:
+
+1. It sends a request with parameters based on the tool's schema.
+2. ShotGrid MCP Server validates these parameters against your function's signature.
+3. Your function executes with the validated inputs, typically interacting with ShotGrid.
+4. The result is returned to the LLM, which can use it in its response.
+
+This allows LLMs to perform tasks like searching for assets, updating tasks, creating entities, or querying ShotGrid data.
+
+## Defining Tools
+
+### The `@tool` Decorator
+
+Creating a tool is as simple as decorating a Python function with `@server.tool()`:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+server = ShotGridMCPServer(
+    name="ShotGrid Assistant",
+    use_mockgun=True  # For testing
+)
+
+@server.tool()
+def find_shots(project_id: int, status: str = None) -> list:
+    """
+    Find shots in a project, optionally filtered by status.
+    
+    Args:
+        project_id: The ID of the project to search in
+        status: Optional status filter (e.g., "ip" for In Progress)
+        
+    Returns:
+        A list of shots matching the criteria
+    """
+    filters = [["project", "is", {"type": "Project", "id": project_id}]]
+    if status:
+        filters.append(["sg_status_list", "is", status])
+    
+    return server.connection.find(
+        "Shot",
+        filters,
+        ["code", "sg_status_list", "description"]
+    )
+```
+
+When this tool is registered, ShotGrid MCP Server automatically:
+
+* Uses the function name (`find_shots`) as the tool name.
+* Uses the function's docstring as the tool description.
+* Generates an input schema based on the function's parameters and type annotations.
+* Handles parameter validation and error reporting.
+
+### Type Annotations
+
+Type annotations are crucial for tools. They:
+
+1. Inform the LLM about the expected type for each parameter.
+2. Allow ShotGrid MCP Server to validate the data received from the client.
+3. Are used to generate the tool's input schema for the MCP protocol.
+
+ShotGrid MCP Server supports standard Python type annotations, including those from the `typing` module and Pydantic.
+
+```python
+from typing import Literal, Optional, Union, List, Dict
+from pydantic import BaseModel, Field
+from datetime import date
+
+# Example using various type hints
+@server.tool()
+def find_tasks(
+    project_id: int,
+    assigned_to: Optional[str] = None,
+    due_date_before: Optional[date] = None,
+    status: Literal["wtg", "rdy", "ip", "cmpt", "fin"] = None,
+    limit: int = 50
+) -> List[Dict]:
+    """Find tasks in a project with various filters."""
+    filters = [["project", "is", {"type": "Project", "id": project_id}]]
+    
+    if assigned_to:
+        filters.append(["task_assignees.HumanUser.name", "contains", assigned_to])
+    
+    if due_date_before:
+        filters.append(["due_date", "less_than", due_date_before])
+    
+    if status:
+        filters.append(["sg_status_list", "is", status])
+    
+    return server.connection.find(
+        "Task",
+        filters,
+        ["content", "sg_status_list", "due_date", "task_assignees"],
+        limit=limit
+    )
+```
+
+**Supported Type Annotations:**
+
+| Type Annotation | Example | Description |
+|-----------------|---------|-------------|
+| Basic types | `int`, `float`, `str`, `bool` | Simple scalar values |
+| Container types | `List[str]`, `Dict[str, int]` | Collections of items |
+| Optional types | `Optional[float]`, `float | None` | Parameters that may be null/omitted |
+| Union types | `str | int`, `Union[str, int]` | Parameters accepting multiple types |
+| Literal types | `Literal["ip", "cmpt"]` | Parameters with specific allowed values |
+| Pydantic models | `AssetData` | Complex structured data |
+
+### Required vs. Optional Parameters
+
+Parameters in your function signature are considered **required** unless they have a default value.
+
+```python
+@server.tool()
+def update_task(
+    task_id: int,                  # Required - no default value
+    status: str = None,            # Optional - has default value
+    due_date: date = None,         # Optional - has default value
+    description: str = None        # Optional - has default value
+) -> dict:
+    """Update a task in ShotGrid."""
+    data = {}
+    
+    if status is not None:
+        data["sg_status_list"] = status
+    
+    if due_date is not None:
+        data["due_date"] = due_date
+    
+    if description is not None:
+        data["description"] = description
+    
+    if not data:
+        raise ValueError("At least one field must be provided to update")
+    
+    return server.connection.update("Task", task_id, data)
+```
+
+In this example, the LLM _must_ provide a `task_id`. The other parameters are optional.
+
+### Structured Inputs with Pydantic
+
+For tools requiring complex, nested, or well-validated inputs, use Pydantic models:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import date
+
+class NewAssetRequest(BaseModel):
+    code: str = Field(description="Asset code (e.g., 'TREE_01')")
+    asset_type: str = Field(description="Type of asset (e.g., 'Prop', 'Character')")
+    description: Optional[str] = Field(None, description="Optional description of the asset")
+    project_id: int = Field(description="ID of the project this asset belongs to")
+    tags: List[str] = Field(default_factory=list, description="Optional tags for the asset")
+
+@server.tool()
+def create_asset(request: NewAssetRequest) -> dict:
+    """Create a new asset in ShotGrid based on the provided details."""
+    # Pydantic automatically validates the incoming 'request' data
+    data = {
+        "code": request.code,
+        "sg_asset_type": request.asset_type,
+        "project": {"type": "Project", "id": request.project_id}
+    }
+    
+    if request.description:
+        data["description"] = request.description
+    
+    if request.tags:
+        data["tags"] = request.tags
+    
+    return server.connection.create("Asset", data)
+```
+
+Using Pydantic models provides:
+
+* Clear, self-documenting structure for complex inputs.
+* Built-in data validation.
+* Automatic generation of detailed JSON schemas for the LLM.
+* Easy handling of optional fields and default values.
+
+### Metadata and Customization
+
+While ShotGrid MCP Server infers the name and description from your function, you can override these and add tags:
+
+```python
+@server.tool(
+    name="search_assets",           # Custom tool name for the LLM
+    description="Search for assets in ShotGrid with various filters.", # Custom description
+    tags={"assets", "search"}       # Optional tags for organization
+)
+def find_assets_implementation(
+    project_id: int,
+    asset_type: str = None,
+    status: str = None
+) -> list:
+    """Internal function description (ignored if description is provided above)."""
+    filters = [["project", "is", {"type": "Project", "id": project_id}]]
+    
+    if asset_type:
+        filters.append(["sg_asset_type", "is", asset_type])
+    
+    if status:
+        filters.append(["sg_status_list", "is", status])
+    
+    return server.connection.find(
+        "Asset",
+        filters,
+        ["code", "sg_asset_type", "sg_status_list", "description"]
+    )
+```
+
+### Async Tools
+
+ShotGrid MCP Server supports both standard (`def`) and asynchronous (`async def`) functions as tools:
+
+```python
+# Synchronous tool
+@server.tool()
+def get_project(project_id: int) -> dict:
+    """Get a project by ID."""
+    return server.connection.find_one("Project", [["id", "is", project_id]])
+
+# Asynchronous tool
+@server.tool()
+async def search_entities(
+    entity_type: str,
+    search_term: str,
+    limit: int = 10
+) -> list:
+    """Search for entities of any type containing the search term."""
+    # This is an example of an async tool that might perform complex operations
+    # In a real implementation, you might need to make multiple API calls
+    
+    # For demonstration purposes, we're just doing a simple search
+    filters = [["name", "contains", search_term]]
+    
+    # Use the connection pool to get a connection
+    async with server.connection_pool.connection() as sg:
+        return sg.find(entity_type, filters, limit=limit)
+```
+
+Use `async def` when your tool needs to perform operations that might wait for external systems (like complex ShotGrid queries) to keep your server responsive.
+
+### Error Handling
+
+If your tool encounters an error, simply raise a standard Python exception:
+
+```python
+@server.tool()
+def update_shot_status(shot_id: int, status: str) -> dict:
+    """Update a shot's status."""
+    # Validate the status
+    valid_statuses = ["wtg", "rdy", "ip", "cmpt", "fin"]
+    if status not in valid_statuses:
+        raise ValueError(
+            f"Invalid status: {status}. Must be one of: {', '.join(valid_statuses)}"
+        )
+    
+    # Check if the shot exists
+    shot = server.connection.find_one("Shot", [["id", "is", shot_id]])
+    if not shot:
+        raise ValueError(f"Shot with ID {shot_id} not found")
+    
+    # Update the shot
+    return server.connection.update("Shot", shot_id, {"sg_status_list": status})
+```
+
+ShotGrid MCP Server automatically catches exceptions raised within your tool function and converts them into appropriate MCP error responses.
+
+## Common ShotGrid Tool Patterns
+
+### Entity Creation
+
+```python
+@server.tool()
+def create_version(
+    project_id: int,
+    code: str,
+    entity_id: int,
+    entity_type: str,
+    description: str = None
+) -> dict:
+    """Create a new Version entity linked to another entity."""
+    data = {
+        "project": {"type": "Project", "id": project_id},
+        "code": code,
+        "entity": {"type": entity_type, "id": entity_id}
+    }
+    
+    if description:
+        data["description"] = description
+    
+    return server.connection.create("Version", data)
+```
+
+### Entity Updates
+
+```python
+@server.tool()
+def update_note(note_id: int, content: str = None, addressed: bool = None) -> dict:
+    """Update a Note entity."""
+    data = {}
+    
+    if content is not None:
+        data["content"] = content
+    
+    if addressed is not None:
+        data["addressed"] = addressed
+    
+    if not data:
+        raise ValueError("At least one field must be provided to update")
+    
+    return server.connection.update("Note", note_id, data)
+```
+
+### Complex Queries
+
+```python
+@server.tool()
+def find_shots_with_related(
+    project_id: int,
+    sequence_code: str = None,
+    status: str = None
+) -> list:
+    """Find shots with related sequence and project data."""
+    filters = [["project", "is", {"type": "Project", "id": project_id}]]
+    
+    if sequence_code:
+        filters.append(["sg_sequence.Sequence.code", "is", sequence_code])
+    
+    if status:
+        filters.append(["sg_status_list", "is", status])
+    
+    return server.connection.find(
+        "Shot",
+        filters,
+        [
+            "code",
+            "sg_status_list",
+            "sg_sequence.Sequence.code",
+            "project.Project.name"
+        ]
+    )
+```
+
+### Batch Operations
+
+```python
+@server.tool()
+def batch_create_tasks(
+    entity_type: str,
+    entity_id: int,
+    task_names: List[str]
+) -> List[dict]:
+    """Create multiple tasks for an entity in a single batch operation."""
+    batch_data = []
+    
+    for task_name in task_names:
+        batch_data.append({
+            "request_type": "create",
+            "entity_type": "Task",
+            "data": {
+                "content": task_name,
+                "entity": {"type": entity_type, "id": entity_id}
+            }
+        })
+    
+    return server.connection.batch(batch_data)
+```
+
+## Next Steps
+
+Now that you understand how to create tools, you can:
+
+- Learn about [optimized queries](/patterns/optimized-queries) for better performance
+- Explore [batch operations](/patterns/batch-operations) for efficient data manipulation
+- See how to handle [errors](/patterns/error-handling) gracefully
