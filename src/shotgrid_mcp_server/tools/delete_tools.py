@@ -3,7 +3,7 @@
 This module contains tools for deleting entities in ShotGrid.
 """
 
-from typing import Any
+from typing import Any  # noqa
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
