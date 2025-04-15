@@ -1,0 +1,245 @@
+---
+title: Filter Usage Guide
+sidebarTitle: Filter Usage
+description: How to use ShotGrid filters effectively with MCP Server
+icon: filter
+---
+
+# ShotGrid MCP Server Filter Guide
+
+This guide provides detailed information on how to use filters effectively with ShotGrid MCP Server.
+
+## Basic Filter Syntax
+
+ShotGrid filters are represented as a three-element list: `[field, operator, value]`
+
+For example:
+```python
+["code", "is", "SHOT001"]  # Find entities with code "SHOT001"
+["sg_status_list", "is", "ip"]  # Find entities with status "in progress"
+```
+
+When using the MCP server, you'll pass these filters as part of your tool calls:
+
+```javascript
+// Find shots in progress
+const result = await client.call("search_entities", {
+  entity_type: "Shot",
+  filters: [["sg_status_list", "is", "ip"]],
+  fields: ["code", "description", "sg_sequence"]
+});
+```
+
+## Common Filter Operators
+
+ShotGrid supports a wide range of filter operators for different data types:
+
+### Text Fields
+
+- `is`: Exact match
+- `is_not`: Not equal
+- `contains`: Contains substring
+- `not_contains`: Does not contain substring
+- `starts_with`: Starts with prefix
+- `ends_with`: Ends with suffix
+- `in`: Value is in list
+- `not_in`: Value is not in list
+
+### Numeric Fields
+
+- `is`: Equal to
+- `is_not`: Not equal to
+- `less_than`: Less than
+- `greater_than`: Greater than
+- `between`: Between two values
+- `in`: Value is in list
+- `not_in`: Value is not in list
+
+### Date Fields
+
+- `is`: Equal to
+- `is_not`: Not equal to
+- `greater_than`: After date
+- `less_than`: Before date
+- `in_last`: Within last N days/weeks/months/years
+- `not_in_last`: Not within last N days/weeks/months/years
+- `in_next`: Within next N days/weeks/months/years
+- `not_in_next`: Not within next N days/weeks/months/years
+- `in_calendar_day`: Today
+- `in_calendar_week`: This week
+- `in_calendar_month`: This month
+- `in_calendar_year`: This year
+- `between`: Between two dates
+
+### Entity Fields
+
+- `is`: Equal to entity
+- `is_not`: Not equal to entity
+- `type_is`: Entity is of type
+- `type_is_not`: Entity is not of type
+- `name_contains`: Entity name contains
+- `name_not_contains`: Entity name does not contain
+- `name_is`: Entity name is exactly
+
+## User-Friendly Time Filters
+
+ShotGrid MCP Server supports user-friendly time filter formats:
+
+```javascript
+// Find shots created in the last 30 days
+const result = await client.call("search_entities", {
+  entity_type: "Shot",
+  filters: [["created_at", "in_last", "30 days"]],
+  fields: ["code", "created_at"]
+});
+
+// Find tasks due in the next week
+const result = await client.call("search_entities", {
+  entity_type: "Task",
+  filters: [["due_date", "in_next", "1 week"]],
+  fields: ["content", "due_date"]
+});
+```
+
+The server automatically converts these formats to the ShotGrid API format.
+
+## Special Date Values
+
+You can use special date values in your filters:
+
+```javascript
+// Find tasks due today
+const result = await client.call("search_entities", {
+  entity_type: "Task",
+  filters: [["due_date", "is", "$today"]],
+  fields: ["content", "due_date"]
+});
+
+// Find tasks due yesterday
+const result = await client.call("search_entities", {
+  entity_type: "Task",
+  filters: [["due_date", "is", "$yesterday"]],
+  fields: ["content", "due_date"]
+});
+
+// Find tasks due tomorrow
+const result = await client.call("search_entities", {
+  entity_type: "Task",
+  filters: [["due_date", "is", "$tomorrow"]],
+  fields: ["content", "due_date"]
+});
+```
+
+## Helper Functions
+
+ShotGrid MCP Server provides several helper functions for common query patterns:
+
+### Find Recently Active Projects
+
+```javascript
+// Find projects active in the last 60 days
+const result = await client.call("find_recently_active_projects", {
+  days: 60
+});
+```
+
+### Find Active Users
+
+```javascript
+// Find users active in the last 14 days
+const result = await client.call("find_active_users", {
+  days: 14
+});
+```
+
+### Find Entities by Date Range
+
+```javascript
+// Find tasks due between two dates
+const result = await client.call("find_entities_by_date_range", {
+  entity_type: "Task",
+  date_field: "due_date",
+  start_date: "2023-01-01",
+  end_date: "2023-12-31",
+  additional_filters: [["sg_status_list", "is", "ip"]],
+  fields: ["content", "sg_status_list", "task_assignees"]
+});
+```
+
+## Advanced Filter Techniques
+
+### Combining Filters
+
+Multiple filters are combined with AND logic by default:
+
+```javascript
+// Find in-progress shots in a specific sequence
+const result = await client.call("search_entities", {
+  entity_type: "Shot",
+  filters: [
+    ["sg_status_list", "is", "ip"],
+    ["sg_sequence", "is", {"type": "Sequence", "id": 123}]
+  ],
+  fields: ["code", "sg_status_list"]
+});
+```
+
+### Using OR Logic
+
+To use OR logic, specify the `filter_operator` parameter:
+
+```javascript
+// Find shots that are either in progress or pending review
+const result = await client.call("search_entities", {
+  entity_type: "Shot",
+  filters: [
+    ["sg_status_list", "is", "ip"],
+    ["sg_status_list", "is", "rev"]
+  ],
+  filter_operator: "or",
+  fields: ["code", "sg_status_list"]
+});
+```
+
+### Field Hopping (Dot Notation)
+
+You can filter on fields of linked entities using dot notation:
+
+```javascript
+// Find shots in sequences with "INTRO" in their name
+const result = await client.call("search_entities", {
+  entity_type: "Shot",
+  filters: [
+    ["sg_sequence.Sequence.code", "contains", "INTRO"]
+  ],
+  fields: ["code", "sg_sequence"]
+});
+```
+
+## Best Practices
+
+1. **Be Specific**: Use the most specific filters possible to reduce the amount of data returned.
+
+2. **Request Only Needed Fields**: Only request the fields you need to improve performance.
+
+3. **Use Helper Functions**: Use the provided helper functions for common query patterns.
+
+4. **Validate Filters**: The server validates filters automatically, but it's good practice to ensure your filters are well-formed.
+
+5. **Use Field Hopping Wisely**: Field hopping is powerful but can impact performance if overused.
+
+6. **Consider Pagination**: For queries that might return many results, consider using the `limit` parameter.
+
+## Troubleshooting
+
+If you encounter issues with filters:
+
+1. **Check Filter Format**: Ensure your filters follow the `[field, operator, value]` format.
+
+2. **Verify Field Names**: Make sure field names are correct and exist on the entity type.
+
+3. **Check Operator Compatibility**: Ensure the operator is valid for the field's data type.
+
+4. **Examine Error Messages**: The server provides detailed error messages for invalid filters.
+
+5. **Test Simpler Filters**: If a complex filter isn't working, try breaking it down into simpler parts.

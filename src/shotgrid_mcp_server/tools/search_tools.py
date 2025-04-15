@@ -4,14 +4,21 @@ This module contains tools for searching entities in ShotGrid.
 """
 
 import json
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.data_types import ShotGridTypes, convert_to_shotgrid_type
+from shotgrid_mcp_server.filters import FilterBuilder, process_filters, validate_filters
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
-from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.types import EntityType, Filter
+from shotgrid_mcp_server.tools.types import FastMCPType, ToolError
+from shotgrid_mcp_server.types import Entity, EntityDict, EntityType, Filter
+from shotgrid_mcp_server.utils import ShotGridJSONEncoder
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 def register_search_tools(server: FastMCPType, sg: Shotgun) -> None:
@@ -27,6 +34,9 @@ def register_search_tools(server: FastMCPType, sg: Shotgun) -> None:
     # Register advanced search tools
     register_search_with_related(server, sg)
     register_find_one_entity(server, sg)
+
+    # Register helper functions
+    register_helper_functions(server, sg)
 
 
 def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
@@ -78,8 +88,11 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
 
             # Format response
             if result is None:
-                return [{"text": json.dumps({"entities": []})}]
-            return [{"text": json.dumps({"entities": result})}]
+                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+
+            # Serialize results to handle datetime and other special types
+            serialized_result = [serialize_entity(entity) for entity in result]
+            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
@@ -143,8 +156,11 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
 
             # Format response
             if result is None:
-                return [{"text": json.dumps({"entities": []})}]
-            return [{"text": json.dumps({"entities": result})}]
+                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+
+            # Serialize results to handle datetime and other special types
+            serialized_result = [serialize_entity(entity) for entity in result]
+            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities_with_related")
             raise  # This is needed to satisfy the type checker
@@ -190,30 +206,121 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
                 filter_operator=filter_operator,
             )
             if result is None:
-                return [{"text": json.dumps({"text": None})}]
-            return [{"text": json.dumps({"text": serialize_entity(result)})}]
+                return [{"text": json.dumps({"text": None}, cls=ShotGridJSONEncoder)}]
+            return [{"text": json.dumps({"text": serialize_entity(result)}, cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
 
 
-def process_filters(filters: List[Filter]) -> List[Tuple[str, str, Any]]:
-    """Process filters to handle special values.
+def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
+    """Register helper functions for common query patterns.
 
     Args:
-        filters: List of filters to process.
-
-    Returns:
-        List[Filter]: Processed filters.
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
     """
-    processed_filters = []
-    for field, operator, value in filters:
-        if isinstance(value, str) and value.startswith("$"):
-            # Handle special values
-            if value == "$today":
-                value = datetime.now().strftime("%Y-%m-%d")
-        processed_filters.append([field, operator, value])
-    return processed_filters  # type: ignore[return-value]
+
+    @server.tool("find_recently_active_projects")
+    def find_recently_active_projects(days: int = 90) -> List[Dict[str, str]]:
+        """Find projects that have been active in the last N days.
+
+        Args:
+            days: Number of days to look back (default: 90)
+
+        Returns:
+            List of active projects
+        """
+        try:
+            filters = [["updated_at", "in_last", [days, "DAY"]]]
+            fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
+            order = [{"field_name": "updated_at", "direction": "desc"}]
+
+            result = sg.find("Project", filters, fields=fields, order=order)
+
+            if result is None:
+                return [{"text": json.dumps({"projects": []}, cls=ShotGridJSONEncoder)}]
+
+            serialized_result = [serialize_entity(entity) for entity in result]
+            return [{"text": json.dumps({"projects": serialized_result}, cls=ShotGridJSONEncoder)}]
+        except Exception as err:
+            handle_error(err, operation="find_recently_active_projects")
+            raise
+
+    @server.tool("find_active_users")
+    def find_active_users(days: int = 30) -> List[Dict[str, str]]:
+        """Find users who have been active in the last N days.
+
+        Args:
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            List of active users
+        """
+        try:
+            filters = [
+                ["sg_status_list", "is", "act"],  # Active users
+                ["last_login", "in_last", [days, "DAY"]]  # Logged in recently
+            ]
+            fields = ["id", "name", "login", "email", "last_login"]
+            order = [{"field_name": "last_login", "direction": "desc"}]
+
+            result = sg.find("HumanUser", filters, fields=fields, order=order)
+
+            if result is None:
+                return [{"text": json.dumps({"users": []}, cls=ShotGridJSONEncoder)}]
+
+            serialized_result = [serialize_entity(entity) for entity in result]
+            return [{"text": json.dumps({"users": serialized_result}, cls=ShotGridJSONEncoder)}]
+        except Exception as err:
+            handle_error(err, operation="find_active_users")
+            raise
+
+    @server.tool("find_entities_by_date_range")
+    def find_entities_by_date_range(
+        entity_type: EntityType,
+        date_field: str,
+        start_date: str,
+        end_date: str,
+        additional_filters: Optional[List[Filter]] = None,
+        fields: Optional[List[str]] = None
+    ) -> List[Dict[str, str]]:
+        """Find entities within a specific date range.
+
+        Args:
+            entity_type: Type of entity to find
+            date_field: Field name containing the date to filter on
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            additional_filters: Additional filters to apply
+            fields: Fields to return
+
+        Returns:
+            List of entities matching the date range
+        """
+        try:
+            # Create date range filter
+            filters = [[date_field, "between", [start_date, end_date]]]
+
+            # Add any additional filters
+            if additional_filters:
+                filters.extend(process_filters(additional_filters))
+
+            # Default fields if none provided
+            if not fields:
+                fields = ["id", "name", date_field]
+
+            # Execute query
+            result = sg.find(entity_type, filters, fields=fields)
+
+            if result is None:
+                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+
+            serialized_result = [serialize_entity(entity) for entity in result]
+            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
+        except Exception as err:
+            handle_error(err, operation="find_entities_by_date_range")
+            raise
 
 
 def prepare_fields_with_related(

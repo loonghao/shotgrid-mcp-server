@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'docs/package.json'
 
@@ -44,7 +44,7 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install Mintlify CLI
-        run: npm install -g mintlify
+        run: npm install -g mintlify@latest
 
       - name: Install dependencies
         run: |
@@ -52,6 +52,13 @@ jobs:
           if [ -f "package.json" ]; then
             npm install
           fi
+
+      - name: Debug Mintlify Version
+        run: |
+          mintlify --version
+          cd docs
+          ls -la
+          cat package.json
 
       - name: Deploy to Mintlify
         run: |

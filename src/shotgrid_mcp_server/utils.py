@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List, Set, TypeVar, Union
 
 # Import third-party modules
@@ -110,20 +110,35 @@ def handle_error(error: Exception, operation: str) -> Dict[str, Any]:
     }
 
 
-class DateTimeEncoder(json.JSONEncoder):
-    """JSON encoder that handles datetime objects."""
+class ShotGridJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles ShotGrid special data types.
+
+    This encoder handles datetime objects and other ShotGrid-specific data types
+    to ensure proper serialization in JSON responses.
+    """
 
     def default(self, obj: Any) -> Any:
-        """Convert datetime objects to ISO format strings.
+        """Convert special data types to JSON-serializable formats.
 
         Args:
             obj: Object to encode.
 
         Returns:
-            ISO format string if obj is datetime, otherwise default encoding.
+            JSON-serializable representation of the object.
         """
         if isinstance(obj, datetime):
             return obj.isoformat()
+        elif isinstance(obj, date):
+            return obj.isoformat()
+        elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+            return obj.to_dict()
+        elif isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, bytes):
+            try:
+                return obj.decode("utf-8")
+            except UnicodeDecodeError:
+                return str(obj)
         return super().default(obj)
 
 
