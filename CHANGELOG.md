@@ -1,3 +1,14 @@
+## v0.3.0 (2025-04-15)
+
+### Feat
+
+- add Mintlify docs deployment workflow
+- update PyPI publishing workflow to improve build and release process\
+
+### Fix
+
+- standardize uv usage in CI workflow to use uvx for nox execution
+
 ## v0.2.6 (2025-04-15)
 
 ### Fix
