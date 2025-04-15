@@ -1,3 +1,9 @@
+## v0.3.4 (2025-04-15)
+
+### Fix
+
+- use uvx nox -s build-wheel for package building
+
 ## v0.3.3 (2025-04-15)
 
 ### Fix
