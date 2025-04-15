@@ -30,6 +30,11 @@ class MockgunExt(Shotgun):  # type: ignore
         cls._schema_path = schema_path
         cls._schema_entity_path = schema_entity_path
 
+        # Also set schema paths for parent class
+        # Import here to avoid circular imports
+        from shotgun_api3.lib.mockgun.mockgun import Mockgun
+        Mockgun.set_schema_paths(schema_path, schema_entity_path)
+
     def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
         """Initialize MockgunExt.
 
