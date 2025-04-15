@@ -13,7 +13,7 @@ dependencies = [
     "platformdirs>=4.1.0",
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
-    "shotgun-api3>=3.5",
+    "shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",
 ]
 authors = [
     { name = "Hal Long", email = "hal.long@outlook.com" },
@@ -82,6 +82,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/shotgrid_mcp_server"]
+
+[tool.hatch.build.force-include]
+"tests/data/schema.bin" = "src/shotgrid_mcp_server/data/schema.bin"
+"tests/data/entity_schema.bin" = "src/shotgrid_mcp_server/data/entity_schema.bin"
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 # Import third-party modules
 from shotgun_api3 import ShotgunError
 from shotgun_api3.lib.mockgun import Shotgun
+from shotgun_api3.lib.mockgun.schema import SchemaFactory
 
 T = TypeVar("T")
 AttachmentResult = Union[bytes, str]
@@ -14,6 +15,25 @@ AttachmentResult = Union[bytes, str]
 
 class MockgunExt(Shotgun):  # type: ignore
     """Extended Mockgun class with additional functionality."""
+
+    _schema_path: Optional[str] = None
+    _schema_entity_path: Optional[str] = None
+
+    @classmethod
+    def set_schema_paths(cls, schema_path: str, schema_entity_path: str) -> None:
+        """Set schema paths for Mockgun.
+
+        Args:
+            schema_path: Path to schema file
+            schema_entity_path: Path to schema entity file
+        """
+        cls._schema_path = schema_path
+        cls._schema_entity_path = schema_entity_path
+
+        # Also set schema paths for parent class
+        # Import here to avoid circular imports
+        from shotgun_api3.lib.mockgun.mockgun import Mockgun
+        Mockgun.set_schema_paths(schema_path, schema_entity_path)
 
     def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
         """Initialize MockgunExt.
@@ -23,7 +43,16 @@ class MockgunExt(Shotgun):  # type: ignore
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        # Extract schema paths from kwargs to avoid passing them to parent class
+        schema_path = kwargs.pop("schema_path", None) or self._schema_path
+        schema_entity_path = kwargs.pop("schema_entity_path", None) or self._schema_entity_path
+
+        # Initialize parent class
         super().__init__(base_url, *args, **kwargs)
+
+        # Load schema files if provided
+        if schema_path and schema_entity_path:
+            self._schema, self._schema_entity = SchemaFactory.get_schemas(schema_path, schema_entity_path)
         self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
             self._db[entity_type] = {}
@@ -126,8 +155,7 @@ class MockgunExt(Shotgun):  # type: ignore
             }[sg_type]
         except KeyError as err:
             err_msg = (
-                f"Field {entity_type}.{field}: "
-                f"Handling for Flow Production Tracking type {sg_type} is not implemented"
+                f"Field {entity_type}.{field}: Handling for Flow Production Tracking type {sg_type} is not implemented"
             )
             raise ShotgunError(err_msg) from err
 
