@@ -13,7 +13,6 @@ from typing import Any, Optional, Type
 
 # Import third-party modules
 from shotgun_api3 import Shotgun
-from shotgun_api3.lib.mockgun import Mockgun
 
 # Import local modules
 from shotgrid_mcp_server.mockgun_ext import MockgunExt
@@ -107,8 +106,7 @@ class MockShotgunFactory(ShotgunClientFactory):
             raise ValueError(f"Schema files not found: {self.schema_path}, {self.schema_entity_path}")
 
         # Set schema paths before creating the instance
-        # This is required for both Mockgun and MockgunExt
-        Mockgun.set_schema_paths(self.schema_path, self.schema_entity_path)
+        # This is only required for MockgunExt
         MockgunExt.set_schema_paths(self.schema_path, self.schema_entity_path)
 
         # Create the instance
