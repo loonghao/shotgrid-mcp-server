@@ -14,7 +14,7 @@ from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.types import EntityType, Filter
 
 
-def register_search_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_search_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register search tools with the server.
 
     Args:
@@ -29,7 +29,7 @@ def register_search_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
     register_find_one_entity(server, sg)
 
 
-def register_search_entities(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
     """Register search_entities tool.
 
     Args:
@@ -85,7 +85,7 @@ def register_search_entities(server: FastMCPType[Any], sg: Shotgun) -> None:
             raise  # This is needed to satisfy the type checker
 
 
-def register_search_with_related(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
     """Register search_entities_with_related tool.
 
     Args:
@@ -150,7 +150,7 @@ def register_search_with_related(server: FastMCPType[Any], sg: Shotgun) -> None:
             raise  # This is needed to satisfy the type checker
 
 
-def register_find_one_entity(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
     """Register find_one_entity tool.
 
     Args:

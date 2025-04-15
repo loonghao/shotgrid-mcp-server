@@ -13,7 +13,7 @@ from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
 from shotgrid_mcp_server.types import EntityType
 
 
-def register_create_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register create tools with the server.
 
     Args:
@@ -82,7 +82,7 @@ def register_create_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
     register_batch_operations(server, sg)
 
 
-def register_batch_operations(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
     """Register batch operations tool.
 
     Args:

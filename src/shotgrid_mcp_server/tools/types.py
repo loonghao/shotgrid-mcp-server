@@ -3,15 +3,12 @@
 This module contains type definitions used across the tools modules.
 """
 
-from typing import Any, Dict, List, TypeVar
-
-from fastmcp import FastMCP
+from typing import Any, Dict, List
 
 from shotgrid_mcp_server.types import Entity, Filter
 
-# Define a type variable for FastMCP
-T = TypeVar("T")
-FastMCPType = FastMCP[T]
+# Define a type alias for FastMCP
+FastMCPType = Any
 
 # Define common type aliases
 FilterList = List[Filter]

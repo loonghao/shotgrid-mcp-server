@@ -14,7 +14,7 @@ from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.types import EntityType
 
 
-def register_thumbnail_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register thumbnail tools with the server.
 
     Args:
