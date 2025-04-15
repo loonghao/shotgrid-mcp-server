@@ -147,6 +147,7 @@ class TestDownloadTools:
         response_dict = json.loads(response_text)
 
         # Verify download
+        assert "text" in response_dict
         file_path_dict = json.loads(response_dict["text"])
         assert "file_path" in file_path_dict
         assert file_path_dict["file_path"] == str(file_path)
@@ -190,6 +191,7 @@ class TestSearchTools:
         response_dict = json.loads(response_text)
 
         # Verify response structure
+        assert "text" in response_dict
         entities_dict = json.loads(response_dict["text"])
         assert "entities" in entities_dict
         assert isinstance(entities_dict["entities"], list)
@@ -219,6 +221,7 @@ class TestSearchTools:
         assert response_dict is not None
 
         # Parse the inner text
+        assert "text" in response_dict
         inner_dict = json.loads(response_dict["text"])
         assert isinstance(inner_dict, dict)
         assert "text" in inner_dict
@@ -261,6 +264,7 @@ class TestGetThumbnailUrl:
         response_dict = json.loads(response_text)
 
         # Verify URL
+        assert "text" in response_dict
         assert response_dict["text"] == "https://example.com/thumbnail.jpg"
 
     async def test_get_thumbnail_url_not_found(self, server: FastMCP):
