@@ -450,8 +450,11 @@ if __name__ == "__main__":
     main()
 else:
     # When imported, create a mock server for testing
+    # Import built-in modules
     import os
     import pathlib
+
+    # Import local modules
     from shotgrid_mcp_server.connection_pool import MockShotgunFactory
 
     # Try different locations for schema files
