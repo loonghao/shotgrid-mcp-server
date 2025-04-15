@@ -44,7 +44,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
@@ -61,18 +61,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install uv
-        uv pip install -r requirements-dev.txt
+        # Create virtual environment
+        uv venv
+        # Activate virtual environment
+        source .venv/bin/activate
+        # Install project in development mode
+        uv pip install -e ".[dev]"
 
     - name: Lint
       run: |
-        uvx nox -s lint
+        source .venv/bin/activate
+        python -m nox -s lint
 
     - name: Test
       run: |
-        uvx nox -s tests
+        source .venv/bin/activate
+        python -m nox -s tests
 
     - name: Build package
       run: |
+        source .venv/bin/activate
         python -m pip install build hatchling
         python -m build --wheel --no-isolation
 
