@@ -170,25 +170,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.mypy]
-python_version = "3.10"
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-mypy_path = "src"
-packages = ["shotgrid_mcp_server"]
-ignore_missing_imports = true
-namespace_packages = false
-explicit_package_bases = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
