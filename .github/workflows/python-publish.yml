@@ -78,15 +78,13 @@ jobs:
     - name: Build package
       shell: bash
       run: |
-        # Install build dependencies
-        uvx pip install build hatchling
         # Install shotgun-api3 from GitHub
         uvx pip install git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
         # Create a temporary pyproject.toml without direct references
         cp pyproject.toml pyproject.toml.bak
         sed -i 's|"shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",|"shotgun-api3",|g' pyproject.toml
-        # Build the package
-        uvx python -m build --wheel --no-isolation
+        # Build the package using nox
+        uvx nox -s build-wheel
         # Restore original pyproject.toml
         mv pyproject.toml.bak pyproject.toml
 
