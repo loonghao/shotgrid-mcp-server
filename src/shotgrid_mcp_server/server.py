@@ -10,6 +10,10 @@ from typing import Any, Dict, List, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
+from typing_extensions import TypeVar
+
+# Define type variables for generic types
+T = TypeVar('T')
 
 # Import local modules
 from shotgrid_mcp_server.connection_pool import (
@@ -26,7 +30,7 @@ setup_logging()
 class ShotGridTools:
     """Class containing tools for interacting with ShotGrid."""
 
-    def __init__(self, server: FastMCP, sg: Shotgun) -> None:
+    def __init__(self, server: FastMCP[T], sg: Shotgun) -> None:
         """Initialize ShotGridTools.
 
         Args:
@@ -413,7 +417,7 @@ class ShotGridTools:
         self._register_thumbnail_tools()
 
 
-def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
+def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP[T]:
     """Create a FastMCP server instance.
 
     Args:
@@ -426,7 +430,7 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:
         Exception: If server creation fails.
     """
     try:
-        mcp = FastMCP(name="shotgrid-server")
+        mcp: FastMCP[T] = FastMCP(name="shotgrid-server")
         logger.debug("Created FastMCP instance")
 
         # Create tools instance and register tools using connection context
