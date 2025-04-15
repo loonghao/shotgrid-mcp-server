@@ -2,38 +2,28 @@
 
 # Import built-in modules
 import datetime
-from typing import Any, Dict, List, Optional, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, TypeVar
 
 # Import third-party modules
 from shotgun_api3 import ShotgunError
 from shotgun_api3.lib.mockgun import Shotgun
-from shotgun_api3.lib.mockgun.schema import SchemaFactory
+
+# Import local modules
+from shotgrid_mcp_server.types import (
+    AttachmentResult,
+    Entity,
+    EntityType,
+    FieldSchema,
+    Filter,
+    ShotGridDataType,
+    ShotGridValue,
+)
 
 T = TypeVar("T")
-AttachmentResult = Union[bytes, str]
 
 
-class MockgunExt(Shotgun):  # type: ignore
+class MockgunExt(Shotgun):
     """Extended Mockgun class with additional functionality."""
-
-    _schema_path: Optional[str] = None
-    _schema_entity_path: Optional[str] = None
-
-    @classmethod
-    def set_schema_paths(cls, schema_path: str, schema_entity_path: str) -> None:
-        """Set schema paths for Mockgun.
-
-        Args:
-            schema_path: Path to schema file
-            schema_entity_path: Path to schema entity file
-        """
-        cls._schema_path = schema_path
-        cls._schema_entity_path = schema_entity_path
-
-        # Also set schema paths for parent class
-        # Import here to avoid circular imports
-        from shotgun_api3.lib.mockgun.mockgun import Mockgun
-        Mockgun.set_schema_paths(schema_path, schema_entity_path)
 
     def __init__(self, base_url: str, *args: Any, **kwargs: Any) -> None:
         """Initialize MockgunExt.
@@ -43,21 +33,57 @@ class MockgunExt(Shotgun):  # type: ignore
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        # Extract schema paths from kwargs to avoid passing them to parent class
-        schema_path = kwargs.pop("schema_path", None) or self._schema_path
-        schema_entity_path = kwargs.pop("schema_entity_path", None) or self._schema_entity_path
-
-        # Initialize parent class
         super().__init__(base_url, *args, **kwargs)
-
-        # Load schema files if provided
-        if schema_path and schema_entity_path:
-            self._schema, self._schema_entity = SchemaFactory.get_schemas(schema_path, schema_entity_path)
         self._db: Dict[str, Dict[int, Dict[str, Any]]] = {}
         for entity_type in self._schema:
             self._db[entity_type] = {}
 
-    def _validate_multi_entity_field(self, entity_type: str, field: str, item: Any, field_info: Dict[str, Any]) -> None:
+    # Type mapping from ShotGrid types to Python types
+    _TYPE_MAPPING = {
+        "number": int,
+        "float": float,
+        "text": str,
+        "date": datetime.date,
+        "date_time": datetime.datetime,
+        "checkbox": bool,
+        "percent": int,
+        "url": dict,
+        "status_list": str,
+        "list": str,
+        "color": str,
+        "tag_list": list,
+        "duration": int,
+        "image": dict,
+    }
+
+    def _validate_field(self, entity_type: str, field: str, item: ShotGridValue, field_info: FieldSchema) -> None:
+        """Validate a field value against its schema definition.
+
+        Args:
+            entity_type: Type of entity.
+            field: Field name.
+            item: Field value.
+            field_info: Field information.
+
+        Raises:
+            ShotgunError: If validation fails.
+        """
+        # Skip validation for None values
+        if item is None:
+            return
+
+        # Get field type
+        field_type = field_info["data_type"]["value"]
+
+        # Validate based on field type
+        if field_type == "multi_entity":
+            self._validate_multi_entity_field(entity_type, field, item, field_info)
+        elif field_type == "entity":
+            self._validate_entity_field(entity_type, field, item, field_info)
+        else:
+            self._validate_simple_field(entity_type, field, item, field_info, field_type)
+
+    def _validate_multi_entity_field(self, entity_type: str, field: str, item: Any, field_info: FieldSchema) -> None:
         """Validate a multi-entity field.
 
         Args:
@@ -69,9 +95,11 @@ class MockgunExt(Shotgun):  # type: ignore
         Raises:
             ShotgunError: If validation fails.
         """
+        # Ensure item is a list
         if not isinstance(item, list):
             item = [item]
 
+        # Empty list is valid
         if not item:
             return
 
@@ -95,7 +123,7 @@ class MockgunExt(Shotgun):  # type: ignore
             )
             raise ShotgunError(err_msg)
 
-    def _validate_entity_field(self, entity_type: str, field: str, item: Any, field_info: Dict[str, Any]) -> None:
+    def _validate_entity_field(self, entity_type: str, field: str, item: Any, field_info: FieldSchema) -> None:
         """Validate an entity field.
 
         Args:
@@ -107,15 +135,15 @@ class MockgunExt(Shotgun):  # type: ignore
         Raises:
             ShotgunError: If validation fails.
         """
-        if item is None:
-            return
-
+        # Check if item is a dictionary
         if not isinstance(item, dict):
             raise ShotgunError(f"{entity_type}.{field} is of type entity, but data {item} is not a dict")
 
+        # Check if item has required fields
         if "id" not in item or "type" not in item:
             raise ShotgunError(f"{entity_type}.{field} is of type entity, but data {item} does not contain type or id")
 
+        # Check if item has valid type
         valid_types = field_info["properties"]["valid_types"]["value"]
         if item["type"] not in valid_types:
             raise ShotgunError(
@@ -123,7 +151,9 @@ class MockgunExt(Shotgun):  # type: ignore
                 f"but data {item} has invalid type (expected one of {valid_types})"
             )
 
-    def _validate_simple_field(self, entity_type: str, field: str, item: Any, field_info: Dict[str, Any]) -> None:
+    def _validate_simple_field(
+        self, entity_type: str, field: str, item: Any, field_info: FieldSchema, field_type: ShotGridDataType
+    ) -> None:
         """Validate a simple field.
 
         Args:
@@ -131,40 +161,28 @@ class MockgunExt(Shotgun):  # type: ignore
             field: Field name.
             item: Field value.
             field_info: Field information.
+            field_type: Type of field.
 
         Raises:
             ShotgunError: If validation fails.
         """
-        sg_type = field_info["data_type"]["value"]
         try:
-            python_type = {
-                "number": int,
-                "float": float,
-                "text": str,
-                "date": datetime.date,
-                "date_time": datetime.datetime,
-                "checkbox": bool,
-                "percent": int,
-                "url": dict,
-                "status_list": str,
-                "list": str,
-                "color": str,
-                "tag_list": list,
-                "duration": int,
-                "image": dict,
-            }[sg_type]
+            # Get expected Python type for this field type
+            python_type = self._TYPE_MAPPING[field_type]
         except KeyError as err:
             err_msg = (
-                f"Field {entity_type}.{field}: Handling for Flow Production Tracking type {sg_type} is not implemented"
+                f"Field {entity_type}.{field}: "
+                f"Handling for Flow Production Tracking type {field_type} is not implemented"
             )
             raise ShotgunError(err_msg) from err
 
+        # Check if item is of expected type
         if not isinstance(item, python_type):
             raise ShotgunError(
-                f"{entity_type}.{field} is of type {sg_type}, but data {item} is not of type {python_type}"
+                f"{entity_type}.{field} is of type {field_type}, but data {item} is not of type {python_type}"
             )
 
-    def _validate_entity_data(self, entity_type: str, data: Dict[str, Any]) -> None:
+    def _validate_entity_data(self, entity_type: EntityType, data: Dict[str, ShotGridValue]) -> None:
         """Validate entity data before creation or update.
 
         Args:
@@ -174,26 +192,21 @@ class MockgunExt(Shotgun):  # type: ignore
         Raises:
             ShotgunError: If validation fails.
         """
+        # Check for reserved fields
         if "id" in data or "type" in data:
             raise ShotgunError("Can't include id or type fields in data dict")
 
+        # Get schema for entity type
         fields = self.schema_field_read(entity_type)
 
+        # Validate each field
         for field, item in data.items():
             field_info = fields.get(field)
-            if not field_info:
+            if not field_info or item is None:
                 continue
 
-            if item is None:
-                continue
-
-            field_type = field_info["data_type"]["value"]
-            if field_type == "multi_entity":
-                self._validate_multi_entity_field(entity_type, field, item, field_info)
-            elif field_type == "entity":
-                self._validate_entity_field(entity_type, field, item, field_info)
-            else:
-                self._validate_simple_field(entity_type, field, item, field_info)
+            # Validate field value
+            self._validate_field(entity_type, field, item, field_info)
 
     def _validate_entity_exists(self, entity_type: str, entity_id: int) -> bool:
         """Validate that an entity exists in the database.
@@ -218,7 +231,7 @@ class MockgunExt(Shotgun):  # type: ignore
         """
         return entity_type in self._schema
 
-    def _get_field_info(self, entity_type: str, field: str) -> Dict[str, Any]:
+    def _get_field_info(self, entity_type: EntityType, field: str) -> FieldSchema:
         """Get field information from the schema.
 
         Args:
@@ -228,9 +241,11 @@ class MockgunExt(Shotgun):  # type: ignore
         Returns:
             dict: Field information from schema.
         """
-        return cast(Dict[str, Any], self._schema[entity_type].get(field, {}))
+        if entity_type in self._schema and field in self._schema[entity_type]:
+            return self._schema[entity_type][field]
+        return {}
 
-    def create(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def create(self, entity_type: EntityType, data: Dict[str, ShotGridValue]) -> Entity:
         """Create an entity in the mock database.
 
         Args:
@@ -279,7 +294,7 @@ class MockgunExt(Shotgun):  # type: ignore
             return file_path
         return mock_data
 
-    def _apply_filter(self, entity: Dict[str, Any], filter_item: List[Any]) -> bool:
+    def _apply_filter(self, entity: Entity, filter_item: Filter) -> bool:
         """Apply a single filter to an entity.
 
         Args:
@@ -313,9 +328,7 @@ class MockgunExt(Shotgun):  # type: ignore
 
         return False
 
-    def _apply_filters(
-        self, entity: Dict[str, Any], filters: List[List[Any]], filter_operator: Optional[str] = "and"
-    ) -> bool:
+    def _apply_filters(self, entity: Entity, filters: List[Filter], filter_operator: Optional[str] = "and") -> bool:
         """Apply filters to an entity.
 
         Args:
@@ -335,7 +348,7 @@ class MockgunExt(Shotgun):  # type: ignore
             return any(results)
         return all(results)
 
-    def _format_entity(self, entity: Any, fields: List[str]) -> Dict[str, Any]:
+    def _format_entity(self, entity: Any, fields: List[str]) -> Entity:
         """Format an entity for output.
 
         Args:
@@ -356,13 +369,13 @@ class MockgunExt(Shotgun):  # type: ignore
 
     def find(
         self,
-        entity_type: str,
-        filters: List[List[Any]],
+        entity_type: EntityType,
+        filters: List[Filter],
         fields: Optional[List[str]] = None,
         order: Optional[List[str]] = None,
         filter_operator: Optional[str] = None,
         limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Entity]:
         """Find entities in the mock database.
 
         Args:
@@ -393,7 +406,7 @@ class MockgunExt(Shotgun):  # type: ignore
                 if field.startswith("-"):
                     field = field[1:]
                     reverse = True
-                entities.sort(key=lambda x: cast(Any, x.get(field)), reverse=reverse)
+                entities.sort(key=lambda x: x.get(field), reverse=reverse)
 
         # Apply limit
         if limit is not None and limit > 0:
@@ -403,13 +416,13 @@ class MockgunExt(Shotgun):  # type: ignore
 
     def find_one(
         self,
-        entity_type: str,
-        filters: List[List[Any]],
+        entity_type: EntityType,
+        filters: List[Filter],
         fields: Optional[List[str]] = None,
         order: Optional[List[str]] = None,
         filter_operator: Optional[str] = None,
         retired_only: bool = False,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[Entity]:
         """Find a single entity in the mock database.
 
         Args:
@@ -435,7 +448,7 @@ class MockgunExt(Shotgun):  # type: ignore
 
     def get_thumbnail_url(
         self,
-        entity_type: str,
+        entity_type: EntityType,
         entity_id: int,
         field_name: str = "image",
     ) -> str:
@@ -461,7 +474,7 @@ class MockgunExt(Shotgun):  # type: ignore
 
         return "https://example.com/thumbnail.jpg"
 
-    def get_attachment_download_url(self, entity_type: str, entity_id: int, field_name: str) -> str:
+    def get_attachment_download_url(self, entity_type: EntityType, entity_id: int, field_name: str) -> str:
         """Get the download URL for an attachment.
 
         Args:
@@ -488,13 +501,13 @@ class MockgunExt(Shotgun):  # type: ignore
         attachment = entity[field_name]
         if isinstance(attachment, dict):
             if "url" in attachment:
-                return cast(str, attachment["url"])
+                return str(attachment["url"])
             elif "name" in attachment:
-                return cast(str, attachment["name"])
+                return str(attachment["name"])
             elif "type" in attachment and attachment["type"] == "Attachment":
                 if "url" not in attachment:
                     raise ShotgunError(f"Attachment in {entity_type}.{field_name} has no URL")
-                return cast(str, attachment["url"])
+                return str(attachment["url"])
         elif isinstance(attachment, str):
             return attachment
 

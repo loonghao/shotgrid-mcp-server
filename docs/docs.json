@@ -1,0 +1,68 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "background": {
+    "color": {
+      "dark": "#222831",
+      "light": "#EEEEEE"
+    },
+    "decoration": "windows"
+  },
+  "colors": {
+    "dark": "#f72585",
+    "light": "#4cc9f0",
+    "primary": "#2d00f7"
+  },
+  "description": "A high-performance MCP server for ShotGrid integration.",
+  "footer": {
+    "socials": {
+      "github": "https://github.com/loonghao/shotgrid-mcp-server"
+    }
+  },
+  "name": "ShotGrid MCP Server",
+  "navbar": {
+    "primary": {
+      "href": "https://github.com/loonghao/shotgrid-mcp-server",
+      "type": "github"
+    }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "getting-started/welcome",
+          "getting-started/installation",
+          "getting-started/quickstart",
+          "usage-examples",
+          "configuration-examples"
+        ]
+      },
+      {
+        "group": "Server",
+        "pages": [
+          "servers/overview",
+          "servers/tools",
+          "servers/connection-pool",
+          "servers/schema-loader",
+          "servers/mockgun"
+        ]
+      },
+      {
+        "group": "Clients",
+        "pages": [
+          "clients/overview",
+          "clients/python-client"
+        ]
+      },
+      {
+        "group": "Patterns",
+        "pages": [
+          "patterns/optimized-queries",
+          "patterns/batch-operations",
+          "patterns/error-handling"
+        ]
+      }
+    ]
+  },
+  "theme": "mint"
+}

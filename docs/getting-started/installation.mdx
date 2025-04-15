@@ -1,0 +1,75 @@
+---
+title: Installation
+sidebarTitle: Installation
+description: How to install ShotGrid MCP Server
+icon: download
+---
+
+# Installing ShotGrid MCP Server
+
+ShotGrid MCP Server can be installed using standard Python package managers. We recommend using `uv` for the best performance and dependency resolution.
+
+## Requirements
+
+- Python 3.10 or higher
+- Access to a ShotGrid instance (or Mockgun for testing)
+
+## Installation Options
+
+### Using UV (Recommended)
+
+[UV](https://github.com/astral-sh/uv) is a fast, reliable Python package installer and resolver.
+
+```bash
+# Install uv if you don't have it
+curl -sSf https://astral.sh/uv/install.sh | bash
+
+# Install shotgrid-mcp-server
+uv pip install shotgrid-mcp-server
+```
+
+### Using pip
+
+```bash
+pip install shotgrid-mcp-server
+```
+
+## Installing from Source
+
+For the latest development version or to contribute:
+
+```bash
+git clone https://github.com/loonghao/shotgrid-mcp-server.git
+cd shotgrid-mcp-server
+uv pip install -e .
+```
+
+## Installing the ShotGrid Python API
+
+ShotGrid MCP Server depends on the ShotGrid Python API. The latest versions don't have published wheel files, so you'll need to install it directly from GitHub:
+
+```bash
+# Using uv
+uv pip install git+https://github.com/shotgunsoftware/python-api.git@v3.4.0
+
+# Using pip
+pip install git+https://github.com/shotgunsoftware/python-api.git@v3.4.0
+```
+
+## Verifying Installation
+
+You can verify that ShotGrid MCP Server is installed correctly by running:
+
+```bash
+python -c "import shotgrid_mcp_server; print(shotgrid_mcp_server.__version__)"
+```
+
+This should print the version number of the installed package.
+
+## Next Steps
+
+Once you have ShotGrid MCP Server installed, you can:
+
+- Follow the [Quickstart Guide](/getting-started/quickstart) to create your first server
+- Learn about [Server Configuration](/servers/overview) options
+- Explore the [Tools](/servers/tools) you can create

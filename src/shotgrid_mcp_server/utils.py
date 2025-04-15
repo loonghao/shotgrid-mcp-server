@@ -12,29 +12,18 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+# Import local modules
+from shotgrid_mcp_server.constants import ENTITY_TYPES_ENV_VAR, ENV_CUSTOM_ENTITY_TYPES
+from shotgrid_mcp_server.types import EntityType
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Type variables
 T = TypeVar("T")
 
-# Default entity types to support
-ENTITY_TYPES: Set[str] = {
-    "Asset",
-    "Project",
-    "Shot",
-    "Sequence",
-    "Task",
-    "HumanUser",
-    "Group",
-    "Department",
-    "Step",
-    "Pipeline",
-    "Version",
-    "PublishedFile",
-    "Note",
-    "Attachment",
-}
+# Default entity types to support - using all entity types from EntityType
+DEFAULT_ENTITY_TYPES: Set[str] = set(EntityType.__args__)  # type: ignore
 
 
 def create_session() -> requests.Session:
@@ -144,19 +133,20 @@ def get_entity_types() -> Set[str]:
     Returns:
         Set[str]: Set of entity type names.
     """
-    # Get entity types from environment variable
-    env_types = os.getenv("ENTITY_TYPES")
-    if env_types:
-        try:
-            types = {t.strip() for t in env_types.split(",")}
-            logger.info("Using entity types from environment: %s", types)
-            return types
-        except Exception as e:
-            logger.error("Failed to parse ENTITY_TYPES: %s", str(e))
+    # Try both environment variables
+    for env_var in [ENV_CUSTOM_ENTITY_TYPES, ENTITY_TYPES_ENV_VAR]:
+        env_types = os.getenv(env_var)
+        if env_types:
+            try:
+                types = {t.strip() for t in env_types.split(",")}
+                logger.info("Using entity types from environment variable %s: %s", env_var, types)
+                return types
+            except Exception as e:
+                logger.error("Failed to parse %s: %s", env_var, str(e))
 
     # Return default types
-    logger.info("Using default entity types: %s", ENTITY_TYPES)
-    return ENTITY_TYPES
+    logger.info("Using default entity types: %s", DEFAULT_ENTITY_TYPES)
+    return DEFAULT_ENTITY_TYPES
 
 
 def chunk_data(data: Union[List[Dict[str, Any]], Dict[str, Any]], chunk_size: int = 50) -> List[List[Dict[str, Any]]]:

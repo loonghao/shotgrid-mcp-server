@@ -1,0 +1,33 @@
+"""Tools for ShotGrid MCP server.
+
+This package contains all the tools that can be registered with the ShotGrid MCP server.
+Each module in this package contains a set of related tools.
+"""
+
+from typing import Any
+
+from shotgun_api3.lib.mockgun import Shotgun
+
+from shotgrid_mcp_server.tools.create_tools import register_create_tools
+from shotgrid_mcp_server.tools.delete_tools import register_delete_tools
+from shotgrid_mcp_server.tools.read_tools import register_read_tools
+from shotgrid_mcp_server.tools.search_tools import register_search_tools
+from shotgrid_mcp_server.tools.thumbnail_tools import register_thumbnail_tools
+from shotgrid_mcp_server.tools.types import FastMCPType
+from shotgrid_mcp_server.tools.update_tools import register_update_tools
+
+
+def register_all_tools(server: FastMCPType[Any], sg: Shotgun) -> None:
+    """Register all tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+    # Register all tools
+    register_create_tools(server, sg)
+    register_read_tools(server, sg)
+    register_update_tools(server, sg)
+    register_delete_tools(server, sg)
+    register_search_tools(server, sg)
+    register_thumbnail_tools(server, sg)

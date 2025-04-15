@@ -1,0 +1,169 @@
+---
+title: Quickstart Guide
+sidebarTitle: Quickstart
+description: Get started with ShotGrid MCP Server in minutes
+icon: bolt
+---
+
+# Quickstart Guide
+
+This guide will help you set up a basic ShotGrid MCP Server and create your first tools. By the end, you'll have a working server that can interact with ShotGrid data through the MCP protocol.
+
+## Basic Server Setup
+
+First, let's create a simple server that connects to ShotGrid:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+# Create a server with your ShotGrid credentials
+server = ShotGridMCPServer(
+    name="ShotGrid Assistant",
+    shotgrid_url="https://your-site.shotgunstudio.com",
+    script_name="your_script_name",
+    api_key="your_api_key"
+)
+
+# Run the server
+if __name__ == "__main__":
+    server.run(host="localhost", port=8000)
+```
+
+Save this as `server.py` and run it with `python server.py`. Your server will start on http://localhost:8000.
+
+## Using Mockgun for Testing
+
+For development and testing, you can use Mockgun instead of connecting to a real ShotGrid instance:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+# Create a server with Mockgun
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True,  # This enables Mockgun
+    schema_path="path/to/schema.bin"  # Optional: path to a schema file
+)
+
+if __name__ == "__main__":
+    server.run(host="localhost", port=8000)
+```
+
+## Creating Your First Tool
+
+Let's add a tool to search for projects:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+server = ShotGridMCPServer(
+    name="ShotGrid Assistant",
+    use_mockgun=True  # For testing
+)
+
+@server.tool()
+def find_projects(status: str = None):
+    """
+    Find projects in ShotGrid, optionally filtered by status.
+    
+    Args:
+        status: Filter projects by status (e.g., "Active", "Archived")
+    
+    Returns:
+        A list of projects matching the criteria
+    """
+    filters = []
+    if status:
+        filters.append(["sg_status", "is", status])
+    
+    return server.connection.find(
+        "Project",
+        filters,
+        ["id", "name", "code", "sg_status"]
+    )
+
+if __name__ == "__main__":
+    server.run(host="localhost", port=8000)
+```
+
+## Adding Test Data to Mockgun
+
+If you're using Mockgun, you'll need to add some test data:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True
+)
+
+# Add test data to Mockgun
+@server.on_startup
+def create_test_data():
+    # Create test projects
+    server.connection.create("Project", {
+        "name": "Awesome Film",
+        "code": "AWSM",
+        "sg_status": "Active"
+    })
+    
+    server.connection.create("Project", {
+        "name": "Old Project",
+        "code": "OLD",
+        "sg_status": "Archived"
+    })
+
+@server.tool()
+def find_projects(status: str = None):
+    """Find projects in ShotGrid, optionally filtered by status."""
+    filters = []
+    if status:
+        filters.append(["sg_status", "is", status])
+    
+    return server.connection.find(
+        "Project",
+        filters,
+        ["id", "name", "code", "sg_status"]
+    )
+
+if __name__ == "__main__":
+    server.run(host="localhost", port=8000)
+```
+
+## Testing Your Server
+
+You can test your server using the built-in MCP client:
+
+```python
+from mcp.client import Client
+
+async def test_server():
+    # Connect to your server
+    client = Client("http://localhost:8000")
+    
+    # List available tools
+    tools = await client.list_tools()
+    print(f"Available tools: {[tool.name for tool in tools]}")
+    
+    # Call the find_projects tool
+    result = await client.call_tool("find_projects", {"status": "Active"})
+    print(f"Active projects: {result}")
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(test_server())
+```
+
+Save this as `test_client.py` and run it with `python test_client.py` while your server is running.
+
+## Next Steps
+
+Now that you have a basic server running, you can:
+
+- Add more [tools](/servers/tools) for different ShotGrid entities
+- Learn about [optimized queries](/patterns/optimized-queries) for better performance
+- Explore [batch operations](/patterns/batch-operations) for efficient data manipulation
+- Set up [connection pooling](/servers/connection-pool) for production use
+
+Congratulations! You've created your first ShotGrid MCP Server. Continue exploring the documentation to learn more about the server's capabilities.

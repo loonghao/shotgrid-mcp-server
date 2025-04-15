@@ -142,19 +142,6 @@ To use the ShotGrid MCP server in your MCP client, add the following configurati
         "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
       },
-      "disabled": false,
-      "alwaysAllow": [
-        "search_entities",
-        "create_entity",
-        "batch_create",
-        "find_entity",
-        "get_entity_types",
-        "update_entity",
-        "download_thumbnail",
-        "batch_update",
-        "delete_entity",
-        "batch_delete"
-      ]
     }
   }
 }

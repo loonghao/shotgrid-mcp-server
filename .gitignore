@@ -22,7 +22,6 @@ target/*
 /.zip/
 /.env
 /.windsurfrules
-/docs/
 /dist/
 /.venv/
 /tests/data/convert_schema.py

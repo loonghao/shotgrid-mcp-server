@@ -1,0 +1,401 @@
+---
+title: Mockgun
+sidebarTitle: Mockgun
+description: Testing without a real ShotGrid instance
+icon: flask
+---
+
+# Mockgun
+
+Mockgun is a testing utility that simulates a ShotGrid instance in memory. ShotGrid MCP Server includes an enhanced version of Mockgun that provides additional functionality and better compatibility with the ShotGrid API.
+
+## Why Use Mockgun?
+
+Mockgun provides several benefits for development and testing:
+
+1. **No ShotGrid Instance Required**: Develop and test without connecting to a real ShotGrid instance.
+2. **Faster Testing**: In-memory operations are much faster than API calls.
+3. **Controlled Environment**: Create a consistent, predictable testing environment.
+4. **No Side Effects**: Test operations that would modify data without affecting real data.
+5. **Offline Development**: Develop and test without an internet connection.
+
+## Using Mockgun
+
+### Basic Setup
+
+To use Mockgun, set `use_mockgun=True` when creating your server:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+# Create a server with Mockgun
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True
+)
+
+# Now server.connection is a Mockgun instance
+```
+
+### With Schema Files
+
+For more realistic testing, provide schema files:
+
+```python
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True,
+    schema_path="tests/data/schema.bin",
+    entity_schema_path="tests/data/entity_schema.bin"
+)
+```
+
+### Creating Test Data
+
+You can create test data in Mockgun just like you would with the real ShotGrid API:
+
+```python
+# Create a test project
+project = server.connection.create("Project", {
+    "name": "Test Project",
+    "code": "TEST",
+    "sg_status": "Active"
+})
+
+# Create a test sequence
+sequence = server.connection.create("Sequence", {
+    "code": "SEQ001",
+    "project": {"type": "Project", "id": project["id"]}
+})
+
+# Create test shots
+for i in range(1, 6):
+    server.connection.create("Shot", {
+        "code": f"SH{i:03d}",
+        "sg_status_list": "ip",
+        "project": {"type": "Project", "id": project["id"]},
+        "sg_sequence": {"type": "Sequence", "id": sequence["id"]}
+    })
+```
+
+### Using Startup Handlers
+
+A convenient way to create test data is with startup handlers:
+
+```python
+from shotgrid_mcp_server import ShotGridMCPServer
+
+server = ShotGridMCPServer(
+    name="ShotGrid Test Server",
+    use_mockgun=True
+)
+
+@server.on_startup
+def create_test_data():
+    """Create test data when the server starts."""
+    # Create a test project
+    project = server.connection.create("Project", {
+        "name": "Test Project",
+        "code": "TEST",
+        "sg_status": "Active"
+    })
+    
+    # Create test users
+    alice = server.connection.create("HumanUser", {
+        "name": "Alice",
+        "login": "alice",
+        "email": "alice@example.com"
+    })
+    
+    bob = server.connection.create("HumanUser", {
+        "name": "Bob",
+        "login": "bob",
+        "email": "bob@example.com"
+    })
+    
+    # Create test tasks
+    server.connection.create("Task", {
+        "content": "Model Character",
+        "sg_status_list": "ip",
+        "project": {"type": "Project", "id": project["id"]},
+        "task_assignees": [{"type": "HumanUser", "id": alice["id"]}]
+    })
+    
+    server.connection.create("Task", {
+        "content": "Rig Character",
+        "sg_status_list": "rdy",
+        "project": {"type": "Project", "id": project["id"]},
+        "task_assignees": [{"type": "HumanUser", "id": bob["id"]}]
+    })
+
+@server.tool()
+def find_tasks(assigned_to: str = None):
+    """Find tasks, optionally filtered by assignee."""
+    filters = []
+    
+    if assigned_to:
+        filters.append(["task_assignees.HumanUser.name", "is", assigned_to])
+    
+    return server.connection.find(
+        "Task",
+        filters,
+        ["content", "sg_status_list", "task_assignees"]
+    )
+```
+
+## Enhanced Mockgun Features
+
+ShotGrid MCP Server's Mockgun implementation includes several enhancements over the standard Mockgun:
+
+### Field Hopping Support
+
+Mockgun supports "field hopping" (dot notation) in filters:
+
+```python
+# Find shots in a specific sequence
+shots = server.connection.find(
+    "Shot",
+    [["sg_sequence.Sequence.code", "is", "SEQ001"]],
+    ["code"]
+)
+
+# Find tasks assigned to a specific user
+tasks = server.connection.find(
+    "Task",
+    [["task_assignees.HumanUser.name", "contains", "Alice"]],
+    ["content"]
+)
+```
+
+### Advanced Filters
+
+Mockgun supports a wide range of filter operators:
+
+```python
+# Find shots with codes starting with "SH"
+shots = server.connection.find(
+    "Shot",
+    [["code", "starts_with", "SH"]],
+    ["code"]
+)
+
+# Find assets created in the last 7 days
+import datetime
+seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
+assets = server.connection.find(
+    "Asset",
+    [["created_at", "greater_than", seven_days_ago]],
+    ["code"]
+)
+
+# Find tasks with multiple conditions
+tasks = server.connection.find(
+    "Task",
+    [
+        ["sg_status_list", "in", ["ip", "rdy"]],
+        ["content", "contains", "Character"]
+    ],
+    ["content", "sg_status_list"]
+)
+```
+
+### Batch Operations
+
+Mockgun supports batch operations for creating, updating, and deleting entities:
+
+```python
+# Batch create multiple entities
+batch_data = [
+    {
+        "request_type": "create",
+        "entity_type": "Shot",
+        "data": {
+            "code": "SH010",
+            "project": {"type": "Project", "id": 1}
+        }
+    },
+    {
+        "request_type": "create",
+        "entity_type": "Shot",
+        "data": {
+            "code": "SH011",
+            "project": {"type": "Project", "id": 1}
+        }
+    }
+]
+
+results = server.connection.batch(batch_data)
+
+# Batch update and delete
+batch_data = [
+    {
+        "request_type": "update",
+        "entity_type": "Shot",
+        "entity_id": 1,
+        "data": {
+            "sg_status_list": "cmpt"
+        }
+    },
+    {
+        "request_type": "delete",
+        "entity_type": "Shot",
+        "entity_id": 2
+    }
+]
+
+results = server.connection.batch(batch_data)
+```
+
+### Schema Validation
+
+Mockgun validates entity types and fields against the schema:
+
+```python
+try:
+    # This will fail if "NonExistentEntity" is not in the schema
+    server.connection.create("NonExistentEntity", {"name": "Test"})
+except ValueError as e:
+    print(f"Error: {e}")
+
+try:
+    # This will fail if "non_existent_field" is not in the schema for Project
+    server.connection.create("Project", {"non_existent_field": "Test"})
+except ValueError as e:
+    print(f"Error: {e}")
+```
+
+## Testing with Mockgun
+
+### Unit Testing
+
+Mockgun is particularly useful for unit testing:
+
+```python
+import unittest
+from shotgrid_mcp_server import ShotGridMCPServer
+
+class TestShotFunctions(unittest.TestCase):
+    def setUp(self):
+        # Create a server with Mockgun for each test
+        self.server = ShotGridMCPServer(
+            name="Test Server",
+            use_mockgun=True
+        )
+        
+        # Create test data
+        self.project = self.server.connection.create("Project", {
+            "name": "Test Project",
+            "code": "TEST"
+        })
+        
+        self.sequence = self.server.connection.create("Sequence", {
+            "code": "SEQ001",
+            "project": {"type": "Project", "id": self.project["id"]}
+        })
+        
+        for i in range(1, 6):
+            self.server.connection.create("Shot", {
+                "code": f"SH{i:03d}",
+                "sg_status_list": "ip" if i < 3 else "cmpt",
+                "project": {"type": "Project", "id": self.project["id"]},
+                "sg_sequence": {"type": "Sequence", "id": self.sequence["id"]}
+            })
+    
+    def test_find_shots(self):
+        # Test the find_shots function
+        @self.server.tool()
+        def find_shots(status=None):
+            filters = []
+            if status:
+                filters.append(["sg_status_list", "is", status])
+            return self.server.connection.find("Shot", filters, ["code"])
+        
+        # Test without status filter
+        all_shots = find_shots()
+        self.assertEqual(len(all_shots), 5)
+        
+        # Test with status filter
+        ip_shots = find_shots(status="ip")
+        self.assertEqual(len(ip_shots), 2)
+        
+        cmpt_shots = find_shots(status="cmpt")
+        self.assertEqual(len(cmpt_shots), 3)
+```
+
+### Integration Testing
+
+For integration testing with MCP clients:
+
+```python
+import asyncio
+from shotgrid_mcp_server import ShotGridMCPServer
+from mcp.client import Client
+
+async def test_mcp_integration():
+    # Create and start a server
+    server = ShotGridMCPServer(
+        name="Test Server",
+        use_mockgun=True
+    )
+    
+    # Create test data
+    @server.on_startup
+    def create_test_data():
+        server.connection.create("Project", {
+            "name": "Test Project",
+            "code": "TEST"
+        })
+    
+    # Define a tool
+    @server.tool()
+    def find_projects():
+        return server.connection.find("Project", [], ["name", "code"])
+    
+    # Start the server
+    await server.start(host="localhost", port=8765)
+    
+    try:
+        # Connect with an MCP client
+        client = Client("http://localhost:8765")
+        
+        # List available tools
+        tools = await client.list_tools()
+        print(f"Available tools: {[tool.name for tool in tools]}")
+        
+        # Call the find_projects tool
+        result = await client.call_tool("find_projects", {})
+        print(f"Projects: {result}")
+        
+        # Verify the result
+        assert len(result) == 1
+        assert result[0]["name"] == "Test Project"
+        assert result[0]["code"] == "TEST"
+        
+        print("Integration test passed!")
+    finally:
+        # Stop the server
+        await server.stop()
+
+if __name__ == "__main__":
+    asyncio.run(test_mcp_integration())
+```
+
+## Best Practices
+
+1. **Use Real Schema**: For the most accurate testing, use schema files exported from your production ShotGrid instance.
+
+2. **Create Realistic Test Data**: Set up test data that closely resembles your production data.
+
+3. **Test Edge Cases**: Use Mockgun to test error conditions and edge cases that would be difficult to test with a real ShotGrid instance.
+
+4. **Reset Between Tests**: Create a fresh Mockgun instance for each test to ensure a clean state.
+
+5. **Validate Against Real ShotGrid**: Periodically validate your tests against a real ShotGrid instance to ensure Mockgun's behavior matches.
+
+## Next Steps
+
+Now that you understand Mockgun, you can:
+
+- Learn about [optimized queries](/patterns/optimized-queries) that work with both Mockgun and real ShotGrid
+- Explore [batch operations](/patterns/batch-operations) for efficient data manipulation
+- See how to handle [errors](/patterns/error-handling) in a consistent way
