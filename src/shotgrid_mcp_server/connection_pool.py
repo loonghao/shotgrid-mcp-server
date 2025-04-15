@@ -13,6 +13,7 @@ from typing import Any, Optional, Type
 
 # Import third-party modules
 from shotgun_api3 import Shotgun
+from shotgun_api3.lib.mockgun import Mockgun
 
 # Import local modules
 from shotgrid_mcp_server.mockgun_ext import MockgunExt
@@ -100,8 +101,17 @@ class MockShotgunFactory(ShotgunClientFactory):
         Returns:
             MockgunExt: A new mock ShotGrid client instance.
         """
+        # First, check if schema files exist
+        if not os.path.exists(self.schema_path) or not os.path.exists(self.schema_entity_path):
+            logger.error("Schema files not found: %s, %s", self.schema_path, self.schema_entity_path)
+            raise ValueError(f"Schema files not found: {self.schema_path}, {self.schema_entity_path}")
+
         # Set schema paths before creating the instance
+        # This is required for both Mockgun and MockgunExt
+        Mockgun.set_schema_paths(self.schema_path, self.schema_entity_path)
         MockgunExt.set_schema_paths(self.schema_path, self.schema_entity_path)
+
+        # Create the instance
         sg = MockgunExt(
             "https://test.shotgunstudio.com",
             script_name="test_script",
