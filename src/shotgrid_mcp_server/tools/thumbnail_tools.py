@@ -4,7 +4,7 @@ This module contains tools for working with thumbnails in ShotGrid.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
