@@ -310,7 +310,12 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             bool: True if entity matches filter, False otherwise.
         """
         # Handle both tuple format and dict format
-        if isinstance(filter_item, dict) and "field" in filter_item and "operator" in filter_item and "value" in filter_item:
+        if (
+            isinstance(filter_item, dict)
+            and "field" in filter_item
+            and "operator" in filter_item
+            and "value" in filter_item
+        ):
             field_name = filter_item["field"]
             operator = filter_item["operator"]
             value = filter_item["value"]

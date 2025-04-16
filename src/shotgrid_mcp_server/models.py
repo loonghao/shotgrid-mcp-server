@@ -3,9 +3,10 @@
 This module provides Pydantic models for ShotGrid API data types and filters.
 """
 
+import logging
 from datetime import date, datetime, timedelta
 from enum import Enum
-from typing import Any, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -134,6 +135,34 @@ class Filter(BaseModel):
         """Create from tuple format."""
         field, operator, value = filter_tuple
         return cls(field=field, operator=operator, value=value)
+
+
+class FilterRequest(BaseModel):
+    """Filter model for API requests.
+
+    This model is more flexible and can handle different formats of filter inputs
+    from API requests.
+    """
+
+    field: str
+    operator: str  # Use string instead of enum for more flexibility
+    value: Any
+
+    def to_filter(self) -> Filter:
+        """Convert to Filter model."""
+        try:
+            # Try to convert operator to FilterOperator enum
+            filter_operator = FilterOperator(self.operator)
+            return Filter(field=self.field, operator=filter_operator, value=self.value)
+        except ValueError:
+            # If conversion fails, log a warning and use the string value
+            logging.warning(f"Unknown filter operator: {self.operator}. Using as string.")
+            return Filter(field=self.field, operator=self.operator, value=self.value)
+
+    @classmethod
+    def from_dict(cls, filter_dict: Dict[str, Any]) -> "FilterRequest":
+        """Create from dictionary."""
+        return cls(field=filter_dict.get("field"), operator=filter_dict.get("operator"), value=filter_dict.get("value"))
 
 
 class FilterList(BaseModel):
@@ -380,7 +409,7 @@ def _process_special_date_value(value: Any) -> Any:
     return value
 
 
-def _normalize_filter(filter_item: Union[Filter, Tuple[str, str, Any]]) -> Filter:
+def _normalize_filter(filter_item: Union[Filter, FilterRequest, Dict[str, Any], Tuple[str, str, Any]]) -> Filter:
     """Normalize a filter to a Filter object.
 
     Args:
@@ -389,13 +418,28 @@ def _normalize_filter(filter_item: Union[Filter, Tuple[str, str, Any]]) -> Filte
     Returns:
         Normalized Filter object
     """
-    if isinstance(filter_item, tuple):
+    if isinstance(filter_item, Filter):
+        return filter_item
+    elif isinstance(filter_item, FilterRequest):
+        return filter_item.to_filter()
+    elif isinstance(filter_item, dict):
+        return FilterRequest.from_dict(filter_item).to_filter()
+    elif isinstance(filter_item, tuple):
         return Filter.from_tuple(filter_item)
-    return filter_item
+    else:
+        raise TypeError(f"Unsupported filter type: {type(filter_item)}")
 
 
-def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[Tuple[str, str, Any]]:
+def process_filters(
+    filters: List[Union[Filter, FilterRequest, Dict[str, Any], Tuple[str, str, Any]]],
+) -> List[Tuple[str, str, Any]]:
     """Process filters to handle special values and time-related filters.
+
+    This function can handle various filter input formats:
+    - Filter objects
+    - FilterRequest objects
+    - Dictionaries with field, operator, and value keys
+    - Tuples of (field, operator, value)
 
     Args:
         filters: List of filters to process.
@@ -406,26 +450,38 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
     processed_filters = []
 
     for filter_item in filters:
-        # Convert tuple to Filter if needed
-        filter_item = _normalize_filter(filter_item)
+        try:
+            # Convert to Filter object if needed
+            filter_obj = _normalize_filter(filter_item)
 
-        field = filter_item.field
-        operator = filter_item.operator
-        value = filter_item.value
+            field = filter_obj.field
+            operator = filter_obj.operator
+            value = filter_obj.value
 
-        # Handle time-related operators
-        if operator in [
-            FilterOperator.IN_LAST,
-            FilterOperator.NOT_IN_LAST,
-            FilterOperator.IN_NEXT,
-            FilterOperator.NOT_IN_NEXT,
-        ]:
-            value = _process_time_filter_value(value)
-        else:
-            # Handle special date values
-            value = _process_special_date_value(value)
+            # Handle time-related operators
+            if operator in [
+                FilterOperator.IN_LAST,
+                FilterOperator.NOT_IN_LAST,
+                FilterOperator.IN_NEXT,
+                FilterOperator.NOT_IN_NEXT,
+            ]:
+                value = _process_time_filter_value(value)
+            else:
+                # Handle special date values
+                value = _process_special_date_value(value)
 
-        # Convert to tuple format for ShotGrid API
-        processed_filters.append((field, operator.value if isinstance(operator, FilterOperator) else operator, value))
+            # Convert to tuple format for ShotGrid API
+            processed_filters.append(
+                (field, operator.value if isinstance(operator, FilterOperator) else operator, value)
+            )
+        except Exception as e:
+            # Log the error and try to use the filter as-is if possible
+            logging.warning(f"Error processing filter {filter_item}: {e}")
+            if isinstance(filter_item, tuple) and len(filter_item) == 3:
+                # If it's already a tuple, use it directly
+                processed_filters.append(filter_item)
+            elif isinstance(filter_item, dict) and all(k in filter_item for k in ["field", "operator", "value"]):
+                # If it's a dictionary with the required keys, convert to tuple
+                processed_filters.append((filter_item["field"], filter_item["operator"], filter_item["value"]))
 
     return processed_filters

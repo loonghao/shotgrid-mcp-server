@@ -85,10 +85,15 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             # Convert dict filters to Filter objects
             filter_objects = []
             for filter_dict in filters:
-                filter_obj = Filter(
-                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
-                )
-                filter_objects.append(filter_obj)
+                try:
+                    filter_obj = Filter(
+                        field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
+                    )
+                    filter_objects.append(filter_obj)
+                except Exception as e:
+                    # Fallback to tuple format if Filter validation fails
+                    logger.warning(f"Filter validation failed: {e}. Using tuple format instead.")
+                    filter_objects.append((filter_dict["field"], filter_dict["operator"], filter_dict["value"]))
 
             # Process filters
             processed_filters = process_filters(filter_objects)
@@ -110,9 +115,27 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
                 return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
             # Convert results to Pydantic models
-            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
-            response = EntitiesResponse(entities=entity_dicts)
+            entity_dicts = []
+            for entity in result:
+                # Serialize entity data
+                serialized_entity = serialize_entity(entity)
 
+                # Ensure id field is present
+                if "id" not in serialized_entity and entity.get("id"):
+                    serialized_entity["id"] = entity["id"]
+
+                # Convert to Pydantic model if possible
+                try:
+                    entity_dict = EntityDict(**serialized_entity)
+                    entity_dicts.append(entity_dict)
+                except Exception as e:
+                    # Log warning and skip this entity
+                    logger.warning(f"Failed to convert entity to EntityDict: {e}")
+                    # Add a minimal valid entity
+                    if "id" in serialized_entity and "type" in serialized_entity:
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+
+            response = EntitiesResponse(entities=entity_dicts)
             return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities")
@@ -159,16 +182,8 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
-            # Convert dict filters to Filter objects
-            filter_objects = []
-            for filter_dict in filters:
-                filter_obj = Filter(
-                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
-                )
-                filter_objects.append(filter_obj)
-
-            # Process filters
-            processed_filters = process_filters(filter_objects)
+            # Use the new process_filters function that can handle dictionaries directly
+            processed_filters = process_filters(filters)
 
             # Process fields with related entity fields
             all_fields = prepare_fields_with_related(sg, entity_type, fields, related_fields)
@@ -190,9 +205,27 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
                 return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
             # Convert results to Pydantic models
-            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
-            response = EntitiesResponse(entities=entity_dicts)
+            entity_dicts = []
+            for entity in result:
+                # Serialize entity data
+                serialized_entity = serialize_entity(entity)
 
+                # Ensure id field is present
+                if "id" not in serialized_entity and entity.get("id"):
+                    serialized_entity["id"] = entity["id"]
+
+                # Convert to Pydantic model if possible
+                try:
+                    entity_dict = EntityDict(**serialized_entity)
+                    entity_dicts.append(entity_dict)
+                except Exception as e:
+                    # Log warning and skip this entity
+                    logger.warning(f"Failed to convert entity to EntityDict: {e}")
+                    # Add a minimal valid entity
+                    if "id" in serialized_entity and "type" in serialized_entity:
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+
+            response = EntitiesResponse(entities=entity_dicts)
             return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities_with_related")
@@ -231,16 +264,8 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
-            # Convert dict filters to Filter objects
-            filter_objects = []
-            for filter_dict in filters:
-                filter_obj = Filter(
-                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
-                )
-                filter_objects.append(filter_obj)
-
-            # Process filters
-            processed_filters = process_filters(filter_objects)
+            # Use the new process_filters function that can handle dictionaries directly
+            processed_filters = process_filters(filters)
 
             result = sg.find_one(
                 entity_type,
@@ -252,9 +277,21 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             if result is None:
                 return [{"text": json.dumps({"entity": None}, cls=ShotGridJSONEncoder)}]
 
-            # Convert result to Pydantic model
-            entity_dict = EntityDict(**serialize_entity(result))
-            return [{"text": json.dumps({"entity": entity_dict.model_dump()}, cls=ShotGridJSONEncoder)}]
+            # Serialize entity data
+            serialized_entity = serialize_entity(result)
+
+            # Ensure id field is present
+            if "id" not in serialized_entity and result.get("id"):
+                serialized_entity["id"] = result["id"]
+
+            # Convert to Pydantic model if possible
+            try:
+                entity_dict = EntityDict(**serialized_entity)
+                return [{"text": json.dumps({"entity": entity_dict.model_dump()}, cls=ShotGridJSONEncoder)}]
+            except Exception as e:
+                # Fallback to returning the serialized entity directly
+                logger.warning(f"Failed to convert entity to EntityDict: {e}")
+                return [{"text": json.dumps({"entity": serialized_entity}, cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker

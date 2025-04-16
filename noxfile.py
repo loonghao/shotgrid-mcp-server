@@ -109,3 +109,9 @@ def docs_build(session: nox.Session) -> None:
 def docs_deploy(session: nox.Session) -> None:
     """Deploy documentation to Mintlify."""
     docs.deploy_docs(session)
+
+
+@nox.session(name="docs-static")
+def docs_static(session: nox.Session) -> None:
+    """Generate a static website from Mintlify documentation."""
+    docs.generate_static_site(session)

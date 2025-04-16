@@ -87,7 +87,7 @@ class TestOptimizedQueries:
             "search_entities_with_related",
             {
                 "entity_type": "Shot",
-                "filters": [["project.Project.code", "is", "test_project"]],
+                "filters": [{"field": "project.Project.code", "operator": "is", "value": "test_project"}],
                 "fields": ["code", "sg_status_list"],
                 "related_fields": {
                     "project": ["name", "code"],
