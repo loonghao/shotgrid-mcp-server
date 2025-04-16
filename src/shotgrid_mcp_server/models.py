@@ -5,7 +5,7 @@ This module provides Pydantic models for ShotGrid API data types and filters.
 
 from datetime import date, datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -94,7 +94,7 @@ class Filter(BaseModel):
     operator: FilterOperator
     value: Any
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_time_filter(self):
         """Validate time filter values."""
         operator = self.operator
@@ -324,6 +324,76 @@ def create_assigned_to_filter(user_id: int) -> Filter:
     )
 
 
+def _process_time_filter_value(value: Any) -> Any:
+    """Process a time filter value.
+
+    Args:
+        value: Value to process
+
+    Returns:
+        Processed value
+    """
+    # ShotGrid expects format [number, "UNIT"]
+    if isinstance(value, str) and " " in value:
+        try:
+            count_str, unit = value.split(" ", 1)
+            count = int(count_str)
+
+            # Map user-friendly unit names to ShotGrid format
+            unit_map = {
+                "day": TimeUnit.DAY.value,
+                "days": TimeUnit.DAY.value,
+                "week": TimeUnit.WEEK.value,
+                "weeks": TimeUnit.WEEK.value,
+                "month": TimeUnit.MONTH.value,
+                "months": TimeUnit.MONTH.value,
+                "year": TimeUnit.YEAR.value,
+                "years": TimeUnit.YEAR.value,
+            }
+
+            if unit.lower() in unit_map:
+                return [count, unit_map[unit.lower()]]
+        except (ValueError, TypeError):
+            # Keep original value if parsing fails
+            pass
+
+    return value
+
+
+def _process_special_date_value(value: Any) -> Any:
+    """Process a special date value.
+
+    Args:
+        value: Value to process
+
+    Returns:
+        Processed value
+    """
+    if isinstance(value, str) and value.startswith("$"):
+        if value == "$today":
+            return datetime.now().strftime("%Y-%m-%d")
+        elif value == "$yesterday":
+            return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        elif value == "$tomorrow":
+            return (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    return value
+
+
+def _normalize_filter(filter_item: Union[Filter, Tuple[str, str, Any]]) -> Filter:
+    """Normalize a filter to a Filter object.
+
+    Args:
+        filter_item: Filter to normalize
+
+    Returns:
+        Normalized Filter object
+    """
+    if isinstance(filter_item, tuple):
+        return Filter.from_tuple(filter_item)
+    return filter_item
+
+
 def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[Tuple[str, str, Any]]:
     """Process filters to handle special values and time-related filters.
 
@@ -337,8 +407,7 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
 
     for filter_item in filters:
         # Convert tuple to Filter if needed
-        if isinstance(filter_item, tuple):
-            filter_item = Filter.from_tuple(filter_item)
+        filter_item = _normalize_filter(filter_item)
 
         field = filter_item.field
         operator = filter_item.operator
@@ -351,38 +420,10 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
             FilterOperator.IN_NEXT,
             FilterOperator.NOT_IN_NEXT,
         ]:
-            # ShotGrid expects format [number, "UNIT"]
-            if isinstance(value, str) and " " in value:
-                try:
-                    count_str, unit = value.split(" ", 1)
-                    count = int(count_str)
-
-                    # Map user-friendly unit names to ShotGrid format
-                    unit_map = {
-                        "day": TimeUnit.DAY.value,
-                        "days": TimeUnit.DAY.value,
-                        "week": TimeUnit.WEEK.value,
-                        "weeks": TimeUnit.WEEK.value,
-                        "month": TimeUnit.MONTH.value,
-                        "months": TimeUnit.MONTH.value,
-                        "year": TimeUnit.YEAR.value,
-                        "years": TimeUnit.YEAR.value,
-                    }
-
-                    if unit.lower() in unit_map:
-                        value = [count, unit_map[unit.lower()]]
-                except (ValueError, TypeError):
-                    # Keep original value if parsing fails
-                    pass
-
-        # Handle special date values
-        elif isinstance(value, str) and value.startswith("$"):
-            if value == "$today":
-                value = datetime.now().strftime("%Y-%m-%d")
-            elif value == "$yesterday":
-                value = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-            elif value == "$tomorrow":
-                value = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+            value = _process_time_filter_value(value)
+        else:
+            # Handle special date values
+            value = _process_special_date_value(value)
 
         # Convert to tuple format for ShotGrid API
         processed_filters.append((field, operator.value if isinstance(operator, FilterOperator) else operator, value))

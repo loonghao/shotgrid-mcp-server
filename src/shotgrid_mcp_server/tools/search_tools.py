@@ -86,9 +86,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             filter_objects = []
             for filter_dict in filters:
                 filter_obj = Filter(
-                    field=filter_dict["field"],
-                    operator=filter_dict["operator"],
-                    value=filter_dict["value"]
+                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
                 )
                 filter_objects.append(filter_obj)
 
@@ -165,9 +163,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             filter_objects = []
             for filter_dict in filters:
                 filter_obj = Filter(
-                    field=filter_dict["field"],
-                    operator=filter_dict["operator"],
-                    value=filter_dict["value"]
+                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
                 )
                 filter_objects.append(filter_obj)
 
@@ -239,9 +235,7 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             filter_objects = []
             for filter_dict in filters:
                 filter_obj = Filter(
-                    field=filter_dict["field"],
-                    operator=filter_dict["operator"],
-                    value=filter_dict["value"]
+                    field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
                 )
                 filter_objects.append(filter_obj)
 
@@ -266,6 +260,139 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             raise  # This is needed to satisfy the type checker
 
 
+def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str, str]]:
+    """Find projects that have been active in the last N days.
+
+    Args:
+        sg: ShotGrid connection.
+        days: Number of days to look back (default: 90)
+
+    Returns:
+        List of active projects
+    """
+    try:
+        # Create filter using Pydantic model
+        filter_obj = create_in_last_filter("updated_at", days, TimeUnit.DAY)
+        filters = [filter_obj.to_tuple()]
+
+        fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
+        order = [{"field_name": "updated_at", "direction": "desc"}]
+
+        result = sg.find("Project", filters, fields=fields, order=order)
+
+        if result is None:
+            # Use Pydantic model for response
+            response = ProjectsResponse(projects=[])
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+
+        # Convert results to Pydantic models
+        project_dicts = [ProjectDict(**serialize_entity(entity)) for entity in result]
+        response = ProjectsResponse(projects=project_dicts)
+
+        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+    except Exception as err:
+        handle_error(err, operation="find_recently_active_projects")
+        raise
+
+
+def _find_active_users(sg: Shotgun, days: int = 30) -> List[Dict[str, str]]:
+    """Find users who have been active in the last N days.
+
+    Args:
+        sg: ShotGrid connection.
+        days: Number of days to look back (default: 30)
+
+    Returns:
+        List of active users
+    """
+    try:
+        # Create filters using Pydantic models
+        status_filter = Filter(field="sg_status_list", operator="is", value="act")
+        login_filter = create_in_last_filter("last_login", days, TimeUnit.DAY)
+
+        filters = [status_filter.to_tuple(), login_filter.to_tuple()]
+        fields = ["id", "name", "login", "email", "last_login"]
+        order = [{"field_name": "last_login", "direction": "desc"}]
+
+        result = sg.find("HumanUser", filters, fields=fields, order=order)
+
+        if result is None:
+            # Use Pydantic model for response
+            response = UsersResponse(users=[])
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+
+        # Convert results to Pydantic models
+        user_dicts = [UserDict(**serialize_entity(entity)) for entity in result]
+        response = UsersResponse(users=user_dicts)
+
+        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+    except Exception as err:
+        handle_error(err, operation="find_active_users")
+        raise
+
+
+def _find_entities_by_date_range(
+    sg: Shotgun,
+    entity_type: EntityType,
+    date_field: str,
+    start_date: str,
+    end_date: str,
+    additional_filters: Optional[List[Filter]] = None,
+    fields: Optional[List[str]] = None,
+) -> List[Dict[str, str]]:
+    """Find entities within a specific date range.
+
+    Args:
+        sg: ShotGrid connection.
+        entity_type: Type of entity to find
+        date_field: Field name containing the date to filter on
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+        additional_filters: Additional filters to apply
+        fields: Fields to return
+
+    Returns:
+        List of entities matching the date range
+    """
+    try:
+        # Create date range filter using Pydantic model
+        date_filter = Filter(field=date_field, operator="between", value=[start_date, end_date])
+
+        filters = [date_filter.to_tuple()]
+
+        # Add any additional filters
+        if additional_filters:
+            # Process each filter through Pydantic model
+            for filter_item in additional_filters:
+                if isinstance(filter_item, Filter):
+                    filters.append(filter_item.to_tuple())
+                else:
+                    # Convert tuple to Filter if needed
+                    filter_obj = Filter.from_tuple(filter_item)
+                    filters.append(filter_obj.to_tuple())
+
+        # Default fields if none provided
+        if not fields:
+            fields = ["id", "name", date_field]
+
+        # Execute query
+        result = sg.find(entity_type, filters, fields=fields)
+
+        if result is None:
+            # Use Pydantic model for response
+            response = EntitiesResponse(entities=[])
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+
+        # Convert results to Pydantic models
+        entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
+        response = EntitiesResponse(entities=entity_dicts)
+
+        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+    except Exception as err:
+        handle_error(err, operation="find_entities_by_date_range")
+        raise
+
+
 def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
     """Register helper functions for common query patterns.
 
@@ -284,29 +411,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         Returns:
             List of active projects
         """
-        try:
-            # Create filter using Pydantic model
-            filter_obj = create_in_last_filter("updated_at", days, TimeUnit.DAY)
-            filters = [filter_obj.to_tuple()]
-
-            fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
-            order = [{"field_name": "updated_at", "direction": "desc"}]
-
-            result = sg.find("Project", filters, fields=fields, order=order)
-
-            if result is None:
-                # Use Pydantic model for response
-                response = ProjectsResponse(projects=[])
-                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-
-            # Convert results to Pydantic models
-            project_dicts = [ProjectDict(**serialize_entity(entity)) for entity in result]
-            response = ProjectsResponse(projects=project_dicts)
-
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-        except Exception as err:
-            handle_error(err, operation="find_recently_active_projects")
-            raise
+        return _find_recently_active_projects(sg, days)
 
     @server.tool("find_active_users")
     def find_active_users(days: int = 30) -> List[Dict[str, str]]:
@@ -318,30 +423,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         Returns:
             List of active users
         """
-        try:
-            # Create filters using Pydantic models
-            status_filter = Filter(field="sg_status_list", operator="is", value="act")
-            login_filter = create_in_last_filter("last_login", days, TimeUnit.DAY)
-
-            filters = [status_filter.to_tuple(), login_filter.to_tuple()]
-            fields = ["id", "name", "login", "email", "last_login"]
-            order = [{"field_name": "last_login", "direction": "desc"}]
-
-            result = sg.find("HumanUser", filters, fields=fields, order=order)
-
-            if result is None:
-                # Use Pydantic model for response
-                response = UsersResponse(users=[])
-                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-
-            # Convert results to Pydantic models
-            user_dicts = [UserDict(**serialize_entity(entity)) for entity in result]
-            response = UsersResponse(users=user_dicts)
-
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-        except Exception as err:
-            handle_error(err, operation="find_active_users")
-            raise
+        return _find_active_users(sg, days)
 
     @server.tool("find_entities_by_date_range")
     def find_entities_by_date_range(
@@ -365,43 +447,9 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         Returns:
             List of entities matching the date range
         """
-        try:
-            # Create date range filter using Pydantic model
-            date_filter = Filter(field=date_field, operator="between", value=[start_date, end_date])
-
-            filters = [date_filter.to_tuple()]
-
-            # Add any additional filters
-            if additional_filters:
-                # Process each filter through Pydantic model
-                for filter_item in additional_filters:
-                    if isinstance(filter_item, Filter):
-                        filters.append(filter_item.to_tuple())
-                    else:
-                        # Convert tuple to Filter if needed
-                        filter_obj = Filter.from_tuple(filter_item)
-                        filters.append(filter_obj.to_tuple())
-
-            # Default fields if none provided
-            if not fields:
-                fields = ["id", "name", date_field]
-
-            # Execute query
-            result = sg.find(entity_type, filters, fields=fields)
-
-            if result is None:
-                # Use Pydantic model for response
-                response = EntitiesResponse(entities=[])
-                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-
-            # Convert results to Pydantic models
-            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
-            response = EntitiesResponse(entities=entity_dicts)
-
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
-        except Exception as err:
-            handle_error(err, operation="find_entities_by_date_range")
-            raise
+        return _find_entities_by_date_range(
+            sg, entity_type, date_field, start_date, end_date, additional_filters, fields
+        )
 
 
 def prepare_fields_with_related(
