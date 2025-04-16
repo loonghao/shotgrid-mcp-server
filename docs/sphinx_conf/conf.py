@@ -45,5 +45,8 @@ autodoc_default_options = {
     "special-members": "__init__",
 }
 
-# Markdown builder settings
-source_suffix = ".md"
+# Source file settings
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
