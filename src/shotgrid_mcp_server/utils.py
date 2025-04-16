@@ -127,8 +127,13 @@ class ShotGridJSONEncoder(json.JSONEncoder):
             JSON-serializable representation of the object.
         """
         if isinstance(obj, datetime):
-            return obj.isoformat()
+            # Format datetime with timezone info if available
+            if obj.tzinfo is not None:
+                return obj.isoformat()
+            # Add Z suffix for UTC time without timezone
+            return f"{obj.isoformat()}Z"
         elif isinstance(obj, date):
+            # Format date as YYYY-MM-DD
             return obj.isoformat()
         # Handle Pydantic models
         elif hasattr(obj, "model_dump") and callable(obj.model_dump):
@@ -143,6 +148,10 @@ class ShotGridJSONEncoder(json.JSONEncoder):
                 return obj.decode("utf-8")
             except UnicodeDecodeError:
                 return str(obj)
+        # Handle timedelta objects
+        elif hasattr(obj, "total_seconds") and callable(obj.total_seconds):
+            # Convert timedelta to seconds
+            return obj.total_seconds()
         return super().default(obj)
 
 
@@ -219,3 +228,27 @@ def filter_essential_fields(data: Dict[str, Any], essential_fields: Set[str]) ->
         Dict[str, Any]: Filtered data containing only essential fields.
     """
     return {k: v for k, v in data.items() if k in essential_fields}
+
+
+def serialize_entity(entity: Any) -> Dict[str, Any]:
+    """Serialize entity data for JSON response.
+
+    Args:
+        entity: Entity data to serialize.
+
+    Returns:
+        Dict[str, Any]: Serialized entity data.
+    """
+
+    def _serialize_value(value: Any) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        elif isinstance(value, dict):
+            return {k: _serialize_value(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [_serialize_value(v) for v in value]
+        return value
+
+    if not isinstance(entity, dict):
+        return {}
+    return {k: _serialize_value(v) for k, v in entity.items()}

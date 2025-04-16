@@ -5,7 +5,7 @@ making it easier to create, validate, and process filters for API queries.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Tuple, Union
 
 from shotgrid_mcp_server.types import Filter
@@ -618,6 +618,82 @@ def _process_time_filter_value(value: Any) -> Any:
     return value
 
 
+def _process_special_keyword(value: str) -> Any:
+    """Process a special date keyword starting with $.
+
+    Args:
+        value: Special date keyword to process
+
+    Returns:
+        Processed date value or original value if not a recognized keyword
+    """
+    today = datetime.now()
+
+    if value == "$today":
+        return today.strftime("%Y-%m-%d")
+    elif value == "$yesterday":
+        return (today - timedelta(days=1)).strftime("%Y-%m-%d")
+    elif value == "$tomorrow":
+        return (today + timedelta(days=1)).strftime("%Y-%m-%d")
+    elif value == "$this_week":
+        # Start of current week (Monday)
+        start_of_week = today - timedelta(days=today.weekday())
+        return start_of_week.strftime("%Y-%m-%d")
+    elif value == "$this_month":
+        # Start of current month
+        return today.replace(day=1).strftime("%Y-%m-%d")
+    elif value == "$this_year":
+        # Start of current year
+        return today.replace(month=1, day=1).strftime("%Y-%m-%d")
+    elif value == "$next_week":
+        # Start of next week
+        days_until_next_monday = 7 - today.weekday()
+        next_monday = today + timedelta(days=days_until_next_monday)
+        return next_monday.strftime("%Y-%m-%d")
+    elif value == "$next_month":
+        # Start of next month
+        if today.month == 12:
+            next_month = today.replace(year=today.year + 1, month=1, day=1)
+        else:
+            next_month = today.replace(month=today.month + 1, day=1)
+        return next_month.strftime("%Y-%m-%d")
+
+    # Not a recognized keyword
+    return value
+
+
+def _try_parse_date_string(value: str) -> Any:
+    """Try to parse a string as a date using various formats.
+
+    Args:
+        value: String to parse as date
+
+    Returns:
+        Parsed date in ISO format or original value if parsing fails
+    """
+    # Common date formats to try
+    date_formats = [
+        "%Y-%m-%d",     # ISO format: 2023-01-31
+        "%m/%d/%Y",    # US format: 01/31/2023
+        "%d/%m/%Y",    # European format: 31/01/2023
+        "%Y/%m/%d",    # Alternative ISO: 2023/01/31
+        "%d-%m-%Y",    # European with dashes: 31-01-2023
+        "%m-%d-%Y",    # US with dashes: 01-31-2023
+    ]
+
+    try:
+        for date_format in date_formats:
+            try:
+                parsed_date = datetime.strptime(value, date_format)
+                return parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+    except Exception as e:
+        logger.debug("Failed to parse date value '%s': %s", value, str(e))
+
+    return value
+
+
 def _process_special_date_value(value: Any) -> Any:
     """Process a special date value.
 
@@ -627,13 +703,13 @@ def _process_special_date_value(value: Any) -> Any:
     Returns:
         Processed value
     """
-    if isinstance(value, str) and value.startswith("$"):
-        if value == "$today":
-            return datetime.now().strftime("%Y-%m-%d")
-        elif value == "$yesterday":
-            return (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        elif value == "$tomorrow":
-            return (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    if isinstance(value, str):
+        # Handle special date keywords
+        if value.startswith("$"):
+            return _process_special_keyword(value)
+
+        # Try to parse common date formats
+        return _try_parse_date_string(value)
 
     return value
 
@@ -698,6 +774,55 @@ def create_date_filter(field: str, operator: str, date_value: Union[str, datetim
         date_value = (datetime.now() + date_value).strftime("%Y-%m-%d")
 
     return [field, operator, date_value]
+
+
+def build_date_filter(
+    field: str, operator: str, date_value: Union[str, datetime, date, timedelta, None] = None
+) -> Filter:
+    """Build a date filter with proper formatting.
+
+    This function handles various date formats and special values:
+    - datetime objects are converted to ISO format
+    - date objects are converted to ISO format
+    - timedelta objects are applied to today's date
+    - strings are processed for special values like $today
+    - None defaults to today's date
+
+    Args:
+        field: Field name to filter on
+        operator: Filter operator (is, is_not, greater_than, less_than, between, etc.)
+        date_value: Date value as string, datetime, date, timedelta, or None (defaults to today)
+
+    Returns:
+        Filter: Properly formatted date filter
+
+    Examples:
+        >>> build_date_filter("created_at", "is", "$today")
+        >>> build_date_filter("due_date", "greater_than", datetime.now())
+        >>> build_date_filter("start_date", "less_than", timedelta(days=7))
+    """
+    # Default to today if no date provided
+    if date_value is None:
+        date_value = datetime.now()
+
+    # Convert datetime to string format
+    if isinstance(date_value, datetime):
+        formatted_date = date_value.strftime("%Y-%m-%d")
+    # Convert date to string format
+    elif isinstance(date_value, date):
+        formatted_date = date_value.strftime("%Y-%m-%d")
+    # Handle timedelta (relative to today)
+    elif isinstance(date_value, timedelta):
+        formatted_date = (datetime.now() + date_value).strftime("%Y-%m-%d")
+    # Process string values
+    elif isinstance(date_value, str):
+        # Process special values like $today
+        formatted_date = _process_special_date_value(date_value)
+    else:
+        # Use as-is for other types
+        formatted_date = date_value
+
+    return [field, operator, formatted_date]
 
 
 def combine_filters(filters: List[Filter], operator: str = "and") -> Dict[str, Any]:

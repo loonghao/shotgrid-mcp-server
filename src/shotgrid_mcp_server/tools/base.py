@@ -3,34 +3,10 @@
 This module contains common functions and utilities used by all tools.
 """
 
-from datetime import datetime
-from typing import Any, Dict
-
 from shotgrid_mcp_server.error_handler import handle_tool_error
 
-
-def serialize_entity(entity: Any) -> Dict[str, Any]:
-    """Serialize entity data for JSON response.
-
-    Args:
-        entity: Entity data to serialize.
-
-    Returns:
-        Dict[str, Any]: Serialized entity data.
-    """
-
-    def _serialize_value(value: Any) -> Any:
-        if isinstance(value, datetime):
-            return value.isoformat()
-        elif isinstance(value, dict):
-            return {k: _serialize_value(v) for k, v in value.items()}
-        elif isinstance(value, list):
-            return [_serialize_value(v) for v in value]
-        return value
-
-    if not isinstance(entity, dict):
-        return {}
-    return {k: _serialize_value(v) for k, v in entity.items()}
+# Re-export serialize_entity for backward compatibility
+from shotgrid_mcp_server.utils import serialize_entity  # noqa: F401
 
 
 def handle_error(err: Exception, operation: str) -> None:
