@@ -1,3 +1,9 @@
+## v0.6.0 (2025-04-16)
+
+### Feat
+
+- implement PRD v2 improvements for date handling and error messages
+
 ## v0.5.0 (2025-04-16)
 
 ### Feat
