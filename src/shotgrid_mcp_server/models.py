@@ -7,12 +7,12 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class TimeUnit(str, Enum):
     """ShotGrid time unit."""
-    
+
     DAY = "DAY"
     WEEK = "WEEK"
     MONTH = "MONTH"
@@ -21,7 +21,7 @@ class TimeUnit(str, Enum):
 
 class FilterOperator(str, Enum):
     """ShotGrid filter operators."""
-    
+
     IS = "is"
     IS_NOT = "is_not"
     LESS_THAN = "less_than"
@@ -51,7 +51,7 @@ class FilterOperator(str, Enum):
 
 class ShotGridDataType(str, Enum):
     """ShotGrid data types."""
-    
+
     ADDRESSING = "addressing"
     CHECKBOX = "checkbox"
     COLOR = "color"
@@ -78,28 +78,28 @@ class ShotGridDataType(str, Enum):
 
 class EntityRef(BaseModel):
     """ShotGrid entity reference."""
-    
+
     type: str
     id: int
     name: Optional[str] = None
-    
+
     class Config:
         extra = "allow"  # Allow extra fields
 
 
 class Filter(BaseModel):
     """ShotGrid filter model."""
-    
+
     field: str
     operator: FilterOperator
     value: Any
-    
-    @root_validator
-    def validate_time_filter(cls, values):
+
+    @model_validator(mode='after')
+    def validate_time_filter(self):
         """Validate time filter values."""
-        operator = values.get("operator")
-        value = values.get("value")
-        
+        operator = self.operator
+        value = self.value
+
         if operator in [
             FilterOperator.IN_LAST,
             FilterOperator.NOT_IN_LAST,
@@ -113,22 +113,22 @@ class Filter(BaseModel):
                 count, unit = value
                 if not isinstance(count, int):
                     raise ValueError(f"Time filter count must be an integer, got {type(count).__name__}")
-                
+
                 if unit not in [u.value for u in TimeUnit]:
                     raise ValueError(f"Invalid time unit: {unit}. Must be one of {[u.value for u in TimeUnit]}")
             else:
                 raise ValueError("Time filter value must be [number, 'UNIT'] or 'number unit'")
-        
+
         if operator in [FilterOperator.BETWEEN, FilterOperator.NOT_BETWEEN]:
             if not isinstance(value, list) or len(value) != 2:
                 raise ValueError("Between filter value must be a list with exactly 2 elements [min, max]")
-        
-        return values
-    
+
+        return self
+
     def to_tuple(self) -> Tuple[str, str, Any]:
         """Convert to tuple format for ShotGrid API."""
         return (self.field, self.operator.value, self.value)
-    
+
     @classmethod
     def from_tuple(cls, filter_tuple: Tuple[str, str, Any]) -> "Filter":
         """Create from tuple format."""
@@ -138,19 +138,19 @@ class Filter(BaseModel):
 
 class FilterList(BaseModel):
     """List of ShotGrid filters."""
-    
+
     filters: List[Filter]
     filter_operator: Literal["and", "or"] = "and"
 
 
 class TimeFilter(BaseModel):
     """ShotGrid time filter."""
-    
+
     field: str
     operator: Literal["in_last", "not_in_last", "in_next", "not_in_next"]
     count: int = Field(..., gt=0)
     unit: TimeUnit
-    
+
     def to_filter(self) -> Filter:
         """Convert to Filter model."""
         return Filter(
@@ -162,12 +162,12 @@ class TimeFilter(BaseModel):
 
 class DateRangeFilter(BaseModel):
     """ShotGrid date range filter."""
-    
+
     field: str
     start_date: str
     end_date: str
     additional_filters: Optional[List[Filter]] = None
-    
+
     def to_filter(self) -> Filter:
         """Convert to Filter model."""
         return Filter(
@@ -179,21 +179,21 @@ class DateRangeFilter(BaseModel):
 
 class ProjectDict(BaseModel):
     """ShotGrid project dictionary."""
-    
+
     id: int
     type: str
     name: str
     sg_status: Optional[str] = None
     updated_at: Optional[str] = None
     updated_by: Optional[EntityRef] = None
-    
+
     class Config:
         extra = "allow"  # Allow extra fields
 
 
 class UserDict(BaseModel):
     """ShotGrid user dictionary."""
-    
+
     id: int
     type: str
     name: str
@@ -201,14 +201,14 @@ class UserDict(BaseModel):
     email: Optional[str] = None
     last_login: Optional[str] = None
     sg_status_list: Optional[str] = None
-    
+
     class Config:
         extra = "allow"  # Allow extra fields
 
 
 class EntityDict(BaseModel):
     """ShotGrid entity dictionary."""
-    
+
     id: int
     type: str
     name: Optional[str] = None
@@ -216,26 +216,26 @@ class EntityDict(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     sg_status_list: Optional[str] = None
-    
+
     class Config:
         extra = "allow"  # Allow extra fields
 
 
 class ProjectsResponse(BaseModel):
     """Response for find_recently_active_projects."""
-    
+
     projects: List[ProjectDict]
 
 
 class UsersResponse(BaseModel):
     """Response for find_active_users."""
-    
+
     users: List[UserDict]
 
 
 class EntitiesResponse(BaseModel):
     """Response for find_entities_by_date_range."""
-    
+
     entities: List[EntityDict]
 
 
@@ -265,7 +265,9 @@ def create_between_filter(field: str, min_value: Any, max_value: Any) -> Filter:
     return Filter(field=field, operator=FilterOperator.BETWEEN, value=[min_value, max_value])
 
 
-def create_date_filter(field: str, operator: FilterOperator, date_value: Union[str, datetime, date, timedelta]) -> Filter:
+def create_date_filter(
+    field: str, operator: FilterOperator, date_value: Union[str, datetime, date, timedelta]
+) -> Filter:
     """Create a date filter with proper formatting."""
     # Convert datetime to string format
     if isinstance(date_value, datetime):
@@ -276,7 +278,7 @@ def create_date_filter(field: str, operator: FilterOperator, date_value: Union[s
     # Handle timedelta (relative to today)
     elif isinstance(date_value, timedelta):
         date_value = (datetime.now() + date_value).strftime("%Y-%m-%d")
-    
+
     return Filter(field=field, operator=operator, value=date_value)
 
 
@@ -324,24 +326,24 @@ def create_assigned_to_filter(user_id: int) -> Filter:
 
 def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[Tuple[str, str, Any]]:
     """Process filters to handle special values and time-related filters.
-    
+
     Args:
         filters: List of filters to process.
-        
+
     Returns:
         List of processed filters in tuple format.
     """
     processed_filters = []
-    
+
     for filter_item in filters:
         # Convert tuple to Filter if needed
         if isinstance(filter_item, tuple):
             filter_item = Filter.from_tuple(filter_item)
-        
+
         field = filter_item.field
         operator = filter_item.operator
         value = filter_item.value
-        
+
         # Handle time-related operators
         if operator in [
             FilterOperator.IN_LAST,
@@ -354,7 +356,7 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
                 try:
                     count_str, unit = value.split(" ", 1)
                     count = int(count_str)
-                    
+
                     # Map user-friendly unit names to ShotGrid format
                     unit_map = {
                         "day": TimeUnit.DAY.value,
@@ -366,13 +368,13 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
                         "year": TimeUnit.YEAR.value,
                         "years": TimeUnit.YEAR.value,
                     }
-                    
+
                     if unit.lower() in unit_map:
                         value = [count, unit_map[unit.lower()]]
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     # Keep original value if parsing fails
                     pass
-        
+
         # Handle special date values
         elif isinstance(value, str) and value.startswith("$"):
             if value == "$today":
@@ -381,8 +383,8 @@ def process_filters(filters: List[Union[Filter, Tuple[str, str, Any]]]) -> List[
                 value = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
             elif value == "$tomorrow":
                 value = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-        
+
         # Convert to tuple format for ShotGrid API
         processed_filters.append((field, operator.value if isinstance(operator, FilterOperator) else operator, value))
-    
+
     return processed_filters
