@@ -673,12 +673,12 @@ def _try_parse_date_string(value: str) -> Any:
     """
     # Common date formats to try
     date_formats = [
-        "%Y-%m-%d",     # ISO format: 2023-01-31
-        "%m/%d/%Y",    # US format: 01/31/2023
-        "%d/%m/%Y",    # European format: 31/01/2023
-        "%Y/%m/%d",    # Alternative ISO: 2023/01/31
-        "%d-%m-%Y",    # European with dashes: 31-01-2023
-        "%m-%d-%Y",    # US with dashes: 01-31-2023
+        "%Y-%m-%d",  # ISO format: 2023-01-31
+        "%m/%d/%Y",  # US format: 01/31/2023
+        "%d/%m/%Y",  # European format: 31/01/2023
+        "%Y/%m/%d",  # Alternative ISO: 2023/01/31
+        "%d-%m-%Y",  # European with dashes: 31-01-2023
+        "%m-%d-%Y",  # US with dashes: 01-31-2023
     ]
 
     try:
