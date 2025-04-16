@@ -96,8 +96,13 @@ jobs:
         run: |
           python -m nox -s docs-build
 
-      # Mintlify no longer supports the build command, so we can't deploy to GitHub Pages
-      # Instead, we'll just add a comment to the PR with a link to the Mintlify documentation
+      # Check for broken links in the documentation
+      - name: Check for broken links
+        run: |
+          cd docs
+          npx mintlify broken-links
+
+      # Add a comment to the PR with a link to the Mintlify documentation
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
@@ -105,7 +110,7 @@ jobs:
             const prNumber = context.issue.number;
             const mintlifyUrl = 'https://shotgrid-mcp-server.mintlify.app';
 
-            const comment = `## 📚 Documentation Preview\n\nMintlify no longer supports local builds. Please check the official Mintlify documentation at [${mintlifyUrl}](${mintlifyUrl}).`;
+            const comment = `## 📚 Documentation Preview\n\nThe documentation has been checked for broken links.\n\nTo preview the documentation locally, run:\n\n\`\`\`bash\nnpx mintlify dev\n\`\`\`\n\nThe official Mintlify documentation is available at [${mintlifyUrl}](${mintlifyUrl}).`;
 
             github.rest.issues.createComment({
               issue_number: prNumber,
