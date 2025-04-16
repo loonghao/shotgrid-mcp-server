@@ -25,11 +25,20 @@ def generate_api_docs(session: nox.Session) -> None:
     api_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate API documentation
+    # First, generate API documentation using sphinx-apidoc
+    session.run(
+        "sphinx-apidoc",
+        "-o", "docs/sphinx_source",
+        "-f", "-e", "-M",
+        "src/shotgrid_mcp_server",
+    )
+
+    # Then, build the documentation using sphinx-build
     session.run(
         "sphinx-build",
         "-b", "markdown",
         "-c", "docs/sphinx_conf",
-        "src/shotgrid_mcp_server",
+        "docs/sphinx_source",
         str(api_dir),
     )
 
