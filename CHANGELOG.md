@@ -1,3 +1,30 @@
+## v0.4.0 (2025-04-16)
+
+### Feat
+
+- add static site generation for offline documentation hosting
+- enhance filter processing and add data type utilities
+
+### Fix
+
+- update documentation workflow for Mintlify CLI changes
+- update documentation workflow for Mintlify CLI changes
+- simplify API documentation generation to static files
+- fix indentation in temporary script for API documentation
+- use temporary script for API documentation generation
+- simplify API documentation generation
+- update Sphinx configuration to support both .rst and .md files
+- improve Sphinx API documentation generation
+- add Sphinx configuration for API documentation
+- update mintlify commands to use npx
+
+### Refactor
+
+- reduce code complexity to fix lint issues
+- encapsulate documentation generation in nox commands
+- use Pydantic models for filter handling
+- use Pydantic models for data validation and serialization
+
 ## v0.3.5 (2025-04-16)
 
 ### Fix
