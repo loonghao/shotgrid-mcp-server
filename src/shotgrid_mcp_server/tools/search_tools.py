@@ -5,15 +5,13 @@ This module contains tools for searching entities in ShotGrid.
 
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional
 
-from pydantic import ValidationError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.models import (
-    EntityDict,
     EntitiesResponse,
+    EntityDict,
     Filter,
     ProjectDict,
     ProjectsResponse,
@@ -61,7 +59,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
     @server.tool("search_entities")
     def search_entities(
         entity_type: EntityType,
-        filters: List[Filter],
+        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
         fields: Optional[List[str]] = None,
         order: Optional[List[Dict[str, str]]] = None,
         filter_operator: Optional[str] = None,
@@ -71,7 +69,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
 
         Args:
             entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a list of [field, operator, value].
+            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
             fields: Optional list of fields to return.
             order: Optional list of fields to order by.
             filter_operator: Optional filter operator.
@@ -84,8 +82,18 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
+            # Convert dict filters to Filter objects
+            filter_objects = []
+            for filter_dict in filters:
+                filter_obj = Filter(
+                    field=filter_dict["field"],
+                    operator=filter_dict["operator"],
+                    value=filter_dict["value"]
+                )
+                filter_objects.append(filter_obj)
+
             # Process filters
-            processed_filters = process_filters(filters)
+            processed_filters = process_filters(filter_objects)
 
             # Execute query
             result = sg.find(
@@ -99,11 +107,15 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
 
             # Format response
             if result is None:
-                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+                # Use Pydantic model for response
+                response = EntitiesResponse(entities=[])
+                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
-            # Serialize results to handle datetime and other special types
-            serialized_result = [serialize_entity(entity) for entity in result]
-            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
+            # Convert results to Pydantic models
+            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
+            response = EntitiesResponse(entities=entity_dicts)
+
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
@@ -120,7 +132,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
     @server.tool("search_entities_with_related")
     def search_entities_with_related(
         entity_type: EntityType,
-        filters: List[Filter],
+        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
         fields: Optional[List[str]] = None,
         related_fields: Optional[Dict[str, List[str]]] = None,
         order: Optional[List[Dict[str, str]]] = None,
@@ -134,7 +146,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
 
         Args:
             entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a list of [field, operator, value].
+            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
             fields: Optional list of fields to return from the main entity.
             related_fields: Optional dictionary mapping entity fields to lists of fields to return
                 from related entities. For example: {"project": ["name", "sg_status"]}
@@ -149,8 +161,18 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
+            # Convert dict filters to Filter objects
+            filter_objects = []
+            for filter_dict in filters:
+                filter_obj = Filter(
+                    field=filter_dict["field"],
+                    operator=filter_dict["operator"],
+                    value=filter_dict["value"]
+                )
+                filter_objects.append(filter_obj)
+
             # Process filters
-            processed_filters = process_filters(filters)
+            processed_filters = process_filters(filter_objects)
 
             # Process fields with related entity fields
             all_fields = prepare_fields_with_related(sg, entity_type, fields, related_fields)
@@ -167,11 +189,15 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
 
             # Format response
             if result is None:
-                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+                # Use Pydantic model for response
+                response = EntitiesResponse(entities=[])
+                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
-            # Serialize results to handle datetime and other special types
-            serialized_result = [serialize_entity(entity) for entity in result]
-            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
+            # Convert results to Pydantic models
+            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
+            response = EntitiesResponse(entities=entity_dicts)
+
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="search_entities_with_related")
             raise  # This is needed to satisfy the type checker
@@ -188,7 +214,7 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
     @server.tool("find_one_entity")
     def find_one_entity(
         entity_type: EntityType,
-        filters: List[Filter],
+        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
         fields: Optional[List[str]] = None,
         order: Optional[List[Dict[str, str]]] = None,
         filter_operator: Optional[str] = None,
@@ -197,7 +223,7 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
 
         Args:
             entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a list of [field, operator, value].
+            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
             fields: Optional list of fields to return.
             order: Optional list of fields to order by.
             filter_operator: Optional filter operator.
@@ -209,16 +235,32 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
+            # Convert dict filters to Filter objects
+            filter_objects = []
+            for filter_dict in filters:
+                filter_obj = Filter(
+                    field=filter_dict["field"],
+                    operator=filter_dict["operator"],
+                    value=filter_dict["value"]
+                )
+                filter_objects.append(filter_obj)
+
+            # Process filters
+            processed_filters = process_filters(filter_objects)
+
             result = sg.find_one(
                 entity_type,
-                filters,
+                processed_filters,
                 fields=fields,
                 order=order,
                 filter_operator=filter_operator,
             )
             if result is None:
-                return [{"text": json.dumps({"text": None}, cls=ShotGridJSONEncoder)}]
-            return [{"text": json.dumps({"text": serialize_entity(result)}, cls=ShotGridJSONEncoder)}]
+                return [{"text": json.dumps({"entity": None}, cls=ShotGridJSONEncoder)}]
+
+            # Convert result to Pydantic model
+            entity_dict = EntityDict(**serialize_entity(result))
+            return [{"text": json.dumps({"entity": entity_dict.model_dump()}, cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
@@ -325,11 +367,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         """
         try:
             # Create date range filter using Pydantic model
-            date_filter = Filter(
-                field=date_field,
-                operator="between",
-                value=[start_date, end_date]
-            )
+            date_filter = Filter(field=date_field, operator="between", value=[start_date, end_date])
 
             filters = [date_filter.to_tuple()]
 

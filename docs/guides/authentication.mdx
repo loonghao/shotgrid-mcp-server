@@ -1,0 +1,76 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate with ShotGrid MCP Server'
+---
+
+# Authentication
+
+ShotGrid MCP Server uses ShotGrid's script-based authentication to connect to your ShotGrid instance.
+
+## Script-Based Authentication
+
+ShotGrid provides a script-based authentication method that uses a script name and API key. This is the recommended authentication method for server-to-server communication.
+
+### Creating a Script User
+
+To create a script user in ShotGrid:
+
+1. Log in to your ShotGrid instance as an admin
+2. Go to **Admin > Scripts**
+3. Click **+ New Script**
+4. Enter a name for your script (e.g., "ShotGrid MCP Server")
+5. Select the appropriate permission group
+6. Click **Save**
+7. ShotGrid will generate a script name and API key
+
+### Permission Groups
+
+When creating a script user, you need to assign it to a permission group. The permission group determines what actions the script can perform in ShotGrid.
+
+For ShotGrid MCP Server, we recommend creating a dedicated permission group with the following permissions:
+
+- **Read access** to all entity types you want to query
+- **Write access** to entity types you want to modify
+- **Admin access** to schema (if you need to use schema-related tools)
+
+### Configuration
+
+Once you have your script name and API key, you can configure ShotGrid MCP Server to use them:
+
+```json
+{
+  "shotgrid": {
+    "server": "https://your-site.shotgunstudio.com",
+    "script_name": "your_script_name",
+    "api_key": "your_api_key"
+  }
+}
+```
+
+Or using environment variables:
+
+```bash
+export SHOTGRID_SERVER="https://your-site.shotgunstudio.com"
+export SHOTGRID_SCRIPT_NAME="your_script_name"
+export SHOTGRID_API_KEY="your_api_key"
+```
+
+## Security Considerations
+
+- **API Key Security**: Treat your API key like a password. Do not commit it to version control or share it publicly.
+- **Least Privilege**: Give your script user only the permissions it needs.
+- **Firewall Rules**: Consider restricting access to your ShotGrid instance by IP address.
+- **Audit Logs**: Regularly review ShotGrid audit logs to monitor script user activity.
+
+## Troubleshooting
+
+If you encounter authentication issues:
+
+1. Verify that your script name and API key are correct
+2. Check that your script user has the necessary permissions
+3. Ensure your ShotGrid instance is accessible from the server running ShotGrid MCP Server
+4. Check for any IP restrictions that might be blocking access
+
+## Next Steps
+
+Once you have set up authentication, you can proceed to explore the [Tools](/guides/tools) available in ShotGrid MCP Server.

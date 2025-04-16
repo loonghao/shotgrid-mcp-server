@@ -1,0 +1,76 @@
+---
+title: 'Configuration'
+description: 'Configure ShotGrid MCP Server for your environment'
+---
+
+# Configuration
+
+ShotGrid MCP Server requires configuration to connect to your ShotGrid instance. This guide will walk you through the necessary configuration steps.
+
+## Basic Configuration
+
+Create a configuration file named `config.json` with the following structure:
+
+```json
+{
+  "shotgrid": {
+    "server": "https://your-site.shotgunstudio.com",
+    "script_name": "your_script_name",
+    "api_key": "your_api_key"
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8080
+  }
+}
+```
+
+### Configuration Options
+
+#### ShotGrid Connection
+
+| Option | Description | Required |
+| --- | --- | --- |
+| `shotgrid.server` | URL of your ShotGrid instance | Yes |
+| `shotgrid.script_name` | Script name for API authentication | Yes |
+| `shotgrid.api_key` | API key for authentication | Yes |
+| `shotgrid.http_proxy` | HTTP proxy URL (if needed) | No |
+| `shotgrid.connect_timeout` | Connection timeout in seconds | No |
+
+#### Server Settings
+
+| Option | Description | Default | Required |
+| --- | --- | --- | --- |
+| `server.host` | Host address to bind the server | `127.0.0.1` | No |
+| `server.port` | Port to run the server on | `8080` | No |
+| `server.log_level` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
+
+## Environment Variables
+
+You can also configure ShotGrid MCP Server using environment variables:
+
+```bash
+# ShotGrid connection
+export SHOTGRID_SERVER="https://your-site.shotgunstudio.com"
+export SHOTGRID_SCRIPT_NAME="your_script_name"
+export SHOTGRID_API_KEY="your_api_key"
+
+# Server settings
+export SHOTGRID_MCP_HOST="127.0.0.1"
+export SHOTGRID_MCP_PORT="8080"
+export SHOTGRID_MCP_LOG_LEVEL="INFO"
+```
+
+Environment variables take precedence over configuration file settings.
+
+## Using a Configuration File
+
+To start the server with a specific configuration file:
+
+```bash
+shotgrid-mcp-server --config /path/to/config.json
+```
+
+## Next Steps
+
+Once you have configured ShotGrid MCP Server, proceed to the [Quickstart Guide](/guides/quickstart) to run your first server.

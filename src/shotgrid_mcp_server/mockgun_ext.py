@@ -309,9 +309,16 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         Returns:
             bool: True if entity matches filter, False otherwise.
         """
-        field_name = filter_item[0]
-        operator = filter_item[1]
-        value = filter_item[2]
+        # Handle both tuple format and dict format
+        if isinstance(filter_item, dict) and "field" in filter_item and "operator" in filter_item and "value" in filter_item:
+            field_name = filter_item["field"]
+            operator = filter_item["operator"]
+            value = filter_item["value"]
+        else:
+            # Assume tuple format
+            field_name = filter_item[0]
+            operator = filter_item[1]
+            value = filter_item[2]
 
         if field_name not in entity:
             return False
@@ -470,7 +477,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         Raises:
             ShotgunError: If the entity is not found or has no thumbnail.
         """
-        entity = self.find_one(entity_type, [["id", "is", entity_id]])  # type: ignore[list-item]
+        entity = self.find_one(entity_type, [{"field": "id", "operator": "is", "value": entity_id}])
         if not entity:
             raise ShotgunError(f"Entity {entity_type} with id {entity_id} not found")
 
@@ -494,7 +501,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             ShotgunError: If the entity is not found or has no attachment.
         """
         # Find entity
-        entity = self.find_one(entity_type, [["id", "is", entity_id]], [field_name])  # type: ignore[list-item]
+        entity = self.find_one(entity_type, [{"field": "id", "operator": "is", "value": entity_id}], [field_name])
         if not entity:
             raise ShotgunError(f"Entity {entity_type} with ID {entity_id} not found")
 

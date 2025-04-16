@@ -181,14 +181,14 @@ class TestSearchTools:
     async def test_find_entities(self, server: FastMCP, mock_sg: Shotgun):
         """Test finding entities."""
         # Find test project
-        project = mock_sg.find_one("Project", [["code", "is", "test"]])
+        project = mock_sg.find_one("Project", [{"field": "code", "operator": "is", "value": "test"}])
 
         # Search for shots in project
         response = await server.call_tool(
             "search_entities",
             {
                 "entity_type": "Shot",
-                "filters": [["project", "is", project]],
+                "filters": [{"field": "project", "operator": "is", "value": project}],
                 "fields": ["code", "project"],
             },
         )
@@ -215,7 +215,7 @@ class TestSearchTools:
             "find_one_entity",
             {
                 "entity_type": "Shot",
-                "filters": [["code", "is", "test_shot"]],
+                "filters": [{"field": "code", "operator": "is", "value": "test_shot"}],
                 "fields": ["code", "project"],
             },
         )
@@ -255,7 +255,7 @@ class TestGetThumbnailUrl:
     async def test_get_thumbnail_url(self, server: FastMCP, mock_sg: Shotgun):
         """Test get_thumbnail_url method."""
         # Create test shot with thumbnail
-        project = mock_sg.find_one("Project", [["code", "is", "main"]])
+        project = mock_sg.find_one("Project", [{"field": "code", "operator": "is", "value": "main"}])
         shot = mock_sg.create(
             "Shot",
             {
@@ -304,7 +304,7 @@ class TestGetThumbnailUrl:
     async def test_get_thumbnail_url_no_url(self, server: FastMCP, mock_sg: Shotgun):
         """Test get_thumbnail_url method when entity has no thumbnail URL."""
         # Create test shot without thumbnail
-        project = mock_sg.find_one("Project", [["code", "is", "main"]])
+        project = mock_sg.find_one("Project", [{"field": "code", "operator": "is", "value": "main"}])
         shot = mock_sg.create(
             "Shot",
             {
