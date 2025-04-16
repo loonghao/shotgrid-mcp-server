@@ -32,9 +32,29 @@ def generate_api_docs(session: nox.Session) -> None:
         "- [shotgrid_mcp_server](shotgrid_mcp_server.md)\n"
     )
 
-    # Generate module documentation manually
+    # Create a simple module documentation file
+    module_md = api_dir / "shotgrid_mcp_server.md"
+    module_md.write_text(
+        "# shotgrid_mcp_server\n\n"
+        "ShotGrid MCP Server is a Model Context Protocol (MCP) server implementation for Autodesk ShotGrid.\n\n"
+        "## Core Modules\n\n"
+        "- [shotgrid_mcp_server.server](shotgrid_mcp_server.server.md) - Server implementation\n"
+        "- [shotgrid_mcp_server.models](shotgrid_mcp_server.models.md) - Data models\n"
+        "- [shotgrid_mcp_server.filters](shotgrid_mcp_server.filters.md) - Filter utilities\n"
+        "- [shotgrid_mcp_server.data_types](shotgrid_mcp_server.data_types.md) - Data type utilities\n"
+        "- [shotgrid_mcp_server.constants](shotgrid_mcp_server.constants.md) - Constants\n"
+        "- [shotgrid_mcp_server.utils](shotgrid_mcp_server.utils.md) - Utility functions\n"
+        "- [shotgrid_mcp_server.mockgun_ext](shotgrid_mcp_server.mockgun_ext.md) - Mockgun extensions\n\n"
+        "## Tools\n\n"
+        "- [shotgrid_mcp_server.tools](shotgrid_mcp_server.tools.md) - Tools package\n"
+        "- [shotgrid_mcp_server.tools.base](shotgrid_mcp_server.tools.base.md) - Base tool functionality\n"
+        "- [shotgrid_mcp_server.tools.search_tools](shotgrid_mcp_server.tools.search_tools.md) - Search tools\n"
+        "- [shotgrid_mcp_server.tools.entity_tools](shotgrid_mcp_server.tools.entity_tools.md) - Entity tools\n"
+        "- [shotgrid_mcp_server.tools.schema_tools](shotgrid_mcp_server.tools.schema_tools.md) - Schema tools\n"
+    )
+
+    # Create module documentation files
     modules = [
-        "shotgrid_mcp_server",
         "shotgrid_mcp_server.server",
         "shotgrid_mcp_server.models",
         "shotgrid_mcp_server.filters",
@@ -49,51 +69,16 @@ def generate_api_docs(session: nox.Session) -> None:
         "shotgrid_mcp_server.tools.schema_tools",
     ]
 
-    # Create a temporary Python script to generate documentation
-    temp_script = Path(root) / "temp_doc_generator.py"
-    temp_script.write_text(
-        """import inspect
-import os
-import sys
-from pathlib import Path
+    for module in modules:
+        module_file = api_dir / f"{module}.md"
+        module_file.write_text(
+            f"# {module}\n\n"
+            f"This module is part of the ShotGrid MCP Server package.\n\n"
+            f"## Module Reference\n\n"
+            f"Please refer to the source code for detailed information about this module.\n"
+        )
 
-# Get the module name from command line arguments
-module_name = sys.argv[1]
-output_file = sys.argv[2]
-
-# Import the module
-module = __import__(module_name, fromlist=[''])
-
-# Create the output directory if it doesn't exist
-os.makedirs(os.path.dirname(output_file), exist_ok=True)
-
-# Generate the module documentation
-with open(output_file, 'w') as f:
-    # Write the module header
-    f.write(f"# {module.__name__}\n\n")
-    if module.__doc__:
-        f.write(f"{module.__doc__.strip()}\n\n")
-    f.write("## Module Reference\n\n")
-
-    # Write the module members
-    for name, obj in inspect.getmembers(module):
-        if not name.startswith('_') and (inspect.isfunction(obj) or inspect.isclass(obj)) and obj.__module__ == module.__name__:
-            f.write(f"### {name}\n\n```python\n{inspect.getsource(obj)}\n```\n\n")
-"""
-    )
-
-    try:
-        # Generate documentation for each module
-        for module in modules:
-            output_file = api_dir / f"{module}.md"
-            session.run("python", str(temp_script), module, str(output_file))
-            session.log(f"Generated documentation for {module}")
-
-        session.log(f"API documentation generated in {api_dir}")
-    finally:
-        # Clean up the temporary script
-        if temp_script.exists():
-            temp_script.unlink()
+    session.log(f"API documentation generated in {api_dir}")
 
 
 def preview_docs(session: nox.Session) -> None:
