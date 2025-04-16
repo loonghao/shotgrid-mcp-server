@@ -24,32 +24,53 @@ def generate_api_docs(session: nox.Session) -> None:
         shutil.rmtree(api_dir)
     api_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate API documentation
-    # First, generate API documentation using sphinx-apidoc
-    session.run(
-        "sphinx-apidoc",
-        "-o", "docs/sphinx_source",
-        "-f", "-e", "-M",
-        "src/shotgrid_mcp_server",
+    # Create a simple index.md file
+    index_md = api_dir / "index.md"
+    index_md.write_text(
+        "# ShotGrid MCP Server API Documentation\n\n"
+        "This documentation provides details about the ShotGrid MCP Server API.\n\n"
+        "## Modules\n\n"
+        "- [shotgrid_mcp_server](shotgrid_mcp_server.md)\n"
     )
 
-    # Then, build the documentation using sphinx-build
-    session.run(
-        "sphinx-build",
-        "-b", "markdown",
-        "-c", "docs/sphinx_conf",
-        "docs/sphinx_source",
-        str(api_dir),
-    )
+    # Generate module documentation manually
+    modules = [
+        "shotgrid_mcp_server",
+        "shotgrid_mcp_server.server",
+        "shotgrid_mcp_server.models",
+        "shotgrid_mcp_server.filters",
+        "shotgrid_mcp_server.data_types",
+        "shotgrid_mcp_server.constants",
+        "shotgrid_mcp_server.utils",
+        "shotgrid_mcp_server.mockgun_ext",
+        "shotgrid_mcp_server.tools",
+        "shotgrid_mcp_server.tools.base",
+        "shotgrid_mcp_server.tools.search_tools",
+        "shotgrid_mcp_server.tools.entity_tools",
+        "shotgrid_mcp_server.tools.schema_tools",
+    ]
 
-    # Clean up and format the generated markdown files
-    for md_file in api_dir.glob("**/*.md"):
-        content = md_file.read_text()
-        # Convert top-level headers to second-level
-        content = content.replace("# ", "## ")
-        # Convert module headers back to top-level
-        content = content.replace("## Module", "# Module")
-        md_file.write_text(content)
+    for module in modules:
+        # Generate documentation for each module
+        output_file = api_dir / f"{module}.md"
+        session.run(
+            "python", "-c",
+            f"import {module}; print('# ' + {module}.__name__ + '\\n\\n' + ({module}.__doc__ or '').strip() + '\\n\\n## Module Reference\\n\\n')",
+            silent=True,
+            out=str(output_file),
+        )
+
+        # Append module members
+        session.run(
+            "python", "-c",
+            f"import inspect, {module}; "
+            f"print('\\n'.join(['### ' + name + '\\n\\n```python\\n' + inspect.getsource(getattr({module}, name)) + '\\n```\\n' "
+            f"for name, obj in inspect.getmembers({module}) "
+            f"if not name.startswith('_') and (inspect.isfunction(obj) or inspect.isclass(obj)) and obj.__module__ == '{module}']))",
+            silent=True,
+            out=str(output_file),
+            append=True,
+        )
 
     session.log(f"API documentation generated in {api_dir}")
 
