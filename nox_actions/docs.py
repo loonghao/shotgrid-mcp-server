@@ -53,33 +53,33 @@ def generate_api_docs(session: nox.Session) -> None:
     temp_script = Path(root) / "temp_doc_generator.py"
     temp_script.write_text(
         """import inspect
-        import os
-        import sys
-        from pathlib import Path
+import os
+import sys
+from pathlib import Path
 
-        # Get the module name from command line arguments
-        module_name = sys.argv[1]
-        output_file = sys.argv[2]
+# Get the module name from command line arguments
+module_name = sys.argv[1]
+output_file = sys.argv[2]
 
-        # Import the module
-        module = __import__(module_name, fromlist=[''])
+# Import the module
+module = __import__(module_name, fromlist=[''])
 
-        # Create the output directory if it doesn't exist
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+# Create the output directory if it doesn't exist
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
-        # Generate the module documentation
-        with open(output_file, 'w') as f:
-            # Write the module header
-            f.write(f"# {module.__name__}\n\n")
-            if module.__doc__:
-                f.write(f"{module.__doc__.strip()}\n\n")
-            f.write("## Module Reference\n\n")
+# Generate the module documentation
+with open(output_file, 'w') as f:
+    # Write the module header
+    f.write(f"# {module.__name__}\n\n")
+    if module.__doc__:
+        f.write(f"{module.__doc__.strip()}\n\n")
+    f.write("## Module Reference\n\n")
 
-            # Write the module members
-            for name, obj in inspect.getmembers(module):
-                if not name.startswith('_') and (inspect.isfunction(obj) or inspect.isclass(obj)) and obj.__module__ == module.__name__:
-                    f.write(f"### {name}\n\n```python\n{inspect.getsource(obj)}\n```\n\n")
-        """
+    # Write the module members
+    for name, obj in inspect.getmembers(module):
+        if not name.startswith('_') and (inspect.isfunction(obj) or inspect.isclass(obj)) and obj.__module__ == module.__name__:
+            f.write(f"### {name}\n\n```python\n{inspect.getsource(obj)}\n```\n\n")
+"""
     )
 
     try:
