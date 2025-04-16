@@ -13,7 +13,7 @@ if ROOT not in sys.path:
     sys.path.append(ROOT)
 
 # Import local modules
-from nox_actions import lint, release
+from nox_actions import docs, lint, release
 
 
 @nox.session(name="tests")
@@ -85,3 +85,27 @@ def build_wheel(session: nox.Session) -> None:
 
     # Build wheel
     release.build_wheel(session)
+
+
+@nox.session(name="docs-api")
+def docs_api(session: nox.Session) -> None:
+    """Generate API documentation using Sphinx."""
+    docs.generate_api_docs(session)
+
+
+@nox.session(name="docs-preview")
+def docs_preview(session: nox.Session) -> None:
+    """Preview documentation locally using Mintlify."""
+    docs.preview_docs(session)
+
+
+@nox.session(name="docs-build")
+def docs_build(session: nox.Session) -> None:
+    """Build documentation using Mintlify."""
+    docs.build_docs(session)
+
+
+@nox.session(name="docs-deploy")
+def docs_deploy(session: nox.Session) -> None:
+    """Deploy documentation to Mintlify."""
+    docs.deploy_docs(session)
