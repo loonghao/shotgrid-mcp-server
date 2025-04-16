@@ -96,22 +96,16 @@ jobs:
         run: |
           python -m nox -s docs-build
 
-      - name: Deploy preview
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: docs/.mintlify/build
-          target-folder: pr-preview/${{ github.event.pull_request.number }}
-          clean: true
-
+      # Mintlify no longer supports the build command, so we can't deploy to GitHub Pages
+      # Instead, we'll just add a comment to the PR with a link to the Mintlify documentation
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = context.issue.number;
-            const previewUrl = `https://${context.repo.owner}.github.io/${context.repo.repo}/pr-preview/${prNumber}/`;
             const mintlifyUrl = 'https://shotgrid-mcp-server.mintlify.app';
 
-            const comment = `## 📚 Documentation Preview\n\nA preview of the documentation for this PR is available at:\n\n🔗 [View GitHub Pages Preview](${previewUrl})\n\nThis preview includes the automatically generated API documentation and will be updated when new changes are pushed to this PR.\n\nThe official Mintlify documentation is available at [${mintlifyUrl}](${mintlifyUrl}).`;
+            const comment = `## 📚 Documentation Preview\n\nMintlify no longer supports local builds. Please check the official Mintlify documentation at [${mintlifyUrl}](${mintlifyUrl}).`;
 
             github.rest.issues.createComment({
               issue_number: prNumber,
@@ -119,3 +113,5 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+
