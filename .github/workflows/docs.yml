@@ -84,7 +84,7 @@ jobs:
       - name: Deploy to Mintlify
         run: |
           cd docs
-          mintlify deploy
+          npx mintlify deploy
         env:
           MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
 
