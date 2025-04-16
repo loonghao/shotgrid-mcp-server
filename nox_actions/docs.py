@@ -100,7 +100,7 @@ def preview_docs(session: nox.Session) -> None:
 
         # Install Mintlify CLI if not already installed
         try:
-            session.run("mintlify", "--version", external=True, silent=True)
+            session.run("npx", "mintlify", "--version", external=True, silent=True)
         except Exception:
             session.run("npm", "install", "-g", "mintlify@latest", external=True)
 
@@ -127,13 +127,14 @@ def build_docs(session: nox.Session) -> None:
 
         # Install Mintlify CLI if not already installed
         try:
-            session.run("mintlify", "--version", external=True, silent=True)
+            session.run("npx", "mintlify", "--version", external=True, silent=True)
         except Exception:
             session.run("npm", "install", "-g", "mintlify@latest", external=True)
 
-        # Mintlify no longer supports the build command
-        # Instead, we'll just log a message
-        session.log("Mintlify no longer supports the build command. Use 'mintlify dev' to preview documentation locally.")
+        # Check for broken links
+        session.run("npx", "mintlify", "broken-links", external=True)
+
+        session.log("Documentation checked for broken links. Use 'mintlify dev' to preview documentation locally.")
         session.log("To deploy documentation, use 'mintlify deploy' command.")
 
 
@@ -156,9 +157,12 @@ def deploy_docs(session: nox.Session) -> None:
 
         # Install Mintlify CLI if not already installed
         try:
-            session.run("mintlify", "--version", external=True, silent=True)
+            session.run("npx", "mintlify", "--version", external=True, silent=True)
         except Exception:
             session.run("npm", "install", "-g", "mintlify@latest", external=True)
+
+        # Check for broken links before deployment
+        session.run("npx", "mintlify", "broken-links", external=True)
 
         # Deploy documentation
         session.run("npx", "mintlify", "deploy", external=True)
