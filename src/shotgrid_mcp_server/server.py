@@ -49,8 +49,25 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:  #
 
 def main() -> None:
     """Entry point for the ShotGrid MCP server."""
-    app = create_server()
-    app.run()
+    try:
+        app = create_server()
+        app.run()
+    except ValueError as e:
+        # Handle missing environment variables error
+        if "Missing required environment variables for ShotGrid connection" in str(e):
+            # Print the error message in a more user-friendly way
+            print("\n" + "=" * 80)
+            print("ERROR: ShotGrid MCP Server Configuration Issue")
+            print("=" * 80)
+            print(str(e))
+            print("=" * 80 + "\n")
+            # Exit with error code
+            import sys
+
+            sys.exit(1)
+        else:
+            # Re-raise other ValueError exceptions
+            raise
 
 
 if __name__ == "__main__":

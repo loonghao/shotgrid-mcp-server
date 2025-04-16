@@ -131,11 +131,32 @@ def create_default_factory() -> ShotgunClientFactory:
     script_key = os.getenv("SHOTGRID_SCRIPT_KEY")
 
     if not all([url, script_name, script_key]):
+        missing_vars = []
+        if not url:
+            missing_vars.append("SHOTGRID_URL")
+        if not script_name:
+            missing_vars.append("SHOTGRID_SCRIPT_NAME")
+        if not script_key:
+            missing_vars.append("SHOTGRID_SCRIPT_KEY")
+
+        error_msg = (
+            f"Missing required environment variables for ShotGrid connection: {', '.join(missing_vars)}\n\n"
+            "To fix this issue, please set the following environment variables before starting the server:\n"
+            "  - SHOTGRID_URL: Your ShotGrid server URL (e.g., https://your-studio.shotgunstudio.com)\n"
+            "  - SHOTGRID_SCRIPT_NAME: Your ShotGrid script name\n"
+            "  - SHOTGRID_SCRIPT_KEY: Your ShotGrid script key\n\n"
+            "Example:\n"
+            "  Windows: set SHOTGRID_URL=https://your-studio.shotgunstudio.com\n"
+            "  Linux/macOS: export SHOTGRID_URL=https://your-studio.shotgunstudio.com\n\n"
+            "Alternatively, you can configure these in your MCP client settings.\n"
+            "See the documentation for more details: https://github.com/loonghao/shotgrid-mcp-server#-mcp-client-configuration"
+        )
+
         logger.error("Missing required environment variables for ShotGrid connection")
         logger.debug("SHOTGRID_URL: %s", url)
         logger.debug("SHOTGRID_SCRIPT_NAME: %s", script_name)
         logger.debug("SHOTGRID_SCRIPT_KEY: %s", script_key)
-        raise ValueError("Missing required environment variables for ShotGrid connection")
+        raise ValueError(error_msg)
 
     # At this point, we know these values are not None
     assert url is not None
