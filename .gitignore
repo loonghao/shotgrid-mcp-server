@@ -28,3 +28,4 @@ target/*
 /tests/data/schema.bin
 /tests/data/entity_schema.bin
 __pycache__
+node_modules

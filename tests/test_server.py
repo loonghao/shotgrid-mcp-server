@@ -242,8 +242,11 @@ class TestSearchTools:
             assert "text" in response_dict[0]
             inner_dict = json.loads(response_dict[0]["text"])
         assert isinstance(inner_dict, dict)
-        assert "text" in inner_dict
-        entity_data = inner_dict["text"]
+
+        # Check for entity field in the new response format
+        assert "entity" in inner_dict
+        entity_data = inner_dict["entity"]
+        assert entity_data is not None
         assert "code" in entity_data
         assert entity_data["code"] == "test_shot"
 

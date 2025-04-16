@@ -481,8 +481,36 @@ def _validate_time_filter_value(value: Any, index: int) -> List[str]:
     errors = []
 
     if isinstance(value, str):
-        # String format will be converted in process_filters
-        pass
+        # Check if string has the format "number unit"
+        if " " in value:
+            try:
+                count_str, unit = value.split(" ", 1)
+                count = int(count_str)
+
+                # Map user-friendly unit names to ShotGrid format
+                unit_map = {
+                    "day": "DAY",
+                    "days": "DAY",
+                    "week": "WEEK",
+                    "weeks": "WEEK",
+                    "month": "MONTH",
+                    "months": "MONTH",
+                    "year": "YEAR",
+                    "years": "YEAR",
+                }
+
+                if unit.lower() not in unit_map:
+                    errors.append(
+                        f"Filter {index + 1}: Invalid time unit '{unit}'. Valid units are: day(s), week(s), month(s), year(s)"
+                    )
+            except (ValueError, TypeError):
+                errors.append(
+                    f"Filter {index + 1}: Time filter string value must be in format 'number unit', e.g. '30 days'"
+                )
+        else:
+            errors.append(
+                f"Filter {index + 1}: Time filter string value must be in format 'number unit', e.g. '30 days'"
+            )
     elif isinstance(value, list) and len(value) == 2:
         # Check if it's already in ShotGrid format [number, "UNIT"]
         count, unit = value
@@ -661,10 +689,12 @@ def create_date_filter(field: str, operator: str, date_value: Union[str, datetim
         Filter: Properly formatted date filter
     """
     # Convert datetime to string format
-    if isinstance(date_value, datetime):
+    if hasattr(date_value, "strftime"):
+        # Handle datetime and date objects
         date_value = date_value.strftime("%Y-%m-%d")
     # Handle timedelta (relative to today)
-    elif isinstance(date_value, timedelta):
+    elif hasattr(date_value, "days") and hasattr(date_value, "seconds"):
+        # This is likely a timedelta
         date_value = (datetime.now() + date_value).strftime("%Y-%m-%d")
 
     return [field, operator, date_value]

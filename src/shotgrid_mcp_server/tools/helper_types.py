@@ -5,7 +5,7 @@ This module provides type definitions for helper functions in the ShotGrid MCP s
 
 from typing import Dict, List, Literal, Optional, TypedDict, Union
 
-from shotgrid_mcp_server.types import EntityType, Filter
+from shotgrid_mcp_server.types import Filter
 
 
 class ProjectDict(TypedDict, total=False):
@@ -43,9 +43,9 @@ class EntityDict(TypedDict, total=False):
     sg_status_list: Optional[str]
 
 
-class TimeUnit(Literal["DAY", "WEEK", "MONTH", "YEAR"]):
-    """ShotGrid time unit."""
-    pass
+# Define TimeUnit as a type alias instead of a class
+TimeUnit = Literal["DAY", "WEEK", "MONTH", "YEAR"]
+"""ShotGrid time unit."""
 
 
 class TimeFilter(TypedDict):
