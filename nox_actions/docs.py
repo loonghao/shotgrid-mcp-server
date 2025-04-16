@@ -131,10 +131,10 @@ def build_docs(session: nox.Session) -> None:
         except Exception:
             session.run("npm", "install", "-g", "mintlify@latest", external=True)
 
-        # Build documentation
-        session.run("npx", "mintlify", "build", external=True)
-
-        session.log(f"Documentation built in {docs_dir / '.mintlify' / 'build'}")
+        # Mintlify no longer supports the build command
+        # Instead, we'll just log a message
+        session.log("Mintlify no longer supports the build command. Use 'mintlify dev' to preview documentation locally.")
+        session.log("To deploy documentation, use 'mintlify deploy' command.")
 
 
 def deploy_docs(session: nox.Session) -> None:
