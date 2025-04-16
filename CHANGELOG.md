@@ -1,3 +1,9 @@
+## v0.5.0 (2025-04-16)
+
+### Feat
+
+- improve error messages for missing environment variables
+
 ## v0.4.0 (2025-04-16)
 
 ### Feat
