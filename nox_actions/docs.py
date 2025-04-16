@@ -28,10 +28,7 @@ def generate_api_docs(session: nox.Session) -> None:
     session.run(
         "sphinx-build",
         "-b", "markdown",
-        "-D", "extensions=sphinx.ext.autodoc,sphinx.ext.napoleon,sphinx_autodoc_typehints,sphinx_markdown_builder",
-        "-D", "autodoc_typehints=description",
-        "-D", "autodoc_member_order=bysource",
-        "-D", "source_suffix=.md",
+        "-c", "docs/sphinx_conf",
         "src/shotgrid_mcp_server",
         str(api_dir),
     )
