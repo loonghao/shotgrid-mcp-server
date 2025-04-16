@@ -113,7 +113,7 @@ def handle_error(error: Exception, operation: str) -> Dict[str, Any]:
 class ShotGridJSONEncoder(json.JSONEncoder):
     """JSON encoder that handles ShotGrid special data types.
 
-    This encoder handles datetime objects and other ShotGrid-specific data types
+    This encoder handles datetime objects, Pydantic models, and other ShotGrid-specific data types
     to ensure proper serialization in JSON responses.
     """
 
@@ -130,7 +130,11 @@ class ShotGridJSONEncoder(json.JSONEncoder):
             return obj.isoformat()
         elif isinstance(obj, date):
             return obj.isoformat()
-        elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+        # Handle Pydantic models
+        elif hasattr(obj, "model_dump") and callable(obj.model_dump):
+            return obj.model_dump()
+        # Handle older Pydantic models or other objects with to_dict method
+        elif hasattr(obj, "to_dict") and callable(obj.to_dict):
             return obj.to_dict()
         elif isinstance(obj, set):
             return list(obj)

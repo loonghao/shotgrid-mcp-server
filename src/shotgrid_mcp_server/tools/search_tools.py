@@ -8,13 +8,24 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
+from pydantic import ValidationError
 from shotgun_api3.lib.mockgun import Shotgun
 
-from shotgrid_mcp_server.data_types import ShotGridTypes, convert_to_shotgrid_type
-from shotgrid_mcp_server.filters import FilterBuilder, process_filters, validate_filters
+from shotgrid_mcp_server.models import (
+    EntityDict,
+    EntitiesResponse,
+    Filter,
+    ProjectDict,
+    ProjectsResponse,
+    TimeUnit,
+    UserDict,
+    UsersResponse,
+    create_in_last_filter,
+    process_filters,
+)
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
-from shotgrid_mcp_server.tools.types import FastMCPType, ToolError
-from shotgrid_mcp_server.types import Entity, EntityDict, EntityType, Filter
+from shotgrid_mcp_server.tools.types import FastMCPType
+from shotgrid_mcp_server.types import EntityType
 from shotgrid_mcp_server.utils import ShotGridJSONEncoder
 
 # Configure logging
@@ -232,17 +243,25 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
             List of active projects
         """
         try:
-            filters = [["updated_at", "in_last", [days, "DAY"]]]
+            # Create filter using Pydantic model
+            filter_obj = create_in_last_filter("updated_at", days, TimeUnit.DAY)
+            filters = [filter_obj.to_tuple()]
+
             fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
             order = [{"field_name": "updated_at", "direction": "desc"}]
 
             result = sg.find("Project", filters, fields=fields, order=order)
 
             if result is None:
-                return [{"text": json.dumps({"projects": []}, cls=ShotGridJSONEncoder)}]
+                # Use Pydantic model for response
+                response = ProjectsResponse(projects=[])
+                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
-            serialized_result = [serialize_entity(entity) for entity in result]
-            return [{"text": json.dumps({"projects": serialized_result}, cls=ShotGridJSONEncoder)}]
+            # Convert results to Pydantic models
+            project_dicts = [ProjectDict(**serialize_entity(entity)) for entity in result]
+            response = ProjectsResponse(projects=project_dicts)
+
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_recently_active_projects")
             raise
@@ -258,20 +277,26 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
             List of active users
         """
         try:
-            filters = [
-                ["sg_status_list", "is", "act"],  # Active users
-                ["last_login", "in_last", [days, "DAY"]]  # Logged in recently
-            ]
+            # Create filters using Pydantic models
+            status_filter = Filter(field="sg_status_list", operator="is", value="act")
+            login_filter = create_in_last_filter("last_login", days, TimeUnit.DAY)
+
+            filters = [status_filter.to_tuple(), login_filter.to_tuple()]
             fields = ["id", "name", "login", "email", "last_login"]
             order = [{"field_name": "last_login", "direction": "desc"}]
 
             result = sg.find("HumanUser", filters, fields=fields, order=order)
 
             if result is None:
-                return [{"text": json.dumps({"users": []}, cls=ShotGridJSONEncoder)}]
+                # Use Pydantic model for response
+                response = UsersResponse(users=[])
+                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
-            serialized_result = [serialize_entity(entity) for entity in result]
-            return [{"text": json.dumps({"users": serialized_result}, cls=ShotGridJSONEncoder)}]
+            # Convert results to Pydantic models
+            user_dicts = [UserDict(**serialize_entity(entity)) for entity in result]
+            response = UsersResponse(users=user_dicts)
+
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_active_users")
             raise
@@ -283,7 +308,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         start_date: str,
         end_date: str,
         additional_filters: Optional[List[Filter]] = None,
-        fields: Optional[List[str]] = None
+        fields: Optional[List[str]] = None,
     ) -> List[Dict[str, str]]:
         """Find entities within a specific date range.
 
@@ -299,12 +324,25 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
             List of entities matching the date range
         """
         try:
-            # Create date range filter
-            filters = [[date_field, "between", [start_date, end_date]]]
+            # Create date range filter using Pydantic model
+            date_filter = Filter(
+                field=date_field,
+                operator="between",
+                value=[start_date, end_date]
+            )
+
+            filters = [date_filter.to_tuple()]
 
             # Add any additional filters
             if additional_filters:
-                filters.extend(process_filters(additional_filters))
+                # Process each filter through Pydantic model
+                for filter_item in additional_filters:
+                    if isinstance(filter_item, Filter):
+                        filters.append(filter_item.to_tuple())
+                    else:
+                        # Convert tuple to Filter if needed
+                        filter_obj = Filter.from_tuple(filter_item)
+                        filters.append(filter_obj.to_tuple())
 
             # Default fields if none provided
             if not fields:
@@ -314,10 +352,15 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
             result = sg.find(entity_type, filters, fields=fields)
 
             if result is None:
-                return [{"text": json.dumps({"entities": []}, cls=ShotGridJSONEncoder)}]
+                # Use Pydantic model for response
+                response = EntitiesResponse(entities=[])
+                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
 
-            serialized_result = [serialize_entity(entity) for entity in result]
-            return [{"text": json.dumps({"entities": serialized_result}, cls=ShotGridJSONEncoder)}]
+            # Convert results to Pydantic models
+            entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
+            response = EntitiesResponse(entities=entity_dicts)
+
+            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
         except Exception as err:
             handle_error(err, operation="find_entities_by_date_range")
             raise
