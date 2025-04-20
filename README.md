@@ -151,7 +151,9 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🔌 MCP Client Configuration
 
-To use the ShotGrid MCP server in your MCP client, add the following configuration to your client's settings:
+To use the ShotGrid MCP server in your MCP client, add the appropriate configuration to your client's settings.
+
+### Claude Desktop / Anthropic Claude
 
 ```json
 {
@@ -179,6 +181,46 @@ To use the ShotGrid MCP server in your MCP client, add the following configurati
         "delete_entity",
         "batch_delete"
       ]
+    }
+  }
+}
+```
+
+### GitHub Copilot
+
+```json
+{
+  "github.copilot.advanced": {
+    "mcp.servers": {
+      "shotgrid-server": {
+        "command": "uvx",
+        "args": ["shotgrid-mcp-server"],
+        "env": {
+          "SHOTGRID_SCRIPT_NAME": "XXX",
+          "SHOTGRID_SCRIPT_KEY": "XX",
+          "SHOTGRID_URL": "XXXX"
+        }
+      }
+    }
+  }
+}
+```
+
+### Visual Studio Code with MCP Extension
+
+```json
+// settings.json
+{
+  "mcp.servers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      },
+      "autoStart": true
     }
   }
 }
