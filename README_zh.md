@@ -148,7 +148,9 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 
 ## 🔌 MCP客户端配置
 
-在MCP客户端中使用ShotGrid MCP服务器时，需要在客户端设置中添加以下配置：
+在MCP客户端中使用ShotGrid MCP服务器时，需要在客户端设置中添加相应的配置。
+
+### Claude Desktop / Anthropic Claude
 
 ```json
 {
@@ -176,6 +178,46 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
         "delete_entity",
         "batch_delete"
       ]
+    }
+  }
+}
+```
+
+### GitHub Copilot
+
+```json
+{
+  "github.copilot.advanced": {
+    "mcp.servers": {
+      "shotgrid-server": {
+        "command": "uvx",
+        "args": ["shotgrid-mcp-server"],
+        "env": {
+          "SHOTGRID_SCRIPT_NAME": "XXX",
+          "SHOTGRID_SCRIPT_KEY": "XX",
+          "SHOTGRID_URL": "XXXX"
+        }
+      }
+    }
+  }
+}
+```
+
+### Visual Studio Code与MCP扩展
+
+```json
+// settings.json
+{
+  "mcp.servers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      },
+      "autoStart": true
     }
   }
 }
