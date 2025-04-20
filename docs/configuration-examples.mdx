@@ -9,29 +9,168 @@ icon: gear
 
 This page provides various examples of how to configure ShotGrid MCP Server for different environments and use cases. These configuration examples demonstrate how to integrate the server into your pipeline.
 
-## MCP Configuration
+## MCP Client Configuration
 
-ShotGrid MCP Server follows the standard MCP configuration format. Since it's a Python-based service, it uses `uvx` as the command to launch the server. Here's how to configure it in your MCP client configuration file (e.g., `claude_desktop_config.json`):
+ShotGrid MCP Server follows the standard MCP configuration format. Since it's a Python-based service, it uses `uvx` as the command to launch the server. Below are configuration examples for various AI tools and IDEs.
+
+### Claude Desktop / Anthropic Claude
 
 ```json
 {
   "mcpServers": {
-    "shotgrid": {
+    "shotgrid-server": {
       "command": "uvx",
       "args": [
         "shotgrid-mcp-server"
       ],
       "env": {
-        "SHOTGRID_URL": "https://your-studio.shotgunstudio.com",
-        "SHOTGRID_SCRIPT_NAME": "your_script_name",
-        "SHOTGRID_SCRIPT_KEY": "your_script_key"
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_entities",
+        "create_entity",
+        "batch_create",
+        "find_entity",
+        "get_entity_types",
+        "update_entity",
+        "download_thumbnail",
+        "batch_update",
+        "delete_entity",
+        "batch_delete"
+      ]
+    }
+  }
+}
+```
+
+### Cursor
+
+```json
+// .cursor/mcp.json
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
       }
     }
   }
 }
 ```
 
-This configuration tells the MCP client how to launch and connect to the ShotGrid MCP Server. The server will be available to AI assistants as the "shotgrid" tool provider.
+### Windsurf (Codeium)
+
+```json
+// MCP configuration
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Cline (VS Code Extension)
+
+```json
+// MCP configuration
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Visual Studio Code
+
+```json
+// .vscode/mcp.json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-name",
+      "description": "ShotGrid Script Name",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-key",
+      "description": "ShotGrid Script Key",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-url",
+      "description": "ShotGrid URL",
+      "password": false
+    }
+  ],
+  "servers": {
+    "shotgrid-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "${input:shotgrid-script-name}",
+        "SHOTGRID_SCRIPT_KEY": "${input:shotgrid-script-key}",
+        "SHOTGRID_URL": "${input:shotgrid-url}"
+      }
+    }
+  }
+}
+```
+
+### VS Code User Settings
+
+```json
+// settings.json
+{
+  "mcp": {
+    "shotgrid-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  },
+  "chat.mcp.discovery.enabled": true
+}
+```
+
+These configurations tell the MCP client how to launch and connect to the ShotGrid MCP Server. The server will be available to AI assistants as a tool provider.
 
 ## Environment Variables Configuration
 
