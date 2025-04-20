@@ -53,6 +53,9 @@ class EntityNotFoundError(ShotGridMCPError):
             entity_id: Optional ID of the entity.
             message: Optional custom message.
         """
+        self.entity_type = entity_type
+        self.entity_id = entity_id
+
         if message:
             error_message = message
         elif entity_type and entity_id:
