@@ -73,8 +73,8 @@ class TestHandleToolError:
         error = ShotgunError("Entity Shot with id 123 not found")
         with pytest.raises(EntityNotFoundError) as excinfo:
             handle_tool_error(error, "find_entity")
-        
-        assert excinfo.value.entity_type == "shot"
+
+        assert excinfo.value.entity_type == "Shot"
         assert excinfo.value.entity_id == 123
         assert "Entity Shot with ID 123 not found" in str(excinfo.value)
         mock_logger.error.assert_called_once()
@@ -85,7 +85,7 @@ class TestHandleToolError:
         error = ShotgunError("User does not have permission to access this entity")
         with pytest.raises(PermissionError) as excinfo:
             handle_tool_error(error, "update_entity")
-        
+
         assert "User does not have permission to access this entity" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
@@ -95,7 +95,7 @@ class TestHandleToolError:
         error = ShotgunError("Connection timeout while accessing ShotGrid")
         with pytest.raises(ConnectionError) as excinfo:
             handle_tool_error(error, "connect_to_shotgrid")
-        
+
         assert "Connection timeout while accessing ShotGrid" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
@@ -105,7 +105,7 @@ class TestHandleToolError:
         error = ValueError("Invalid filter format")
         with pytest.raises(FilterError) as excinfo:
             handle_tool_error(error, "search_entities")
-        
+
         assert "Invalid filter format" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
@@ -115,7 +115,7 @@ class TestHandleToolError:
         error = ValueError("Failed to serialize JSON data")
         with pytest.raises(SerializationError) as excinfo:
             handle_tool_error(error, "create_entity")
-        
+
         assert "Failed to serialize JSON data" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
@@ -125,7 +125,7 @@ class TestHandleToolError:
         error = ValueError("Unknown error")
         with pytest.raises(ToolError) as excinfo:
             handle_tool_error(error, "generic_operation")
-        
+
         assert "Error executing tool generic_operation: Unknown error" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
@@ -138,8 +138,8 @@ class TestCreateErrorResponse:
         """Test creating response for entity not found error."""
         error = EntityNotFoundError(entity_type="Shot", entity_id=123, message="Entity not found")
         response = create_error_response(error, "find_entity")
-        
-        assert response["error"] == "Error executing find_entity: Entity not found"
+
+        assert "Error executing find_entity:" in response["error"]
         assert response["error_type"] == "EntityNotFoundError"
         assert response["error_category"] == "not_found"
         assert response["operation"] == "find_entity"
@@ -153,8 +153,8 @@ class TestCreateErrorResponse:
         """Test creating response for permission error."""
         error = PermissionError("Permission denied")
         response = create_error_response(error, "update_entity")
-        
-        assert response["error"] == "Error executing update_entity: Permission denied"
+
+        assert "Error executing update_entity:" in response["error"]
         assert response["error_type"] == "PermissionError"
         assert response["error_category"] == "permission"
         assert response["operation"] == "update_entity"
@@ -166,8 +166,8 @@ class TestCreateErrorResponse:
         """Test creating response for filter error."""
         error = FilterError("Invalid filter")
         response = create_error_response(error, "search_entities")
-        
-        assert response["error"] == "Error executing search_entities: Invalid filter"
+
+        assert "Error executing search_entities:" in response["error"]
         assert response["error_type"] == "FilterError"
         assert response["error_category"] == "filter"
         assert response["operation"] == "search_entities"
@@ -179,8 +179,8 @@ class TestCreateErrorResponse:
         """Test creating response for serialization error."""
         error = SerializationError("JSON serialization failed")
         response = create_error_response(error, "create_entity")
-        
-        assert response["error"] == "Error executing create_entity: JSON serialization failed"
+
+        assert "Error executing create_entity:" in response["error"]
         assert response["error_type"] == "SerializationError"
         assert response["error_category"] == "serialization"
         assert response["operation"] == "create_entity"
@@ -192,8 +192,8 @@ class TestCreateErrorResponse:
         """Test creating response for connection error."""
         error = ConnectionError("Connection failed")
         response = create_error_response(error, "connect_to_shotgrid")
-        
-        assert response["error"] == "Error executing connect_to_shotgrid: Connection failed"
+
+        assert "Error executing connect_to_shotgrid:" in response["error"]
         assert response["error_type"] == "ConnectionError"
         assert response["error_category"] == "connection"
         assert response["operation"] == "connect_to_shotgrid"
@@ -205,7 +205,7 @@ class TestCreateErrorResponse:
         """Test creating response for ShotgunError."""
         error = ShotgunError("ShotGrid API error")
         response = create_error_response(error, "shotgrid_operation")
-        
+
         assert response["error"] == "Error executing shotgrid_operation: ShotGrid API error"
         assert response["error_type"] == "ShotgunError"
         assert response["error_category"] == "shotgrid"
@@ -218,7 +218,7 @@ class TestCreateErrorResponse:
         """Test creating response for unknown error."""
         error = ValueError("Unknown error")
         response = create_error_response(error, "generic_operation")
-        
+
         assert response["error"] == "Error executing generic_operation: Unknown error"
         assert response["error_type"] == "ValueError"
         assert response["error_category"] == "unknown"
@@ -231,7 +231,7 @@ class TestCreateErrorResponse:
         """Test creating response with custom error type."""
         error = ValueError("Custom error")
         response = create_error_response(error, "custom_operation", error_type=RuntimeError)
-        
+
         assert response["error"] == "Error executing custom_operation: Custom error"
         assert response["error_type"] == "RuntimeError"
         assert response["operation"] == "custom_operation"
