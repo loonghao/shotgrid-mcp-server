@@ -1,0 +1,6 @@
+-r requirements-dev.txt
+PyYAML
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock

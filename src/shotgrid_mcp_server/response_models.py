@@ -3,56 +3,9 @@
 This module contains Pydantic models for standardizing responses from ShotGrid MCP tools.
 """
 
-import json
-from datetime import date, datetime
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
-
-
-class ShotGridJSONEncoder(json.JSONEncoder):
-    """JSON encoder that handles ShotGrid special data types.
-
-    This encoder handles datetime objects, Pydantic models, and other ShotGrid-specific data types
-    to ensure proper serialization in JSON responses.
-    """
-
-    def default(self, obj: Any) -> Any:
-        """Convert special data types to JSON-serializable formats.
-
-        Args:
-            obj: Object to encode.
-
-        Returns:
-            JSON-serializable representation of the object.
-        """
-        if isinstance(obj, datetime):
-            # Format datetime with timezone info if available
-            if obj.tzinfo is not None:
-                return obj.isoformat()
-            # Add Z suffix for UTC time without timezone
-            return f"{obj.isoformat()}Z"
-        elif isinstance(obj, date):
-            # Format date as YYYY-MM-DD
-            return obj.isoformat()
-        # Handle Pydantic models
-        elif hasattr(obj, "model_dump") and callable(obj.model_dump):
-            return obj.model_dump()
-        # Handle older Pydantic models or other objects with to_dict method
-        elif hasattr(obj, "to_dict") and callable(obj.to_dict):
-            return obj.to_dict()
-        elif isinstance(obj, set):
-            return list(obj)
-        elif isinstance(obj, bytes):
-            try:
-                return obj.decode("utf-8")
-            except UnicodeDecodeError:
-                return str(obj)
-        # Handle timedelta objects
-        elif hasattr(obj, "total_seconds") and callable(obj.total_seconds):
-            # Convert timedelta to seconds
-            return obj.total_seconds()
-        return super().default(obj)
 
 T = TypeVar("T")
 
@@ -136,7 +89,7 @@ def create_success_response(
     total_count: Optional[int] = None,
     page: Optional[int] = None,
     page_size: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> Union[EntityResponse, EntitiesResponse, BaseResponse]:
     """Create a success response.
 
     Args:
@@ -148,7 +101,7 @@ def create_success_response(
         page_size: Optional page size.
 
     Returns:
-        Dict[str, Any]: Standardized response dictionary.
+        Union[EntityResponse, EntitiesResponse, BaseResponse]: Standardized response model.
     """
     if isinstance(data, dict):
         # Single entity response
@@ -158,7 +111,7 @@ def create_success_response(
         )
         if url:
             response.url = url
-        return response.model_dump(exclude_none=True)
+        return response
     elif isinstance(data, list):
         # Multiple entities response
         response = EntitiesResponse(
@@ -168,21 +121,21 @@ def create_success_response(
             page=page,
             page_size=page_size,
         )
-        return response.model_dump(exclude_none=True)
+        return response
     else:
         # Generic response
         response = BaseResponse(
             data=data,
             metadata=ResponseMetadata(status="success", message=message),
         )
-        return response.model_dump(exclude_none=True)
+        return response
 
 
 def create_error_response(
     message: str,
     error_type: str,
     error_details: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+) -> ErrorResponse:
     """Create an error response.
 
     Args:
@@ -191,21 +144,20 @@ def create_error_response(
         error_details: Optional details about the error.
 
     Returns:
-        Dict[str, Any]: Standardized error response dictionary.
+        ErrorResponse: Standardized error response model.
     """
-    response = ErrorResponse(
+    return ErrorResponse(
         message=message,
         error_type=error_type,
         error_details=error_details,
     )
-    return response.model_dump(exclude_none=True)
 
 
 def create_playlist_response(
     data: Dict[str, Any],
     url: str,
     message: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> PlaylistResponse:
     """Create a playlist response.
 
     Args:
@@ -214,14 +166,13 @@ def create_playlist_response(
         message: Optional success message.
 
     Returns:
-        Dict[str, Any]: Standardized playlist response dictionary.
+        PlaylistResponse: Standardized playlist response model.
     """
-    response = PlaylistResponse(
+    return PlaylistResponse(
         data=data,
         metadata=ResponseMetadata(status="success", message=message),
         url=url,
     )
-    return response.model_dump(exclude_none=True)
 
 
 def generate_playlist_url(base_url: str, playlist_id: int) -> str:
@@ -243,13 +194,18 @@ def generate_playlist_url(base_url: str, playlist_id: int) -> str:
     return f"{base_url}/Playlist/detail/{playlist_id}"
 
 
-def serialize_response(response: Dict[str, Any]) -> List[Dict[str, str]]:
-    """Serialize a response for FastMCP.
+def serialize_response(response: Dict[str, Any]) -> Dict[str, Any]:
+    """Prepare a response for FastMCP.
 
     Args:
         response: Response dictionary.
 
     Returns:
-        List[Dict[str, str]]: Serialized response for FastMCP.
+        Dict[str, Any]: Structured response for FastMCP.
     """
-    return [{"text": json.dumps(response, cls=ShotGridJSONEncoder)}]
+    # If response is already a Pydantic model, use model_dump
+    if hasattr(response, "model_dump") and callable(response.model_dump):
+        return response.model_dump(exclude_none=True)
+
+    # Otherwise, return the response directly
+    return response

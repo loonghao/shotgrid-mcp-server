@@ -785,7 +785,7 @@ wheels = [
 
 [[package]]
 name = "shotgrid-mcp-server"
-version = "0.2.4"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -852,7 +852,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.11" },
     { name = "ruff", marker = "extra == 'lint'" },
-    { name = "shotgun-api3", specifier = ">=3.5" },
+    { name = "shotgun-api3", git = "https://github.com/shotgunsoftware/python-api.git?rev=v3.8.2" },
     { name = "types-requests", marker = "extra == 'lint'" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.1.12" },
     { name = "uvicorn", specifier = ">=0.22.0" },
@@ -860,12 +860,8 @@ requires-dist = [
 
 [[package]]
 name = "shotgun-api3"
-version = "3.5.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e4/b9/7639ab068329a08e7be5c1b512200cf2c37b6e29e048da1545f452025f03/shotgun_api3-3.5.1.tar.gz", hash = "sha256:4c46edce957cb1b3e438a5232b8ba3e24bbd960c088b656904f3eb0954907ef1", size = 593367 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/63/e4a5a470dc821b237e5b95977cb111c08f82c319833d89634c0bcba64809/shotgun_api3-3.5.1-py2.py3-none-any.whl", hash = "sha256:f7a230e230af2d6fe64f50df2cba4dbf35334a213c86a6b7587c9b1b4e5855e6", size = 569769 },
-]
+version = "3.8.2"
+source = { git = "https://github.com/shotgunsoftware/python-api.git?rev=v3.8.2#4508d1cd937caee631ad3041447978aeb7a012ac" }
 
 [[package]]
 name = "sniffio"

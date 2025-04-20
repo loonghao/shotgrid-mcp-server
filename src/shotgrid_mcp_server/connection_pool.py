@@ -177,15 +177,25 @@ class ShotGridConnectionContext:
 
     def __init__(
         self,
-        factory: Optional[ShotgunClientFactory] = None,
+        factory_or_connection: Optional[ShotgunClientFactory] = None,
     ) -> None:
         """Initialize the context manager.
 
         Args:
-            factory: Factory for creating ShotGrid clients.
+            factory_or_connection: Factory for creating ShotGrid clients or a direct Shotgun connection.
         """
-        self.factory = factory or create_default_factory()
-        self.connection: Optional[Shotgun] = None
+        # If a direct connection is provided, use it
+        if isinstance(factory_or_connection, Shotgun):
+            self.factory = None
+            self.connection = factory_or_connection
+        else:
+            # Otherwise, use the factory to create a connection
+            self.factory = factory_or_connection or create_default_factory()
+            try:
+                self.connection = self.factory.create_client()
+            except Exception as e:
+                logger.error("Failed to create connection: %s", str(e), exc_info=True)
+                self.connection = None
 
     def __enter__(self) -> Shotgun:
         """Create a new ShotGrid connection.
