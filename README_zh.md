@@ -18,11 +18,13 @@
 - 🛠 完整的CRUD操作工具集
 - 🖼 专门的缩略图上传/下载工具
 - 🔄 高效的连接池管理
+- 🔌 通过MCP工具直接访问ShotGrid API
+- 📝 增强的备注和播放列表管理
 - ✅ 使用pytest的全面测试覆盖
 - 📦 使用UV进行依赖管理
 - 🌐 跨平台支持 (Windows, macOS, Linux)
 
-## 🎯 快速演示
+## 🎬 演示
 
 这是使用 ShotGrid MCP 服务器查询实体的简单示例：
 
@@ -95,16 +97,36 @@ SHOTGRID_SCRIPT_KEY=your_script_key
 
 ## 🔧 可用工具
 
-- `create`: 创建ShotGrid实体
-- `read`: 读取实体信息
-- `update`: 更新实体数据
-- `delete`: 删除实体
+### 核心工具
+- `create_entity`: 创建ShotGrid实体
+- `find_one_entity`: 查找单个实体
+- `search_entities`: 使用过滤器搜索实体
+- `update_entity`: 更新实体数据
+- `delete_entity`: 删除实体
+
+### 媒体工具
 - `download_thumbnail`: 下载实体缩略图
 - `upload_thumbnail`: 上传实体缩略图
+
+### 备注和播放列表工具
+- `shotgrid.note.create`: 创建备注
+- `shotgrid.note.read`: 读取备注信息
+- `shotgrid.note.update`: 更新备注内容
+- `create_playlist`: 创建播放列表
+- `find_playlists`: 使用过滤器查找播放列表
+
+### 直接API访问
+- `sg.find`: 直接访问ShotGrid API的find方法
+- `sg.create`: 直接访问ShotGrid API的create方法
+- `sg.update`: 直接访问ShotGrid API的update方法
+- `sg.batch`: 直接访问ShotGrid API的batch方法
+- 以及更多...
 
 ## 📚 API文档
 
 详细的API文档请参考`/docs`目录下的文档文件。
+
+您还可以在安装服务器后直接在Claude Desktop中探索可用的工具及其参数。
 
 ## 🤝 贡献指南
 
@@ -168,4 +190,4 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 
 ### 🛡️ 工具权限
 
-`alwaysAllow`部分列出了可以无需用户确认即可执行的工具。这些工具经过精心选择，确保操作安全。
+`alwaysAllow`部分列出了可以无需用户确认即可执行的工具。这些工具经过精心选择，确保操作安全。您可以根据安全需求自定义此列表。
