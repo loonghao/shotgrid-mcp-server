@@ -245,43 +245,64 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 }
 ```
 
-### GitHub Copilot
+### Visual Studio Code
 
 ```json
+// .vscode/mcp.json
 {
-  "github.copilot.advanced": {
-    "mcp.servers": {
-      "shotgrid-server": {
-        "command": "uvx",
-        "args": ["shotgrid-mcp-server"],
-        "env": {
-          "SHOTGRID_SCRIPT_NAME": "XXX",
-          "SHOTGRID_SCRIPT_KEY": "XX",
-          "SHOTGRID_URL": "XXXX"
-        }
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-name",
+      "description": "ShotGrid Script Name",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-key",
+      "description": "ShotGrid Script Key",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-url",
+      "description": "ShotGrid URL",
+      "password": false
+    }
+  ],
+  "servers": {
+    "shotgrid-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "${input:shotgrid-script-name}",
+        "SHOTGRID_SCRIPT_KEY": "${input:shotgrid-script-key}",
+        "SHOTGRID_URL": "${input:shotgrid-url}"
       }
     }
   }
 }
 ```
 
-### Visual Studio Code与MCP扩展
+### VS Code用户设置
 
 ```json
 // settings.json
 {
-  "mcp.servers": {
+  "mcp": {
     "shotgrid-server": {
+      "type": "stdio",
       "command": "uvx",
       "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "XXX",
         "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
-      },
-      "autoStart": true
+      }
     }
-  }
+  },
+  "chat.mcp.discovery.enabled": true
 }
 ```
 
