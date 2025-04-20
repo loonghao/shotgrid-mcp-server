@@ -3,6 +3,7 @@
 This module contains tools for working with vendor (external) users and their versions in ShotGrid.
 """
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -250,7 +251,11 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
             else:
                 # If no specific vendor users provided, find all vendor users first
                 vendor_users_result = find_vendor_users(project_id)
-                # Direct access to the data without JSON parsing
+                # Parse the response if it's a string, otherwise use it directly
+                if isinstance(vendor_users_result, str):
+                    vendor_users_result = json.loads(vendor_users_result)
+
+                # Get vendor users from the response
                 vendor_users = vendor_users_result.get("data", [])
 
                 if vendor_users:
@@ -329,7 +334,11 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 project_id=project_id, vendor_user_ids=vendor_user_ids, days=days, status=status, fields=["id"]
             )
 
-            # Direct access to the data without JSON parsing
+            # Parse the response if it's a string, otherwise use it directly
+            if isinstance(versions_result, str):
+                versions_result = json.loads(versions_result)
+
+            # Get versions from the response
             versions = versions_result.get("data", [])
 
             if not versions:
