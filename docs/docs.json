@@ -55,6 +55,13 @@
         ]
       },
       {
+        "group": "AI Integration",
+        "pages": [
+          "guides/ai-prompts",
+          "patterns/ai-workflows"
+        ]
+      },
+      {
         "group": "Patterns",
         "pages": [
           "patterns/optimized-queries",
