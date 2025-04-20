@@ -245,6 +245,69 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 }
 ```
 
+### Cursor
+
+```json
+// .cursor/mcp.json
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Windsurf (Codeium)
+
+```json
+// MCP配置
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Cline (VS Code扩展)
+
+```json
+// MCP配置
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
 ### Visual Studio Code
 
 ```json

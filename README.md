@@ -246,6 +246,69 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
 }
 ```
 
+### Cursor
+
+```json
+// .cursor/mcp.json
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Windsurf (Codeium)
+
+```json
+// MCP configuration
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
+### Cline (VS Code Extension)
+
+```json
+// MCP configuration
+{
+  "mcpServers": {
+    "shotgrid-server": {
+      "command": "uvx",
+      "args": [
+        "shotgrid-mcp-server"
+      ],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "XXX",
+        "SHOTGRID_SCRIPT_KEY": "XX",
+        "SHOTGRID_URL": "XXXX"
+      }
+    }
+  }
+}
+```
+
 ### Visual Studio Code
 
 ```json
