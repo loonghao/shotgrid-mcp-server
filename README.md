@@ -1,4 +1,4 @@
-# ShotGrid MCP Server
+# 🎯 ShotGrid MCP Server
 
 English | [简体中文](README_zh.md)
 
@@ -13,12 +13,20 @@ A high-performance ShotGrid Model Context Protocol (MCP) server implementation b
 
 </div>
 
+## 🎬 Demo
+
+Here's a simple example of querying entities using the ShotGrid MCP server:
+
+![ShotGrid MCP Server Demo](images/sg-mcp.gif)
+
 ## ✨ Features
 
 - 🚀 High-performance implementation based on fastmcp
 - 🛠 Complete CRUD operation toolset
 - 🖼 Dedicated thumbnail download/upload tools
 - 🔄 Efficient connection pool management
+- 🔌 Direct ShotGrid API access through MCP tools
+- 📝 Enhanced note and playlist management
 - ✅ Comprehensive test coverage with pytest
 - 📦 Dependency management with UV
 - 🌐 Cross-platform support (Windows, macOS, Linux)
@@ -60,11 +68,7 @@ nox -s type_check
 # And more...
 ```
 
-## Quick Demo
 
-Here's a simple example of querying entities using the ShotGrid MCP server:
-
-![ShotGrid MCP Server Demo](images/sg-mcp.gif)
 
 ## Development
 
@@ -96,16 +100,36 @@ SHOTGRID_SCRIPT_KEY=your_script_key
 
 ## 🔧 Available Tools
 
-- `create`: Create ShotGrid entities
-- `read`: Read entity information
-- `update`: Update entity data
-- `delete`: Delete entities
+### Core Tools
+- `create_entity`: Create ShotGrid entities
+- `find_one_entity`: Find a single entity
+- `search_entities`: Search for entities with filters
+- `update_entity`: Update entity data
+- `delete_entity`: Delete entities
+
+### Media Tools
 - `download_thumbnail`: Download entity thumbnails
 - `upload_thumbnail`: Upload entity thumbnails
+
+### Note & Playlist Tools
+- `shotgrid.note.create`: Create notes
+- `shotgrid.note.read`: Read note information
+- `shotgrid.note.update`: Update note content
+- `create_playlist`: Create playlists
+- `find_playlists`: Find playlists with filters
+
+### Direct API Access
+- `sg.find`: Direct access to ShotGrid API find method
+- `sg.create`: Direct access to ShotGrid API create method
+- `sg.update`: Direct access to ShotGrid API update method
+- `sg.batch`: Direct access to ShotGrid API batch method
+- And many more...
 
 ## 📚 API Documentation
 
 For detailed API documentation, please refer to the documentation files in the `/docs` directory.
+
+You can also explore the available tools and their parameters directly in Claude Desktop after installing the server.
 
 ## 🤝 Contributing
 
@@ -142,6 +166,19 @@ To use the ShotGrid MCP server in your MCP client, add the following configurati
         "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
       },
+      "disabled": false,
+      "alwaysAllow": [
+        "search_entities",
+        "create_entity",
+        "batch_create",
+        "find_entity",
+        "get_entity_types",
+        "update_entity",
+        "download_thumbnail",
+        "batch_update",
+        "delete_entity",
+        "batch_delete"
+      ]
     }
   }
 }
@@ -156,4 +193,4 @@ Replace the following values with your ShotGrid credentials:
 
 ### 🛡️ Tool Permissions
 
-The `alwaysAllow` section lists the tools that can be executed without requiring user confirmation. These tools are carefully selected for safe operations.
+The `alwaysAllow` section lists the tools that can be executed without requiring user confirmation. These tools are carefully selected for safe operations. You can customize this list based on your security requirements.
