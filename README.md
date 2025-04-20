@@ -246,43 +246,64 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
 }
 ```
 
-### GitHub Copilot
+### Visual Studio Code
 
 ```json
+// .vscode/mcp.json
 {
-  "github.copilot.advanced": {
-    "mcp.servers": {
-      "shotgrid-server": {
-        "command": "uvx",
-        "args": ["shotgrid-mcp-server"],
-        "env": {
-          "SHOTGRID_SCRIPT_NAME": "XXX",
-          "SHOTGRID_SCRIPT_KEY": "XX",
-          "SHOTGRID_URL": "XXXX"
-        }
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-name",
+      "description": "ShotGrid Script Name",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-script-key",
+      "description": "ShotGrid Script Key",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "shotgrid-url",
+      "description": "ShotGrid URL",
+      "password": false
+    }
+  ],
+  "servers": {
+    "shotgrid-server": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["shotgrid-mcp-server"],
+      "env": {
+        "SHOTGRID_SCRIPT_NAME": "${input:shotgrid-script-name}",
+        "SHOTGRID_SCRIPT_KEY": "${input:shotgrid-script-key}",
+        "SHOTGRID_URL": "${input:shotgrid-url}"
       }
     }
   }
 }
 ```
 
-### Visual Studio Code with MCP Extension
+### VS Code User Settings
 
 ```json
 // settings.json
 {
-  "mcp.servers": {
+  "mcp": {
     "shotgrid-server": {
+      "type": "stdio",
       "command": "uvx",
       "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "XXX",
         "SHOTGRID_SCRIPT_KEY": "XX",
         "SHOTGRID_URL": "XXXX"
-      },
-      "autoStart": true
+      }
     }
-  }
+  },
+  "chat.mcp.discovery.enabled": true
 }
 ```
 
