@@ -1,6 +1,5 @@
 """Tests for playlist tools."""
 
-import json
 import datetime
 import pytest
 import pytest_asyncio
@@ -68,41 +67,17 @@ class TestPlaylistTools:
             },
         )
 
-        # Create a mock response for testing
-        result = {
-            "data": [
-                {
-                    "id": playlist1["id"],
-                    "code": "Test Playlist 1",
-                    "description": "Test playlist 1 description",
-                    "sg_url": f"https://example.shotgunstudio.com/Playlist/detail/{playlist1['id']}",
-                },
-                {
-                    "id": playlist2["id"],
-                    "code": "Test Playlist 2",
-                    "description": "Test playlist 2 description",
-                    "sg_url": f"https://example.shotgunstudio.com/Playlist/detail/{playlist2['id']}",
-                }
-            ],
-            "metadata": {
-                "status": "success",
-                "message": "Found 2 playlists"
-            },
-            "total_count": 2
-        }
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "find_playlists",
+            {}
+        )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
-
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert "data" in response_dict
-        assert len(response_dict["data"]) == 2
+        assert result is not None
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 2
 
     @pytest.mark.asyncio
     async def test_find_project_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -160,36 +135,18 @@ class TestPlaylistTools:
             },
         )
 
-        # Create a mock response for testing
-        result = {
-            "data": [
-                {
-                    "id": playlist1["id"],
-                    "code": "Project 1 Playlist",
-                    "description": "Project 1 playlist description",
-                    "sg_url": f"https://example.shotgunstudio.com/Playlist/detail/{playlist1['id']}",
-                }
-            ],
-            "metadata": {
-                "status": "success",
-                "message": "Found 1 playlists"
-            },
-            "total_count": 1
-        }
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "find_project_playlists",
+            {"project_id": project1["id"]}
+        )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
-
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert "data" in response_dict
-        assert len(response_dict["data"]) == 1
-        assert response_dict["data"][0]["code"] == "Project 1 Playlist"
+        assert result is not None
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 1
+        assert result["data"][0]["code"] == "Project 1 Playlist"
 
     @pytest.mark.asyncio
     async def test_find_recent_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -239,36 +196,18 @@ class TestPlaylistTools:
             },
         )
 
-        # Create a mock response for testing
-        result = {
-            "data": [
-                {
-                    "id": recent_playlist["id"],
-                    "code": "Recent Playlist",
-                    "description": "Recent playlist description",
-                    "sg_url": f"https://example.shotgunstudio.com/Playlist/detail/{recent_playlist['id']}",
-                }
-            ],
-            "metadata": {
-                "status": "success",
-                "message": "Found 1 playlists"
-            },
-            "total_count": 1
-        }
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "find_recent_playlists",
+            {"project_id": project["id"], "days": 1}
+        )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
-
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert "data" in response_dict
-        assert len(response_dict["data"]) == 1
-        assert response_dict["data"][0]["code"] == "Recent Playlist"
+        assert result is not None
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 1
+        assert result["data"][0]["code"] == "Recent Playlist"
 
     @pytest.mark.asyncio
     async def test_create_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -291,40 +230,25 @@ class TestPlaylistTools:
             },
         )
 
-        # Create a mock response for testing
-        result = {
-            "data": {
-                "id": 123,
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "create_playlist",
+            {
                 "code": "New Playlist",
+                "project_id": project["id"],
                 "description": "New playlist description",
-                "sg_url": "https://example.shotgunstudio.com/Playlist/detail/123",
-                "versions": [
-                    {"id": version["id"], "code": "Test Version"}
-                ]
-            },
-            "metadata": {
-                "status": "success",
-                "message": "Playlist created successfully"
-            },
-            "url": "https://example.shotgunstudio.com/Playlist/detail/123"
-        }
+                "versions": [{"type": "Version", "id": version["id"]}]
+            }
+        )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
-
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert "data" in response_dict
-        assert response_dict["data"]["code"] == "New Playlist"
-        assert response_dict["data"]["description"] == "New playlist description"
-        assert "sg_url" in response_dict["data"]
-        assert "versions" in response_dict["data"]
-        assert len(response_dict["data"]["versions"]) == 1
+        assert result is not None
+        assert "data" in result
+        assert result["data"]["code"] == "New Playlist"
+        assert result["data"]["description"] == "New playlist description"
+        assert "sg_url" in result["data"]
+        assert "versions" in result["data"]
+        assert len(result["data"]["versions"]) == 1
 
     @pytest.mark.asyncio
     async def test_update_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -348,13 +272,13 @@ class TestPlaylistTools:
             },
         )
 
-        # Update the playlist directly
-        mock_sg.update(
-            "Playlist",
-            playlist["id"],
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "update_playlist",
             {
+                "playlist_id": playlist["id"],
                 "code": "Updated Playlist",
-                "description": "Updated description",
+                "description": "Updated description"
             }
         )
 
@@ -407,15 +331,12 @@ class TestPlaylistTools:
             },
         )
 
-        # Add the second version to the playlist
-        mock_sg.update(
-            "Playlist",
-            playlist["id"],
+        # Call the tool
+        result = await playlist_server._mcp_call_tool(
+            "add_versions_to_playlist",
             {
-                "versions": [
-                    {"type": "Version", "id": version1["id"]},
-                    {"type": "Version", "id": version2["id"]}
-                ]
+                "playlist_id": playlist["id"],
+                "version_ids": [version2["id"]]
             }
         )
 
