@@ -39,6 +39,15 @@
 uv pip install shotgrid-mcp-server
 ```
 
+### 快速使用
+
+安装完成后，您可以直接使用以下命令启动服务器：
+```bash
+uvx shotgrid-mcp-server
+```
+
+这将使用默认设置启动ShotGrid MCP服务器。请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
+
 ### 开发环境设置
 
 1. 克隆仓库：
