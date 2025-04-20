@@ -77,35 +77,35 @@ nox -s type_check
 # And more...
 ```
 
-
-
-## Development
-
-#### Environment Setup
-
-1. Set up environment variables:
-```powershell
-$env:SHOTGRID_URL='your_shotgrid_url'
-$env:SHOTGRID_SCRIPT_NAME='your_script_name'
-$env:SHOTGRID_SCRIPT_KEY='your_script_key'
-```
-
-2. Run the development server:
-```bash
-uv run fastmcp dev src\shotgrid_mcp_server\server.py:app
-```
-The server will start in development mode with hot reloading enabled.
-
 ## ⚙️ Configuration
 
 ### Environment Variables
 
-Create a `.env` file with the following variables:
+The following environment variables are required:
+
 ```bash
 SHOTGRID_URL=your_shotgrid_url
 SHOTGRID_SCRIPT_NAME=your_script_name
 SHOTGRID_SCRIPT_KEY=your_script_key
 ```
+
+You can set them directly in your shell:
+
+```powershell
+# PowerShell
+$env:SHOTGRID_URL='your_shotgrid_url'
+$env:SHOTGRID_SCRIPT_NAME='your_script_name'
+$env:SHOTGRID_SCRIPT_KEY='your_script_key'
+```
+
+```bash
+# Bash
+export SHOTGRID_URL='your_shotgrid_url'
+export SHOTGRID_SCRIPT_NAME='your_script_name'
+export SHOTGRID_SCRIPT_KEY='your_script_key'
+```
+
+Or create a `.env` file in your project directory.
 
 ## 🔧 Available Tools
 
@@ -237,7 +237,7 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
 
 ### 🔑 Credentials Setup
 
-Replace the following values with your ShotGrid credentials:
+In the configuration examples above, replace the following values with your ShotGrid credentials:
 - `SHOTGRID_SCRIPT_NAME`: Your ShotGrid script name
 - `SHOTGRID_SCRIPT_KEY`: Your ShotGrid script key
 - `SHOTGRID_URL`: Your ShotGrid server URL

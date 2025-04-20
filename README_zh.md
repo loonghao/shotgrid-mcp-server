@@ -76,33 +76,35 @@ nox -s type_check
 # 更多命令...
 ```
 
-### 🔧 开发
-
-#### 环境设置
-
-1. 设置环境变量：
-```powershell
-$env:SHOTGRID_URL='你的_shotgrid_url'
-$env:SHOTGRID_SCRIPT_NAME='你的_script_name'
-$env:SHOTGRID_SCRIPT_KEY='你的_script_key'
-```
-
-2. 运行开发服务器：
-```bash
-uv run fastmcp dev src\shotgrid_mcp_server\server.py:app
-```
-服务器将以开发模式启动，并启用热重载功能。
-
 ## ⚙️ 配置
 
 ### 环境变量
 
-创建`.env`文件并配置以下变量：
+以下环境变量是必需的：
+
 ```bash
 SHOTGRID_URL=your_shotgrid_url
 SHOTGRID_SCRIPT_NAME=your_script_name
 SHOTGRID_SCRIPT_KEY=your_script_key
 ```
+
+您可以直接在命令行中设置它们：
+
+```powershell
+# PowerShell
+$env:SHOTGRID_URL='您的_shotgrid_url'
+$env:SHOTGRID_SCRIPT_NAME='您的_script_name'
+$env:SHOTGRID_SCRIPT_KEY='您的_script_key'
+```
+
+```bash
+# Bash
+export SHOTGRID_URL='您的_shotgrid_url'
+export SHOTGRID_SCRIPT_NAME='您的_script_name'
+export SHOTGRID_SCRIPT_KEY='您的_script_key'
+```
+
+或者在项目目录中创建一个`.env`文件。
 
 ## 🔧 可用工具
 
@@ -234,7 +236,7 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 
 ### 🔑 凭证设置
 
-请将以下值替换为您的ShotGrid凭证：
+在上面的配置示例中，请将以下值替换为您的ShotGrid凭证：
 - `SHOTGRID_SCRIPT_NAME`: 您的ShotGrid脚本名称
 - `SHOTGRID_SCRIPT_KEY`: 您的ShotGrid脚本密钥
 - `SHOTGRID_URL`: 您的ShotGrid服务器URL
