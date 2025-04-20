@@ -14,9 +14,9 @@ from shotgrid_mcp_server.models import (
     create_in_project_filter,
     process_filters,
 )
+from shotgrid_mcp_server.response_models import create_playlist_response, generate_playlist_url, serialize_response
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.utils import ShotGridJSONEncoder
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,26 +34,7 @@ def _get_default_playlist_fields() -> List[str]:
     ]
 
 
-def _generate_playlist_url(sg: Shotgun, playlist_id: int) -> str:
-    """Generate ShotGrid URL for a playlist.
 
-    Args:
-        sg: ShotGrid connection.
-        playlist_id: ID of the playlist.
-
-    Returns:
-        str: URL to access the playlist in ShotGrid web interface.
-    """
-    # Get the ShotGrid base URL from the connection
-    base_url = sg.base_url
-
-    # Remove trailing slash if present
-    if base_url.endswith("/"):
-        base_url = base_url[:-1]
-
-    # Construct the playlist URL
-    # Format: https://<shotgrid-domain>/Playlist/detail/<playlist_id>
-    return f"{base_url}/Playlist/detail/{playlist_id}"
 
 
 def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> List[Dict[str, str]]:
@@ -65,8 +46,20 @@ def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> List[Dict[
     Returns:
         List[Dict[str, str]]: Serialized playlists response.
     """
+    from shotgrid_mcp_server.response_models import create_success_response
+
+    # Serialize each playlist
     serialized_playlists = [serialize_entity(playlist) for playlist in playlists]
-    return [{"text": json.dumps({"playlists": serialized_playlists}, cls=ShotGridJSONEncoder)}]
+
+    # Create standardized response
+    response = create_success_response(
+        data=serialized_playlists,
+        message=f"Found {len(serialized_playlists)} playlists",
+        total_count=len(serialized_playlists),
+    )
+
+    # Return serialized response for FastMCP
+    return serialize_response(response)
 
 
 def _find_playlists_impl(
@@ -120,7 +113,7 @@ def _find_playlists_impl(
     for playlist in result:
         if "id" in playlist:
             # Generate ShotGrid URL for the playlist
-            playlist["sg_url"] = _generate_playlist_url(sg, playlist["id"])
+            playlist["sg_url"] = generate_playlist_url(sg.base_url, playlist["id"])
 
     # Serialize and return results
     return _serialize_playlists_response(result)
@@ -319,18 +312,22 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             if result is None:
                 raise ValueError("Failed to create playlist")
 
-            # Add ShotGrid URL to the playlist
-            playlist_url = _generate_playlist_url(sg, result["id"])
+            # Generate playlist URL
+            playlist_url = generate_playlist_url(sg.base_url, result["id"])
             result["sg_url"] = playlist_url
 
-            # Serialize the playlist
-            serialized_playlist = serialize_entity(result)
+            # Serialize the entity
+            serialized_entity = serialize_entity(result)
 
-            # Add URL to the top level of the response for easier access
-            serialized_playlist["url"] = playlist_url
+            # Create standardized response
+            response = create_playlist_response(
+                data=serialized_entity,
+                url=playlist_url,
+                message="Playlist created successfully",
+            )
 
-            # Return enhanced result
-            return cast(Dict[str, Any], serialized_playlist)
+            # Return serialized response for FastMCP
+            return serialize_response(response)
         except Exception as err:
             handle_error(err, operation="create_playlist")
             raise  # This is needed to satisfy the type checker
