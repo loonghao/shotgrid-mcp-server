@@ -1,6 +1,5 @@
 """Tests for note_tools module."""
 
-import json
 import datetime
 import pytest
 import pytest_asyncio
@@ -15,13 +14,7 @@ from shotgrid_mcp_server.models import (
     NoteUpdateRequest,
     NoteUpdateResponse,
 )
-from shotgrid_mcp_server.tools.note_tools import (
-    create_note,
-    read_note,
-    update_note,
-    register_note_tools,
-)
-from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
+from shotgrid_mcp_server.tools.note_tools import register_note_tools
 
 
 class TestNoteTools:
@@ -212,14 +205,7 @@ class TestNoteTools:
             },
         )
 
-        # Create test shot
-        shot = mock_sg.create(
-            "Shot",
-            {
-                "code": "TEST_SHOT",
-                "project": {"type": "Project", "id": project["id"]},
-            },
-        )
+        # No need to create a test shot for this test
 
         # Create test note
         note = mock_sg.create(
@@ -423,14 +409,7 @@ class TestNoteTools:
         # Get updated note
         updated_note = mock_sg.find_one("Note", [["id", "is", request.id]], ["subject", "content", "updated_at"])
 
-        # Create response
-        response = NoteUpdateResponse(
-            id=request.id,
-            type="Note",
-            subject=updated_note["subject"],
-            content=updated_note.get("content", ""),
-            updated_at=str(updated_note.get("updated_at", "")),
-        )
+        # No need to create a response manually here
 
         # In Mockgun, note_links only accepts Version type, so we can't verify this
         # Instead, let's just verify the note still exists
@@ -477,24 +456,18 @@ class TestNoteTools:
         )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
+        assert result is not None
 
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert "id" in response_dict
-        assert response_dict["type"] == "Note"
-        assert response_dict["subject"] == "Tool Test Note"
-        assert response_dict["content"] == "This is a note created via MCP tool"
+        # Verify the response
+        assert result.id is not None
+        assert result.type == "Note"
+        assert result.subject == "Tool Test Note"
+        assert result.content == "This is a note created via MCP tool"
 
         # Verify the note was created in ShotGrid
         note = mock_sg.find_one(
             "Note",
-            [["id", "is", response_dict["id"]]],
+            [["id", "is", result.id]],
             ["subject", "content", "user", "addressings_to"]
         )
         assert note
@@ -549,23 +522,17 @@ class TestNoteTools:
         )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
+        assert result is not None
 
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert response_dict["id"] == note["id"]
-        assert response_dict["type"] == "Note"
-        assert response_dict["subject"] == "Read Test Note"
-        assert response_dict["content"] == "This is a note for reading via MCP tool"
-        assert response_dict["user_id"] == user["id"]
-        assert response_dict["user_name"] == "Read Test User"
-        assert len(response_dict["addressings_to"]) == 1
-        assert response_dict["addressings_to"][0] == user["id"]
+        # Verify the response
+        assert result.id == note["id"]
+        assert result.type == "Note"
+        assert result.subject == "Read Test Note"
+        assert result.content == "This is a note for reading via MCP tool"
+        assert result.user_id == user["id"]
+        assert result.user_name == "Read Test User"
+        assert len(result.addressings_to) == 1
+        assert result.addressings_to[0] == user["id"]
 
     @pytest.mark.asyncio
     async def test_update_note_tool(self, note_server: FastMCP, mock_sg: Shotgun):
@@ -606,19 +573,13 @@ class TestNoteTools:
         )
 
         # Verify result
-        assert result
-        assert isinstance(result, list)
-        assert len(result) == 1
+        assert result is not None
 
-        # Parse the JSON response
-        response_text = result[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify the parsed response
-        assert response_dict["id"] == note["id"]
-        assert response_dict["type"] == "Note"
-        assert response_dict["subject"] == "Updated Subject via Tool"
-        assert response_dict["content"] == "Updated content via Tool"
+        # Verify the response
+        assert result.id == note["id"]
+        assert result.type == "Note"
+        assert result.subject == "Updated Subject via Tool"
+        assert result.content == "Updated content via Tool"
 
         # Verify the note was updated in ShotGrid
         updated_note = mock_sg.find_one(
@@ -631,7 +592,7 @@ class TestNoteTools:
         assert updated_note["content"] == "Updated content via Tool"
 
     @pytest.mark.asyncio
-    async def test_read_note_not_found_tool(self, note_server: FastMCP, mock_sg: Shotgun):
+    async def test_read_note_not_found_tool(self, note_server: FastMCP):
         """Test reading a non-existent note using the MCP tool."""
         # Call the tool with a non-existent note ID
         with pytest.raises(ToolError) as excinfo:
