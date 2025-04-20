@@ -70,17 +70,17 @@ def handle_tool_error(err: Exception, operation: str) -> None:
 
         if "not found" in error_msg_lower or "does not exist" in error_msg_lower:
             # Try to extract entity type and ID from error message
-            entity_type_match = re.search(r"Entity (\w+) with", error_msg_lower)
+            entity_type_match = re.search(r"entity (\w+) with", error_msg_lower)
             entity_id_match = re.search(r"with id (\d+)", error_msg_lower)
 
             entity_type = entity_type_match.group(1) if entity_type_match else None
             entity_id = int(entity_id_match.group(1)) if entity_id_match else None
 
             raise EntityNotFoundError(entity_type=entity_type, entity_id=entity_id, message=error_msg) from err
-        elif "permission" in error_msg_lower or "access" in error_msg_lower or "not allowed" in error_msg_lower:
-            raise PermissionError(error_msg) from err
         elif "connection" in error_msg_lower or "timeout" in error_msg_lower or "network" in error_msg_lower:
             raise ConnectionError(error_msg) from err
+        elif "permission" in error_msg_lower or "access" in error_msg_lower or "not allowed" in error_msg_lower:
+            raise PermissionError(error_msg) from err
     # Handle other specific error types
     elif "filter" in error_msg.lower() or "invalid filter" in error_msg.lower():
         raise FilterError(error_msg) from err
