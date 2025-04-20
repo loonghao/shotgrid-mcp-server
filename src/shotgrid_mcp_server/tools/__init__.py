@@ -8,6 +8,7 @@ from typing import Any  # noqa
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.tools.api_tools import register_api_tools
 from shotgrid_mcp_server.tools.create_tools import register_create_tools
 from shotgrid_mcp_server.tools.delete_tools import register_delete_tools
 from shotgrid_mcp_server.tools.note_tools import register_note_tools
@@ -39,3 +40,6 @@ def register_all_tools(server: FastMCPType, sg: Shotgun) -> None:
     register_note_tools(server, sg)
     register_playlist_tools(server, sg)
     register_vendor_tools(server, sg)
+
+    # Register direct API tools
+    register_api_tools(server, sg)
