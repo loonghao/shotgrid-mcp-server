@@ -1,0 +1,155 @@
+---
+title: 'AI Prompts for ShotGrid MCP'
+description: 'Effective prompts for using ShotGrid MCP with AI assistants'
+---
+
+# AI Prompts for ShotGrid MCP
+
+This guide provides examples of effective prompts to use with AI assistants like Claude when working with the ShotGrid MCP server. These prompts demonstrate how to leverage AI to interact with your ShotGrid data in natural language.
+
+## Basic Queries
+
+### Finding Recent Updates
+
+```
+Help me find all ShotGrid entities updated in the last 3 months.
+```
+
+```
+Show me all shots that were updated last week for the "Awesome Project".
+```
+
+```
+What assets were modified yesterday?
+```
+
+### Entity Information
+
+```
+Tell me about the shot "SHOT_010" in the "Main Project".
+```
+
+```
+What's the status of all shots in sequence "SEQ_001"?
+```
+
+```
+Show me all the notes attached to "SHOT_020".
+```
+
+## Creating and Managing Playlists
+
+### Creating Playlists
+
+```
+Create a playlist called "Daily Review - April 21" with all shots updated yesterday by the lighting department.
+```
+
+```
+Make a new playlist named "Client Review" containing shots SHOT_010, SHOT_020, and SHOT_030 from the "Main Project".
+```
+
+```
+Help me create a playlist of all approved shots in the "Forest Sequence".
+```
+
+### Finding Playlists
+
+```
+Find all playlists created this week.
+```
+
+```
+Show me the contents of the playlist "Director's Review".
+```
+
+## Notes and Feedback
+
+### Creating Notes
+
+```
+Add a note to SHOT_010 saying "Please adjust the lighting in the background to be more dramatic".
+```
+
+```
+Create a note for all shots in sequence "SEQ_002" reminding the team about color consistency.
+```
+
+### Finding Notes
+
+```
+Show me all notes created by John in the last week.
+```
+
+```
+Find all notes containing the word "revision" for the "Main Project".
+```
+
+## Advanced Workflows
+
+### Time Tracking and Reporting
+
+```
+Help me summarize the time logs for the "Animation" department this month.
+```
+
+```
+Generate a chart using echarts to visualize the hours spent on each department for "Project X" in the last quarter.
+```
+
+```
+Compare the time spent on "Project A" versus "Project B" in a visual format.
+```
+
+### Status Updates and Statistics
+
+```
+What percentage of shots in "Project X" are currently in the "Approved" status?
+```
+
+```
+Generate a report of all assets and their current status for the "Sci-Fi Project".
+```
+
+```
+Show me the progress of the "Forest Sequence" over the last month with a visual chart.
+```
+
+### Task Management
+
+```
+Assign the task "Final Lighting" for SHOT_050 to Jane with a due date of next Friday.
+```
+
+```
+Update the status of all compositing tasks in "SEQ_003" to "In Progress".
+```
+
+```
+Find all overdue tasks in the "Main Project" and help me prioritize them.
+```
+
+## Combining Multiple Operations
+
+```
+Find all shots that were updated yesterday by the lighting team, create a playlist called "Lighting Review - April 21", and notify the director via a note.
+```
+
+```
+Analyze the feedback notes from the client review yesterday, summarize the common issues, and create tasks for the relevant departments.
+```
+
+```
+Help me prepare for tomorrow's review: find all shots due this week, check their status, create a playlist of the ones ready for review, and generate a summary report.
+```
+
+## Tips for Effective Prompts
+
+1. **Be specific about timeframes**: "in the last week", "yesterday", "this month"
+2. **Include project names** when working with multiple projects
+3. **Specify departments or users** when filtering by who created or modified entities
+4. **Use natural language** - you don't need to know the exact API calls or field names
+5. **Combine operations** for complex workflows
+6. **Ask for visualizations** when dealing with numerical data
+
+Remember that the AI assistant will translate your natural language requests into the appropriate ShotGrid MCP tool calls, making it easy to interact with your production data without needing to remember specific API details.
