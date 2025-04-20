@@ -77,6 +77,17 @@ nox -s type_check
 # And more...
 ```
 
+4. Development Server with Hot Reloading
+
+**Note: This requires Node.js to be installed on your system.**
+
+For a better development experience with hot reloading (server automatically restarts when code changes):
+```bash
+uv run fastmcp dev src/shotgrid_mcp_server/server.py:app
+```
+
+This will start the server in development mode, and any changes to the code will automatically reload the server.
+
 ## ⚙️ Configuration
 
 ### Environment Variables
