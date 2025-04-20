@@ -4,7 +4,6 @@ This module contains unit tests for the ShotGrid MCP server tools.
 """
 
 # Import built-in modules
-import json
 from pathlib import Path
 
 # Import third-party modules
@@ -51,20 +50,19 @@ class TestCreateTools:
 class TestReadTools:
     """Test suite for read tools."""
 
-    async def test_get_schema(self, server: FastMCP, mock_sg: Shotgun):
+    async def test_get_schema(self, server: FastMCP):
         """Test getting schema for a specific entity type."""
         entity_type = "Shot"
 
         # Get schema using MCP tool
         response = await server._mcp_call_tool("get_schema", {"entity_type": entity_type})
-        response_dict = json.loads(response[0].text)
 
         # Verify schema
-        assert response_dict is not None
-        assert "fields" in response_dict
-        assert "id" in response_dict["fields"]
-        assert "type" in response_dict["fields"]
-        assert "code" in response_dict["fields"]
+        assert response is not None
+        assert "fields" in response
+        assert "id" in response["fields"]
+        assert "type" in response["fields"]
+        assert "code" in response["fields"]
 
 
 @pytest.mark.asyncio
@@ -143,22 +141,13 @@ class TestDownloadTools:
             "download_thumbnail",
             {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image", "file_path": str(file_path)},
         )
-        response_text = response[0].text
-        response_dict = json.loads(response_text)
 
         # Verify download
-        if isinstance(response_dict, dict):
-            assert "text" in response_dict
-            file_path_dict = json.loads(response_dict["text"])
-        else:
-            assert isinstance(response_dict, list)
-            assert len(response_dict) > 0
-            assert "text" in response_dict[0]
-            file_path_dict = json.loads(response_dict[0]["text"])
-        assert "file_path" in file_path_dict
-        assert file_path_dict["file_path"] == str(file_path)
+        assert response is not None
+        assert "file_path" in response
+        assert response["file_path"] == str(file_path)
 
-    async def test_download_thumbnail_not_found(self, server: FastMCP, mock_sg: Shotgun, temp_dir: Path):
+    async def test_download_thumbnail_not_found(self, server: FastMCP, temp_dir: Path):
         """Test downloading a non-existent thumbnail."""
         with pytest.raises(
             ToolError, match="Error executing tool download_thumbnail: Entity Shot with ID 999999 not found"
@@ -192,23 +181,13 @@ class TestSearchTools:
                 "fields": ["code", "project"],
             },
         )
-        # Parse the response
-        response_text = response[0].text
-        response_dict = json.loads(response_text)
 
         # Verify response structure
-        if isinstance(response_dict, dict):
-            assert "text" in response_dict
-            entities_dict = json.loads(response_dict["text"])
-        else:
-            assert isinstance(response_dict, list)
-            assert len(response_dict) > 0
-            assert "text" in response_dict[0]
-            entities_dict = json.loads(response_dict[0]["text"])
-        assert "entities" in entities_dict
-        assert isinstance(entities_dict["entities"], list)
+        assert response is not None
+        assert "entities" in response
+        assert isinstance(response["entities"], list)
 
-    async def test_find_one_entity(self, server: FastMCP, mock_sg: Shotgun):
+    async def test_find_one_entity(self, server: FastMCP):
         """Test finding a single entity."""
         # Find test shot
         response = await server._mcp_call_tool(
@@ -222,30 +201,8 @@ class TestSearchTools:
 
         # Verify response
         assert response is not None
-        assert isinstance(response, list)
-        assert len(response) == 1
-
-        # Parse the response
-        response_text = response[0].text
-        response_dict = json.loads(response_text)
-
-        # Verify response structure
-        assert response_dict is not None
-
-        # Parse the inner text
-        if isinstance(response_dict, dict):
-            assert "text" in response_dict
-            inner_dict = json.loads(response_dict["text"])
-        else:
-            assert isinstance(response_dict, list)
-            assert len(response_dict) > 0
-            assert "text" in response_dict[0]
-            inner_dict = json.loads(response_dict[0]["text"])
-        assert isinstance(inner_dict, dict)
-
-        # Check for entity field in the new response format
-        assert "entity" in inner_dict
-        entity_data = inner_dict["entity"]
+        assert "entity" in response
+        entity_data = response["entity"]
         assert entity_data is not None
         assert "code" in entity_data
         assert entity_data["code"] == "test_shot"
@@ -281,18 +238,9 @@ class TestGetThumbnailUrl:
             "get_thumbnail_url",
             {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image"},
         )
-        response_text = response[0].text
-        response_dict = json.loads(response_text)
 
         # Verify URL
-        if isinstance(response_dict, dict):
-            assert "text" in response_dict
-            assert response_dict["text"] == "https://example.com/thumbnail.jpg"
-        else:
-            assert isinstance(response_dict, list)
-            assert len(response_dict) > 0
-            assert "text" in response_dict[0]
-            assert response_dict[0]["text"] == "https://example.com/thumbnail.jpg"
+        assert response == "https://example.com/thumbnail.jpg"
 
     async def test_get_thumbnail_url_not_found(self, server: FastMCP):
         """Test get_thumbnail_url method when no entity is found."""
