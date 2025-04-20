@@ -145,9 +145,49 @@ Or create a `.env` file in your project directory.
 - `sg.batch`: Direct access to ShotGrid API batch method
 - And many more...
 
-## 📚 API Documentation
+## 🤖 AI Prompt Examples
 
-For detailed API documentation, please refer to the documentation files in the `/docs` directory.
+Here are some examples of how to use ShotGrid MCP with AI assistants like Claude:
+
+### Basic Queries
+
+```
+Help me find all ShotGrid entities updated in the last 3 months.
+```
+
+```
+Show me all shots that were updated last week for the "Awesome Project".
+```
+
+### Creating and Managing Playlists
+
+```
+Create a playlist called "Daily Review - April 21" with all shots updated yesterday by the lighting department.
+```
+
+```
+Find all playlists created this week.
+```
+
+### Notes and Feedback
+
+```
+Add a note to SHOT_010 saying "Please adjust the lighting in the background to be more dramatic".
+```
+
+### Advanced Workflows
+
+```
+Help me summarize the time logs for the "Animation" department this month and generate a chart using echarts to visualize the hours spent.
+```
+
+```
+Find all shots that were updated yesterday by the lighting team, create a playlist called "Lighting Review - April 21", and notify the director via a note.
+```
+
+## 📚 Documentation
+
+For detailed documentation, please refer to the documentation files in the `/docs` directory.
 
 You can also explore the available tools and their parameters directly in Claude Desktop after installing the server.
 
