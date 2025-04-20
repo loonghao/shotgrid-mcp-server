@@ -3,9 +3,8 @@
 This module contains tools for working with Playlists in ShotGrid.
 """
 
-import json
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
@@ -28,16 +27,10 @@ def _get_default_playlist_fields() -> List[str]:
     Returns:
         List[str]: Default fields to retrieve for playlists.
     """
-    return [
-        "id", "code", "description", "created_at", "updated_at",
-        "created_by", "versions", "project"
-    ]
+    return ["id", "code", "description", "created_at", "updated_at", "created_by", "versions", "project"]
 
 
-
-
-
-def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Serialize playlists to JSON response.
 
     Args:
@@ -71,7 +64,7 @@ def _find_playlists_impl(
     limit: Optional[int] = None,
     page: Optional[int] = None,
     page_size: Optional[int] = None,
-) -> List[Dict[str, str]]:
+) -> Dict[str, Any]:
     """Implementation for finding playlists.
 
     Args:
@@ -126,6 +119,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("find_playlists")
     def find_playlists(
         filters: Optional[List[Dict[str, Any]]] = None,
@@ -135,7 +129,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         limit: Optional[int] = None,
         page: Optional[int] = None,
         page_size: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Find playlists in ShotGrid.
 
         Args:
@@ -179,7 +173,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         fields: Optional[List[str]] = None,
         days: Optional[int] = None,
         limit: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Find playlists in a specific project.
 
         Args:
@@ -196,9 +190,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         """
         try:
             # Build filters
-            filters = [
-                ["project", "is", {"type": "Project", "id": project_id}]
-            ]
+            filters = [["project", "is", {"type": "Project", "id": project_id}]]
 
             # Add date filter if days provided
             if days:
@@ -227,7 +219,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         project_id: Optional[int] = None,
         limit: Optional[int] = 20,
         fields: Optional[List[str]] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Find recent playlists in ShotGrid.
 
         Args:

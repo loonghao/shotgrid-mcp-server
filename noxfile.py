@@ -14,31 +14,32 @@ if ROOT not in sys.path:
 
 # Import local modules
 from nox_actions import docs, lint, release
+from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 
-
-@nox.session(name="tests")
+@nox.session(name="tests", python="3.10")
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""
     # Install uv if not already installed
     session.run("python", "-m", "pip", "install", "uv", silent=True)
 
     # Use uv to install dependencies
-    session.run("uv", "pip", "install", "-e", ".[test]", external=True)
+    session.run("uv", "pip", "install", ".", external=True)
+    session.run("uv", "pip", "install", "-r", "requirements-test.txt", external=True)
 
     # Run tests
+    test_root = os.path.join(ROOT, "tests")
     session.run(
-        "python",
-        "-m",
         "pytest",
-        "tests/test_server.py",
-        "-v",
-        "--cov=shotgrid_mcp_server",
-        "--cov-report=term-missing",
-        env={"PYTHONPATH": ROOT},
+        test_root,
+        f"--cov={PACKAGE_NAME}",
+        "--cov-report=xml:coverage.xml",
+        f"--rootdir={ROOT}",
+        env={"PYTHONPATH": THIS_ROOT.as_posix()},
     )
 
 
-@nox.session(name="lint")
+
+@nox.session(name="lint", python="3.10")
 def lint_check(session: nox.Session) -> None:
     """Run the linter."""
     # Install uv if not already installed
@@ -58,7 +59,7 @@ def lint_check(session: nox.Session) -> None:
         session.log("mypy found errors, but we're ignoring them for now")
 
 
-@nox.session(name="lint-fix")
+@nox.session(name="lint-fix", python="3.10")
 def lint_fix(session: nox.Session) -> None:
     """Run the linter and fix issues."""
     # Install uv if not already installed
@@ -70,7 +71,7 @@ def lint_fix(session: nox.Session) -> None:
     lint.lint_fix(session)
 
 
-@nox.session(name="build-wheel")
+@nox.session(name="build-wheel", python="3.10")
 def build_wheel(session: nox.Session) -> None:
     """Build Python wheel package."""
     # Install uv if not already installed

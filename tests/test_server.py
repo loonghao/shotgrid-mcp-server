@@ -24,7 +24,7 @@ class TestCreateTools:
         entity_type = "Shot"
         data = {"code": "new_shot", "project": mock_sg.find_one("Project", [["code", "is", "test"]])}
 
-        await server.call_tool("create_entity", {"entity_type": entity_type, "data": data})
+        await server._mcp_call_tool("create_entity", {"entity_type": entity_type, "data": data})
 
         # Verify entity was created
         created_shot = mock_sg.find_one(entity_type, [["code", "is", "new_shot"]])
@@ -40,7 +40,7 @@ class TestCreateTools:
         data_list = [{"code": "batch_shot_001", "project": project}, {"code": "batch_shot_002", "project": project}]
 
         # Create entities using MCP tool
-        await server.call_tool("batch_create_entities", {"entity_type": entity_type, "data_list": data_list})
+        await server._mcp_call_tool("batch_create_entities", {"entity_type": entity_type, "data_list": data_list})
 
         # Verify entities were created
         entities = mock_sg.find("Shot", [["code", "in", ["batch_shot_001", "batch_shot_002"]]])
@@ -56,7 +56,7 @@ class TestReadTools:
         entity_type = "Shot"
 
         # Get schema using MCP tool
-        response = await server.call_tool("get_schema", {"entity_type": entity_type})
+        response = await server._mcp_call_tool("get_schema", {"entity_type": entity_type})
         response_dict = json.loads(response[0].text)
 
         # Verify schema
@@ -79,7 +79,7 @@ class TestUpdateTools:
 
         # Update entity using MCP tool
         new_code = "updated_shot"
-        await server.call_tool(
+        await server._mcp_call_tool(
             "update_entity", {"entity_type": "Shot", "entity_id": shot["id"], "data": {"code": new_code}}
         )
 
@@ -100,7 +100,7 @@ class TestDeleteTools:
         shot_to_delete = mock_sg.create("Shot", {"code": "shot_to_delete", "project": project})
 
         # Delete entity using MCP tool
-        await server.call_tool("delete_entity", {"entity_type": "Shot", "entity_id": shot_to_delete["id"]})
+        await server._mcp_call_tool("delete_entity", {"entity_type": "Shot", "entity_id": shot_to_delete["id"]})
 
         # Verify deletion
         deleted_shot = mock_sg.find_one("Shot", [["id", "is", shot_to_delete["id"]]])
@@ -139,7 +139,7 @@ class TestDownloadTools:
 
         # Download thumbnail using MCP tool
         file_path = temp_dir / "thumbnail.jpg"
-        response = await server.call_tool(
+        response = await server._mcp_call_tool(
             "download_thumbnail",
             {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image", "file_path": str(file_path)},
         )
@@ -163,7 +163,7 @@ class TestDownloadTools:
         with pytest.raises(
             ToolError, match="Error executing tool download_thumbnail: Entity Shot with ID 999999 not found"
         ):
-            await server.call_tool(
+            await server._mcp_call_tool(
                 "download_thumbnail",
                 {
                     "entity_type": "Shot",
@@ -184,7 +184,7 @@ class TestSearchTools:
         project = mock_sg.find_one("Project", [{"field": "code", "operator": "is", "value": "test"}])
 
         # Search for shots in project
-        response = await server.call_tool(
+        response = await server._mcp_call_tool(
             "search_entities",
             {
                 "entity_type": "Shot",
@@ -211,7 +211,7 @@ class TestSearchTools:
     async def test_find_one_entity(self, server: FastMCP, mock_sg: Shotgun):
         """Test finding a single entity."""
         # Find test shot
-        response = await server.call_tool(
+        response = await server._mcp_call_tool(
             "find_one_entity",
             {
                 "entity_type": "Shot",
@@ -277,7 +277,7 @@ class TestGetThumbnailUrl:
         )
 
         # Get thumbnail URL using MCP tool
-        response = await server.call_tool(
+        response = await server._mcp_call_tool(
             "get_thumbnail_url",
             {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image"},
         )
@@ -299,7 +299,7 @@ class TestGetThumbnailUrl:
         with pytest.raises(
             ToolError, match="Error executing tool get_thumbnail_url: Entity Shot with ID 999999 not found"
         ):
-            await server.call_tool(
+            await server._mcp_call_tool(
                 "get_thumbnail_url",
                 {"entity_type": "Shot", "entity_id": 999999, "field_name": "image"},
             )
@@ -317,7 +317,7 @@ class TestGetThumbnailUrl:
         )
 
         with pytest.raises(ToolError, match="Error executing tool get_thumbnail_url: No thumbnail URL found"):
-            await server.call_tool(
+            await server._mcp_call_tool(
                 "get_thumbnail_url",
                 {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image"},
             )

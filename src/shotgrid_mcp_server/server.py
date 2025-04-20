@@ -38,7 +38,7 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:  #
         logger.debug("Created FastMCP instance")
 
         # Register tools using connection context
-        with ShotGridConnectionContext(factory=factory) as sg:
+        with ShotGridConnectionContext(factory_or_connection=factory) as sg:
             register_all_tools(mcp, sg)
             logger.debug("Registered all tools")
             return mcp

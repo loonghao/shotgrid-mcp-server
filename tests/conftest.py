@@ -59,6 +59,71 @@ def schema_paths():
         },
     }
 
+    # Add Note schema
+    schema["Note"] = {
+        "subject": {
+            "data_type": {"value": "text"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["text"]},
+            },
+        },
+        "content": {
+            "data_type": {"value": "text"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["text"]},
+            },
+        },
+        "project": {
+            "data_type": {"value": "entity"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["Project"]},
+            },
+        },
+        "user": {
+            "data_type": {"value": "entity"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["HumanUser"]},
+            },
+        },
+        "note_links": {
+            "data_type": {"value": "multi_entity"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["Version", "Shot"]},
+            },
+        },
+        "addressings_to": {
+            "data_type": {"value": "multi_entity"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["HumanUser"]},
+            },
+        },
+        "addressings_cc": {
+            "data_type": {"value": "multi_entity"},
+            "properties": {
+                "default_value": {"value": None},
+                "valid_types": {"value": ["HumanUser"]},
+            },
+        },
+        "created_at": {
+            "data_type": {"value": "date_time"},
+            "properties": {
+                "default_value": {"value": None},
+            },
+        },
+        "updated_at": {
+            "data_type": {"value": "date_time"},
+            "properties": {
+                "default_value": {"value": None},
+            },
+        },
+    }
+
     # Save schema to binary files
     with open(schema_path, "wb") as f:
         pickle.dump(schema, f)
@@ -403,7 +468,7 @@ def mock_sg(mock_factory):
 @pytest.fixture
 def mock_context(mock_factory):
     """Create a mock ShotGrid connection context."""
-    return ShotGridConnectionContext(factory=mock_factory)
+    return ShotGridConnectionContext(factory_or_connection=mock_factory)
 
 
 @pytest.fixture

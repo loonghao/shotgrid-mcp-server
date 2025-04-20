@@ -485,3 +485,66 @@ def process_filters(
                 processed_filters.append((filter_item["field"], filter_item["operator"], filter_item["value"]))
 
     return processed_filters
+
+
+# Note models
+class NoteCreateRequest(BaseModel):
+    """Request model for creating a note."""
+
+    project_id: int
+    subject: str
+    content: str
+    link_entity_type: Optional[str] = None
+    link_entity_id: Optional[int] = None
+    user_id: Optional[int] = None
+    addressings_to: Optional[List[int]] = None
+    addressings_cc: Optional[List[int]] = None
+
+
+class NoteCreateResponse(BaseModel):
+    """Response model for creating a note."""
+
+    id: int
+    type: str
+    subject: str
+    content: str
+    created_at: str
+
+
+class NoteReadResponse(BaseModel):
+    """Response model for reading a note."""
+
+    id: int
+    type: str
+    subject: str
+    content: str
+    created_at: str
+    updated_at: Optional[str] = None
+    user_id: Optional[int] = None
+    user_name: Optional[str] = None
+    link_entity_type: Optional[str] = None
+    link_entity_id: Optional[int] = None
+    addressings_to: Optional[List[int]] = None
+    addressings_cc: Optional[List[int]] = None
+
+
+class NoteUpdateRequest(BaseModel):
+    """Request model for updating a note."""
+
+    id: int
+    subject: Optional[str] = None
+    content: Optional[str] = None
+    link_entity_type: Optional[str] = None
+    link_entity_id: Optional[int] = None
+    addressings_to: Optional[List[int]] = None
+    addressings_cc: Optional[List[int]] = None
+
+
+class NoteUpdateResponse(BaseModel):
+    """Response model for updating a note."""
+
+    id: int
+    type: str
+    subject: str
+    content: str
+    updated_at: str

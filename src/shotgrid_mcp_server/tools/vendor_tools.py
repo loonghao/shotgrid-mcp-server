@@ -3,16 +3,20 @@
 This module contains tools for working with vendor (external) users and their versions in ShotGrid.
 """
 
-import json
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.models import (
     create_in_last_filter,
 )
-from shotgrid_mcp_server.response_models import create_playlist_response, create_success_response, generate_playlist_url, serialize_response
+from shotgrid_mcp_server.response_models import (
+    create_playlist_response,
+    create_success_response,
+    generate_playlist_url,
+    serialize_response,
+)
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -26,9 +30,7 @@ def _get_default_user_fields() -> List[str]:
     Returns:
         List[str]: Default fields to retrieve for users.
     """
-    return [
-        "id", "name", "login", "email", "groups", "sg_status_list", "sg_vendor"
-    ]
+    return ["id", "name", "login", "email", "groups", "sg_status_list", "sg_vendor"]
 
 
 def _get_default_version_fields() -> List[str]:
@@ -38,13 +40,22 @@ def _get_default_version_fields() -> List[str]:
         List[str]: Default fields to retrieve for versions.
     """
     return [
-        "id", "code", "description", "created_at", "updated_at",
-        "user", "created_by", "entity", "project", "sg_status_list",
-        "sg_path_to_movie", "sg_path_to_frames"
+        "id",
+        "code",
+        "description",
+        "created_at",
+        "updated_at",
+        "user",
+        "created_by",
+        "entity",
+        "project",
+        "sg_status_list",
+        "sg_path_to_movie",
+        "sg_path_to_frames",
     ]
 
 
-def _serialize_users_response(users: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def _serialize_users_response(users: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Serialize users to JSON response.
 
     Args:
@@ -67,7 +78,7 @@ def _serialize_users_response(users: List[Dict[str, Any]]) -> List[Dict[str, str
     return serialize_response(response)
 
 
-def _serialize_versions_response(versions: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def _serialize_versions_response(versions: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Serialize versions to JSON response.
 
     Args:
@@ -115,9 +126,7 @@ def _is_vendor_user(user: Dict[str, Any]) -> bool:
     if "email" in user and user["email"]:
         email = user["email"].lower()
         # List of common vendor domains (customize as needed)
-        vendor_domains = [
-            "@vendor.", "@external.", "@freelance.", "@contractor."
-        ]
+        vendor_domains = ["@vendor.", "@external.", "@freelance.", "@contractor."]
         for domain in vendor_domains:
             if domain in email:
                 return True
@@ -132,12 +141,13 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("find_vendor_users")
     def find_vendor_users(
         project_id: Optional[int] = None,
         fields: Optional[List[str]] = None,
         active_only: bool = True,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Find vendor (external) users in ShotGrid.
 
         Args:
@@ -164,9 +174,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 # For users, we need to find users who have worked on the project
                 # This is a complex query that might need customization based on your ShotGrid setup
                 # Here's a simplified version that looks for users who have created versions in the project
-                version_filters = [
-                    ["project", "is", {"type": "Project", "id": project_id}]
-                ]
+                version_filters = [["project", "is", {"type": "Project", "id": project_id}]]
                 versions = sg.find("Version", version_filters, ["created_by"])
                 user_ids = list({v["created_by"]["id"] for v in versions if "created_by" in v})
 
@@ -202,7 +210,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
         entity_id: Optional[int] = None,
         fields: Optional[List[str]] = None,
         limit: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Find versions created by vendor users in ShotGrid.
 
         Args:
@@ -227,9 +235,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 fields = _get_default_version_fields()
 
             # Build filters
-            filters = [
-                ["project", "is", {"type": "Project", "id": project_id}]
-            ]
+            filters = [["project", "is", {"type": "Project", "id": project_id}]]
 
             # Add user filter if provided
             if vendor_user_ids:
@@ -244,8 +250,8 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
             else:
                 # If no specific vendor users provided, find all vendor users first
                 vendor_users_result = find_vendor_users(project_id)
-                vendor_users_data = json.loads(vendor_users_result[0]["text"])
-                vendor_users = vendor_users_data.get("users", [])
+                # Direct access to the data without JSON parsing
+                vendor_users = vendor_users_result.get("data", [])
 
                 if vendor_users:
                     vendor_user_ids = [user["id"] for user in vendor_users]
@@ -300,7 +306,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
         status: Optional[str] = None,
         playlist_name: Optional[str] = None,
         playlist_description: Optional[str] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, Any]:
         """Create a playlist with versions from vendor users.
 
         Args:
@@ -320,15 +326,11 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
         try:
             # Find vendor versions
             versions_result = find_vendor_versions(
-                project_id=project_id,
-                vendor_user_ids=vendor_user_ids,
-                days=days,
-                status=status,
-                fields=["id"]
+                project_id=project_id, vendor_user_ids=vendor_user_ids, days=days, status=status, fields=["id"]
             )
 
-            versions_data = json.loads(versions_result[0]["text"])
-            versions = versions_data.get("versions", [])
+            # Direct access to the data without JSON parsing
+            versions = versions_result.get("data", [])
 
             if not versions:
                 raise ValueError("No vendor versions found for the specified criteria")
@@ -336,6 +338,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
             # Generate playlist name if not provided
             if not playlist_name:
                 import datetime
+
                 today = datetime.datetime.now().strftime("%Y-%m-%d")
                 playlist_name = f"Vendor Versions - {today}"
 
@@ -353,7 +356,7 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 "code": playlist_name,
                 "description": playlist_description,
                 "project": {"type": "Project", "id": project_id},
-                "versions": version_entities
+                "versions": version_entities,
             }
 
             result = sg.create("Playlist", data)
