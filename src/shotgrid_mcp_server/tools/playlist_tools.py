@@ -52,8 +52,8 @@ def _generate_playlist_url(sg: Shotgun, playlist_id: int) -> str:
         base_url = base_url[:-1]
 
     # Construct the playlist URL
-    # Format: https://<shotgrid-domain>/page/playlist_<playlist_id>
-    return f"{base_url}/page/playlist_{playlist_id}"
+    # Format: https://<shotgrid-domain>/Playlist/detail/<playlist_id>
+    return f"{base_url}/Playlist/detail/{playlist_id}"
 
 
 def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> List[Dict[str, str]]:
