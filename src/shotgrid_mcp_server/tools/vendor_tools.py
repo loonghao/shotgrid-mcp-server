@@ -342,10 +342,17 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 raise ValueError("Failed to create playlist")
 
             # Add ShotGrid URL to the playlist
-            result["sg_url"] = _generate_playlist_url(sg, result["id"])
+            playlist_url = _generate_playlist_url(sg, result["id"])
+            result["sg_url"] = playlist_url
 
-            # Return serialized playlist
-            return cast(Dict[str, Any], serialize_entity(result))
+            # Serialize the playlist
+            serialized_playlist = serialize_entity(result)
+
+            # Add URL to the top level of the response for easier access
+            serialized_playlist["url"] = playlist_url
+
+            # Return enhanced result
+            return cast(Dict[str, Any], serialized_playlist)
         except Exception as err:
             handle_error(err, operation="create_vendor_playlist")
             raise  # This is needed to satisfy the type checker
