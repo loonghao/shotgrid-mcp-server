@@ -3,7 +3,6 @@
 This module contains tools for searching entities in ShotGrid.
 """
 
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -24,7 +23,6 @@ from shotgrid_mcp_server.models import (
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.types import EntityType
-from shotgrid_mcp_server.utils import ShotGridJSONEncoder
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -111,8 +109,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             # Format response
             if result is None:
                 # Use Pydantic model for response
-                response = EntitiesResponse(entities=[])
-                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+                return EntitiesResponse(entities=[])
 
             # Convert results to Pydantic models
             entity_dicts = []
@@ -135,8 +132,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
                     if "id" in serialized_entity and "type" in serialized_entity:
                         entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
 
-            response = EntitiesResponse(entities=entity_dicts)
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+            return EntitiesResponse(entities=entity_dicts)
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
@@ -201,8 +197,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             # Format response
             if result is None:
                 # Use Pydantic model for response
-                response = EntitiesResponse(entities=[])
-                return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+                return EntitiesResponse(entities=[])
 
             # Convert results to Pydantic models
             entity_dicts = []
@@ -225,8 +220,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
                     if "id" in serialized_entity and "type" in serialized_entity:
                         entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
 
-            response = EntitiesResponse(entities=entity_dicts)
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+            return EntitiesResponse(entities=entity_dicts)
         except Exception as err:
             handle_error(err, operation="search_entities_with_related")
             raise  # This is needed to satisfy the type checker
@@ -275,7 +269,7 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
                 filter_operator=filter_operator,
             )
             if result is None:
-                return [{"text": json.dumps({"entity": None}, cls=ShotGridJSONEncoder)}]
+                return {"entity": None}
 
             # Serialize entity data
             serialized_entity = serialize_entity(result)
@@ -287,11 +281,11 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             # Convert to Pydantic model if possible
             try:
                 entity_dict = EntityDict(**serialized_entity)
-                return [{"text": json.dumps({"entity": entity_dict.model_dump()}, cls=ShotGridJSONEncoder)}]
+                return {"entity": entity_dict}
             except Exception as e:
                 # Fallback to returning the serialized entity directly
                 logger.warning(f"Failed to convert entity to EntityDict: {e}")
-                return [{"text": json.dumps({"entity": serialized_entity}, cls=ShotGridJSONEncoder)}]
+                return {"entity": serialized_entity}
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
@@ -319,14 +313,11 @@ def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str
 
         if result is None:
             # Use Pydantic model for response
-            response = ProjectsResponse(projects=[])
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+            return ProjectsResponse(projects=[])
 
         # Convert results to Pydantic models
         project_dicts = [ProjectDict(**serialize_entity(entity)) for entity in result]
-        response = ProjectsResponse(projects=project_dicts)
-
-        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+        return ProjectsResponse(projects=project_dicts)
     except Exception as err:
         handle_error(err, operation="find_recently_active_projects")
         raise
@@ -355,14 +346,11 @@ def _find_active_users(sg: Shotgun, days: int = 30) -> List[Dict[str, str]]:
 
         if result is None:
             # Use Pydantic model for response
-            response = UsersResponse(users=[])
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+            return UsersResponse(users=[])
 
         # Convert results to Pydantic models
         user_dicts = [UserDict(**serialize_entity(entity)) for entity in result]
-        response = UsersResponse(users=user_dicts)
-
-        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+        return UsersResponse(users=user_dicts)
     except Exception as err:
         handle_error(err, operation="find_active_users")
         raise
@@ -417,14 +405,11 @@ def _find_entities_by_date_range(
 
         if result is None:
             # Use Pydantic model for response
-            response = EntitiesResponse(entities=[])
-            return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+            return EntitiesResponse(entities=[])
 
         # Convert results to Pydantic models
         entity_dicts = [EntityDict(**serialize_entity(entity)) for entity in result]
-        response = EntitiesResponse(entities=entity_dicts)
-
-        return [{"text": json.dumps(response.model_dump(), cls=ShotGridJSONEncoder)}]
+        return EntitiesResponse(entities=entity_dicts)
     except Exception as err:
         handle_error(err, operation="find_entities_by_date_range")
         raise
