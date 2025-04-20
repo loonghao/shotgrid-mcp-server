@@ -463,13 +463,11 @@ class TestNoteTools:
 
         # Create a request object
         request = {
-            "request": {
-                "project_id": project["id"],
-                "subject": "Tool Test Note",
-                "content": "This is a note created via MCP tool",
-                "user_id": user["id"],
-                "addressings_to": [user["id"]],
-            }
+            "project_id": project["id"],
+            "subject": "Tool Test Note",
+            "content": "This is a note created via MCP tool",
+            "user_id": user["id"],
+            "addressings_to": [user["id"]],
         }
 
         # Call the tool
@@ -596,11 +594,9 @@ class TestNoteTools:
 
         # Create a request object
         request = {
-            "request": {
-                "id": note["id"],
-                "subject": "Updated Subject via Tool",
-                "content": "Updated content via Tool",
-            }
+            "id": note["id"],
+            "subject": "Updated Subject via Tool",
+            "content": "Updated content via Tool",
         }
 
         # Call the tool
