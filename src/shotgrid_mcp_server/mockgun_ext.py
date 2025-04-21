@@ -423,7 +423,15 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
                 if isinstance(field_name, str) and field_name.startswith("-"):
                     field_name = field_name[1:]
                     reverse = True
-                entities.sort(key=lambda x: x.get(field_name), reverse=reverse)  # type: ignore[arg-type]
+                # Handle the case where the field value is a dict
+                def sort_key(x):
+                    value = x.get(field_name)
+                    if isinstance(value, dict):
+                        # Use the id field if available, otherwise use str representation
+                        return value.get('id', str(value))
+                    return value
+
+                entities.sort(key=sort_key, reverse=reverse)  # type: ignore[arg-type]
 
         # Apply limit
         if limit is not None and limit > 0:

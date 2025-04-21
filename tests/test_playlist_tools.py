@@ -196,10 +196,14 @@ class TestPlaylistTools:
                 "description": "Old playlist description",
                 "project": {"type": "Project", "id": project["id"]},
                 "created_by": {"type": "HumanUser", "id": user["id"]},
-                "created_at": datetime.datetime(2024, 1, 1, 12, 0, 0),  # Old date
-                "updated_at": datetime.datetime(2024, 1, 1, 12, 0, 0),
+                "created_at": datetime.datetime(2020, 1, 1, 12, 0, 0),  # Very old date
+                "updated_at": datetime.datetime(2020, 1, 1, 12, 0, 0),
             },
         )
+
+        # Create a recent playlist with a date that's definitely within the last day
+        current_time = datetime.datetime.now()
+        one_hour_ago = current_time - datetime.timedelta(hours=1)
 
         recent_playlist = mock_sg.create(
             "Playlist",
@@ -208,8 +212,8 @@ class TestPlaylistTools:
                 "description": "Recent playlist description",
                 "project": {"type": "Project", "id": project["id"]},
                 "created_by": {"type": "HumanUser", "id": user["id"]},
-                "created_at": datetime.datetime.now(),  # Current date
-                "updated_at": datetime.datetime.now(),
+                "created_at": one_hour_ago,  # One hour ago
+                "updated_at": one_hour_ago,
             },
         )
 
