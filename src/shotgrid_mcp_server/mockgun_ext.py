@@ -418,12 +418,22 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
 
         # Sort entities if order is specified
         if order:
-            for field_name in reversed(order):
-                reverse = False
-                if isinstance(field_name, str) and field_name.startswith("-"):
-                    field_name = field_name[1:]
-                    reverse = True
-                # Handle the case where the field value is a dict
+            for order_item in reversed(order):
+                # Handle both string and dict order specifications
+                if isinstance(order_item, str):
+                    field_name = order_item
+                    reverse = False
+                    if field_name.startswith("-"):
+                        field_name = field_name[1:]
+                        reverse = True
+                elif isinstance(order_item, dict):
+                    field_name = order_item.get("field_name", "")
+                    reverse = order_item.get("direction", "") == "desc"
+                else:
+                    # Skip invalid order items
+                    continue
+
+                # Define sort key function
                 def sort_key(x):
                     value = x.get(field_name)
                     if isinstance(value, dict):
@@ -431,6 +441,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
                         return value.get('id', str(value))
                     return value
 
+                # Sort entities
                 entities.sort(key=sort_key, reverse=reverse)  # type: ignore[arg-type]
 
         # Apply limit
