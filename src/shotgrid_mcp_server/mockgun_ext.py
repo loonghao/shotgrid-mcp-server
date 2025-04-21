@@ -384,6 +384,65 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             return {field: getattr(entity, field, None) for field in fields}
         return {k: v for k, v in vars(entity).items() if not k.startswith("_")}
 
+    def _parse_order_item(self, order_item):
+        """Parse an order item into field name and sort direction.
+
+        Args:
+            order_item: The order item to parse.
+
+        Returns:
+            tuple: (field_name, reverse) or (None, None) if invalid.
+        """
+        if isinstance(order_item, str):
+            field_name = order_item
+            reverse = False
+            if field_name.startswith("-"):
+                field_name = field_name[1:]
+                reverse = True
+            return field_name, reverse
+        elif isinstance(order_item, dict):
+            field_name = order_item.get("field_name", "")
+            reverse = order_item.get("direction", "") == "desc"
+            return field_name, reverse
+        else:
+            # Invalid order item
+            return None, None
+
+    def _sort_entities(self, entities, order):
+        """Sort entities based on order specifications.
+
+        Args:
+            entities: List of entities to sort.
+            order: List of order specifications.
+
+        Returns:
+            list: Sorted entities.
+        """
+        if not order:
+            return entities
+
+        sorted_entities = entities.copy()
+        for order_item in reversed(order):
+            field_name, reverse = self._parse_order_item(order_item)
+            if field_name is None:
+                continue
+
+            # Create a closure to capture field_name
+            def make_sort_key(field):
+                def sort_key(x):
+                    value = x.get(field)
+                    if isinstance(value, dict):
+                        # Use the id field if available, otherwise use str representation
+                        return value.get("id", str(value))
+                    return value
+
+                return sort_key
+
+            # Sort entities
+            sorted_entities.sort(key=make_sort_key(field_name), reverse=reverse)  # type: ignore[arg-type]
+
+        return sorted_entities
+
     def find(
         self,
         entity_type: EntityType,
@@ -418,31 +477,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
 
         # Sort entities if order is specified
         if order:
-            for order_item in reversed(order):
-                # Handle both string and dict order specifications
-                if isinstance(order_item, str):
-                    field_name = order_item
-                    reverse = False
-                    if field_name.startswith("-"):
-                        field_name = field_name[1:]
-                        reverse = True
-                elif isinstance(order_item, dict):
-                    field_name = order_item.get("field_name", "")
-                    reverse = order_item.get("direction", "") == "desc"
-                else:
-                    # Skip invalid order items
-                    continue
-
-                # Define sort key function
-                def sort_key(x):
-                    value = x.get(field_name)
-                    if isinstance(value, dict):
-                        # Use the id field if available, otherwise use str representation
-                        return value.get('id', str(value))
-                    return value
-
-                # Sort entities
-                entities.sort(key=sort_key, reverse=reverse)  # type: ignore[arg-type]
+            entities = self._sort_entities(entities, order)
 
         # Apply limit
         if limit is not None and limit > 0:

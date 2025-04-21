@@ -16,7 +16,7 @@ if ROOT not in sys.path:
 from nox_actions import docs, lint, release
 from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 
-@nox.session(name="tests", python="3.10")
+@nox.session(name="tests")
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""
     # Install uv if not already installed
@@ -28,18 +28,23 @@ def tests(session: nox.Session) -> None:
 
     # Run tests
     test_root = os.path.join(ROOT, "tests")
-    session.run(
-        "pytest",
-        test_root,
+    
+    # Get any additional arguments passed after --
+    pytest_args = session.posargs if session.posargs else []
+
+    # Default arguments
+    default_args = [
         f"--cov={PACKAGE_NAME}",
         "--cov-report=xml:coverage.xml",
-        f"--rootdir={ROOT}",
-        env={"PYTHONPATH": THIS_ROOT.as_posix()},
-    )
+        "--cov-report=term",
+        f"--rootdir={test_root}",
+    ]
+
+    # Run pytest with all arguments
+    session.run("pytest", *default_args, *pytest_args, env={"PYTHONPATH": THIS_ROOT.as_posix()})
 
 
-
-@nox.session(name="lint", python="3.10")
+@nox.session(name="lint")
 def lint_check(session: nox.Session) -> None:
     """Run the linter."""
     # Install uv if not already installed
@@ -59,7 +64,7 @@ def lint_check(session: nox.Session) -> None:
         session.log("mypy found errors, but we're ignoring them for now")
 
 
-@nox.session(name="lint-fix", python="3.10")
+@nox.session(name="lint-fix")
 def lint_fix(session: nox.Session) -> None:
     """Run the linter and fix issues."""
     # Install uv if not already installed
@@ -71,7 +76,7 @@ def lint_fix(session: nox.Session) -> None:
     lint.lint_fix(session)
 
 
-@nox.session(name="build-wheel", python="3.10")
+@nox.session(name="build-wheel")
 def build_wheel(session: nox.Session) -> None:
     """Build Python wheel package."""
     # Install uv if not already installed
