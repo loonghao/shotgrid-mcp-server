@@ -4,7 +4,7 @@ This module contains direct access to ShotGrid API methods, providing more flexi
 for advanced operations.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
@@ -22,27 +22,28 @@ def register_api_tools(server: FastMCPType, sg: Shotgun) -> None:
     """
     # Register CRUD tools
     register_crud_tools(server, sg)
-    
+
     # Register advanced query tools
     register_advanced_query_tools(server, sg)
-    
+
     # Register schema tools
     register_schema_tools(server, sg)
-    
+
     # Register file tools
     register_file_tools(server, sg)
-    
+
     # Register activity stream tools
     register_activity_stream_tools(server, sg)
 
 
-def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
-    """Register CRUD tools with the server.
+def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register find tools with the server.
 
     Args:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("sg.find")
     def sg_find(
         entity_type: EntityType,
@@ -134,6 +135,15 @@ def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.find_one")
             raise
 
+
+def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register create and update tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
     @server.tool("sg.create")
     def sg_create(
         entity_type: EntityType,
@@ -191,6 +201,15 @@ def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.update")
             raise
 
+
+def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register delete and revive tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
     @server.tool("sg.delete")
     def sg_delete(entity_type: EntityType, entity_id: int) -> bool:
         """Delete an entity in ShotGrid.
@@ -231,6 +250,15 @@ def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.revive")
             raise
 
+
+def _register_batch_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register batch tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
     @server.tool("sg.batch")
     def sg_batch(requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Perform a batch operation in ShotGrid.
@@ -251,6 +279,26 @@ def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
             raise
 
 
+def register_crud_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register CRUD tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+    # Register find tools
+    _register_find_tools(server, sg)
+
+    # Register create and update tools
+    _register_create_update_tools(server, sg)
+
+    # Register delete tools
+    _register_delete_tools(server, sg)
+
+    # Register batch tools
+    _register_batch_tools(server, sg)
+
+
 def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register advanced query tools with the server.
 
@@ -258,6 +306,7 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("sg.summarize")
     def sg_summarize(
         entity_type: EntityType,
@@ -336,6 +385,7 @@ def register_schema_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("sg.schema_entity_read")
     def sg_schema_entity_read() -> Dict[str, Dict[str, Any]]:
         """Read entity schema from ShotGrid.
@@ -383,6 +433,7 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("sg.upload")
     def sg_upload(
         entity_type: EntityType,
@@ -452,6 +503,7 @@ def register_activity_stream_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+
     @server.tool("sg.activity_stream_read")
     def sg_activity_stream_read(
         entity_type: EntityType,

@@ -73,7 +73,7 @@ def handle_tool_error(err: Exception, operation: str) -> None:
             entity_type_match = re.search(r"entity (\w+) with", error_msg_lower)
             entity_id_match = re.search(r"with id (\d+)", error_msg_lower)
 
-            entity_type = entity_type_match.group(1) if entity_type_match else None
+            entity_type = entity_type_match.group(1).capitalize() if entity_type_match else None
             entity_id = int(entity_id_match.group(1)) if entity_id_match else None
 
             raise EntityNotFoundError(entity_type=entity_type, entity_id=entity_id, message=error_msg) from err

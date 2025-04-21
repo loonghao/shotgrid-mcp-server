@@ -5,8 +5,8 @@ description = "A Model Context Protocol (MCP) server implementation using fastmc
 readme = "README.md"
 requires-python = ">=3.10,<3.11"
 dependencies = [
-    "fastmcp>=0.4.1",
-    "mcp>=1.2.0",
+    "fastmcp>=2.2.1",
+    "mcp>=1.6.0",
     "uvicorn>=0.22.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",

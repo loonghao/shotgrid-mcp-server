@@ -3,7 +3,6 @@
 This module contains tools for working with ShotGrid notes.
 """
 
-
 from fastmcp import FastMCP
 from shotgun_api3.lib.mockgun import Shotgun
 
