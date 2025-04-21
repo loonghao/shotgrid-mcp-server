@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.models import (
+    TimeUnit,
     create_in_last_filter,
     create_in_project_filter,
     process_filters,
@@ -92,15 +93,27 @@ def _find_playlists_impl(
         limit = page_size
 
     # Execute query
-    result = sg.find(
-        "Playlist",
-        filters,
-        fields=fields,
-        order=order,
-        filter_operator=filter_operator,
-        limit=limit,
-        retired_only=False,
-    )
+    # Note: Mockgun doesn't support retired_only parameter
+    try:
+        result = sg.find(
+            "Playlist",
+            filters,
+            fields=fields,
+            order=order,
+            filter_operator=filter_operator,
+            limit=limit,
+            retired_only=False,
+        )
+    except TypeError:
+        # Fallback for Mockgun which doesn't support retired_only
+        result = sg.find(
+            "Playlist",
+            filters,
+            fields=fields,
+            order=order,
+            filter_operator=filter_operator,
+            limit=limit,
+        )
 
     # Add ShotGrid URL to each playlist
     for playlist in result:
@@ -244,7 +257,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 filters.append(project_filter.to_tuple())
 
             # Add date filter
-            date_filter = create_in_last_filter("created_at", days, "DAY")
+            date_filter = create_in_last_filter("created_at", days, TimeUnit.DAY)
             filters.append(date_filter.to_tuple())
 
             # Order by creation date, newest first
