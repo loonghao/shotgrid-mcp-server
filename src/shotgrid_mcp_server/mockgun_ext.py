@@ -418,12 +418,12 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
 
         # Sort entities if order is specified
         if order:
-            for field in reversed(order):
+            for field_name in reversed(order):
                 reverse = False
-                if field.startswith("-"):
-                    field = field[1:]
+                if isinstance(field_name, str) and field_name.startswith("-"):
+                    field_name = field_name[1:]
                     reverse = True
-                entities.sort(key=lambda x: x.get(field), reverse=reverse)  # type: ignore[arg-type]
+                entities.sort(key=lambda x: x.get(field_name), reverse=reverse)  # type: ignore[arg-type]
 
         # Apply limit
         if limit is not None and limit > 0:
