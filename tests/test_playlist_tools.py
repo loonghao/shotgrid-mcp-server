@@ -68,7 +68,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "find_playlists",
             {}
         )
@@ -136,7 +136,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "find_project_playlists",
             {"project_id": project1["id"]}
         )
@@ -197,7 +197,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "find_recent_playlists",
             {"project_id": project["id"], "days": 1}
         )
@@ -231,7 +231,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "create_playlist",
             {
                 "code": "New Playlist",
@@ -273,7 +273,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "update_playlist",
             {
                 "playlist_id": playlist["id"],
@@ -332,7 +332,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
+        result = await playlist_server.call_tool(
             "add_versions_to_playlist",
             {
                 "playlist_id": playlist["id"],
