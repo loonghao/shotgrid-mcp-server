@@ -1,3 +1,31 @@
+## v0.7.0 (2025-04-21)
+
+### Feat
+
+- add note and playlist tools
+- add direct ShotGrid API tools for increased flexibility
+- add standardized response models and fix circular dependencies
+- enhance playlist creation to include URL in response
+- enhance note and playlist functionality with vendor support
+
+### Fix
+
+- fix test failures and lint issues
+- update mockgun_ext to handle dict order items and update test_find_recent_playlists to be more flexible
+- update mockgun_ext to handle dict values in sort and update test_find_recent_playlists to use a more recent date
+- update mockgun_ext to handle non-string order fields and update tests to handle TextContent responses
+- update playlist_tools to handle Mockgun limitations and use TimeUnit enum
+- update error_handler to handle entity not found errors correctly
+- resolve test failures in error_handler and api_tools tests
+- correct parameter format in note tools tests
+- parse JSON responses in vendor tools
+- update playlist URL format to match ShotGrid web interface
+
+### Refactor
+
+- update thumbnail_tools.py to use new return value format
+- update search_tools.py to use new return value format
+
 ## v0.6.0 (2025-04-16)
 
 ### Feat
