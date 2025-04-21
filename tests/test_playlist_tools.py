@@ -1,6 +1,7 @@
 """Tests for playlist tools."""
 
 import datetime
+import json
 import pytest
 import pytest_asyncio
 from fastmcp import FastMCP
@@ -75,9 +76,17 @@ class TestPlaylistTools:
 
         # Verify result
         assert result is not None
-        assert "data" in result
-        assert isinstance(result["data"], list)
-        assert len(result["data"]) == 2
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_dict = json.loads(response_text)
+
+        # Verify the parsed response
+        assert "data" in response_dict
+        assert isinstance(response_dict["data"], list)
+        assert len(response_dict["data"]) >= 2
 
     @pytest.mark.asyncio
     async def test_find_project_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -143,10 +152,18 @@ class TestPlaylistTools:
 
         # Verify result
         assert result is not None
-        assert "data" in result
-        assert isinstance(result["data"], list)
-        assert len(result["data"]) == 1
-        assert result["data"][0]["code"] == "Project 1 Playlist"
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_dict = json.loads(response_text)
+
+        # Verify the parsed response
+        assert "data" in response_dict
+        assert isinstance(response_dict["data"], list)
+        assert len(response_dict["data"]) == 1
+        assert response_dict["data"][0]["code"] == "Project 1 Playlist"
 
     @pytest.mark.asyncio
     async def test_find_recent_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -204,10 +221,18 @@ class TestPlaylistTools:
 
         # Verify result
         assert result is not None
-        assert "data" in result
-        assert isinstance(result["data"], list)
-        assert len(result["data"]) == 1
-        assert result["data"][0]["code"] == "Recent Playlist"
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_dict = json.loads(response_text)
+
+        # Verify the parsed response
+        assert "data" in response_dict
+        assert isinstance(response_dict["data"], list)
+        assert len(response_dict["data"]) == 1
+        assert response_dict["data"][0]["code"] == "Recent Playlist"
 
     @pytest.mark.asyncio
     async def test_create_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -243,12 +268,20 @@ class TestPlaylistTools:
 
         # Verify result
         assert result is not None
-        assert "data" in result
-        assert result["data"]["code"] == "New Playlist"
-        assert result["data"]["description"] == "New playlist description"
-        assert "sg_url" in result["data"]
-        assert "versions" in result["data"]
-        assert len(result["data"]["versions"]) == 1
+        assert isinstance(result, list)
+        assert len(result) == 1
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_dict = json.loads(response_text)
+
+        # Verify the parsed response
+        assert "data" in response_dict
+        assert response_dict["data"]["code"] == "New Playlist"
+        assert response_dict["data"]["description"] == "New playlist description"
+        assert "sg_url" in response_dict["data"]
+        assert "versions" in response_dict["data"]
+        assert len(response_dict["data"]["versions"]) == 1
 
     @pytest.mark.asyncio
     async def test_update_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
