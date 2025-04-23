@@ -147,6 +147,7 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
                     try:
                         # Use the download_thumbnail function to handle the operation
                         result = download_thumbnail(
+                            sg=sg,
                             entity_type=entity_type,
                             entity_id=entity_id,
                             field_name=field_name,
