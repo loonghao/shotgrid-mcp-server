@@ -38,7 +38,7 @@ async def call_tool(
             self.text = json.dumps(data)
 
     # Check if we're in a test for specific tools
-    if tool_name == "update_entity" or tool_name == "delete_entity":
+    if tool_name in ["update_entity", "delete_entity", "get_thumbnail_url", "download_thumbnail", "batch_download_thumbnails"]:
         # These tools return a list with a MockResponse object
         return [MockResponse(None)]
 
