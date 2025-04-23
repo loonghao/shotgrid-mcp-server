@@ -25,7 +25,7 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
     """
 
     # Register note tools
-    @server.tool("shotgrid.note.create")
+    @server.tool("shotgrid_note_create")
     async def create_note_tool(request: NoteCreateRequest) -> NoteCreateResponse:
         """Create a new note in ShotGrid.
 
@@ -38,7 +38,7 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
         context = ShotGridConnectionContext(sg)
         return create_note(request, context)
 
-    @server.tool("shotgrid.note.read")
+    @server.tool("shotgrid_note_read")
     async def read_note_tool(note_id: int) -> NoteReadResponse:
         """Read a note from ShotGrid.
 
@@ -51,7 +51,7 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
         context = ShotGridConnectionContext(sg)
         return read_note(note_id, context)
 
-    @server.tool("shotgrid.note.update")
+    @server.tool("shotgrid_note_update")
     async def update_note_tool(request: NoteUpdateRequest) -> NoteUpdateResponse:
         """Update a note in ShotGrid.
 
