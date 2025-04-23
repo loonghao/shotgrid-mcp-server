@@ -255,7 +255,9 @@ def serialize_entity(entity: Any) -> Dict[str, Any]:
     return {k: _serialize_value(v) for k, v in entity.items()}
 
 
-def generate_default_file_path(entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg") -> str:
+def generate_default_file_path(
+    entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg"
+) -> str:
     """Generate a default file path for a thumbnail.
 
     Args:
