@@ -237,7 +237,7 @@ class TestOptimizedQueries:
 
         # Execute batch create
         response = await server._mcp_call_tool(
-            "batch_create_entities",
+            "batch_entity_create",
             {
                 "entity_type": "Shot",
                 "data_list": data_list,
