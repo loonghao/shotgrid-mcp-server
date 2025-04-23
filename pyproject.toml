@@ -181,3 +181,8 @@ addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
 dependencies = [
     "git+https://github.com/shotgunsoftware/python-api.git#egg=shotgun-api3"
 ]
+python = "3.10"
+
+[tool.uv]
+python = "3.10"
+python-preference = "only-managed"
