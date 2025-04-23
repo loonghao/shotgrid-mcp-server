@@ -49,31 +49,11 @@ def get_thumbnail_url(
         # Get the field value which contains the thumbnail URL or reference
         field_value = entity[field_name]
 
-        # If the field value is a dict with a URL key, use that
-        if isinstance(field_value, dict) and "url" in field_value:
-            url = field_value["url"]
-        else:
-            # Otherwise, construct an attachment URL
-            attachment = {"id": entity_id, "type": entity_type, "field_name": field_name}
-            url = sg.get_attachment_download_url(attachment)
+        # Use get_attachment_download_url to get the URL
+        url = sg.get_attachment_download_url(field_value, size=size, image_format=image_format)
 
         if not url:
             raise ToolError("No thumbnail URL found")
-
-        # Add size and format parameters if provided
-        params = []
-
-        if size:
-            params.append(f"size={size}")
-
-        if image_format:
-            params.append(f"image_format={image_format}")
-
-        # Append parameters to URL if any were provided
-        if params:
-            url_separator = "&" if "?" in url else "?"
-            joined_params = "&".join(params)
-            url = f"{url}{url_separator}{joined_params}"
 
         return url
     except Exception as err:
@@ -113,18 +93,13 @@ def download_thumbnail(
             image_format_value = image_format or "jpg"
             file_path = generate_default_file_path(entity_type, entity_id, field_name, image_format_value)
 
-        # Get thumbnail URL with size and format parameters
-        url = get_thumbnail_url(
-            sg=sg,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            field_name=field_name,
-            size=size,
-            image_format=image_format,
-        )
+        # Get entity data to get the attachment ID
+        entity = sg.find_one(entity_type, [["id", "is", entity_id]], [field_name])
+        if not entity or not entity.get(field_name):
+            raise ToolError(f"No thumbnail found for {entity_type} {entity_id}")
 
         # Download thumbnail
-        result = sg.download_attachment({"url": url}, file_path)
+        result = sg.download_attachment(entity[field_name], file_path, size=size, image_format=image_format)
         if result is None:
             raise ToolError("Failed to download thumbnail")
         return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
