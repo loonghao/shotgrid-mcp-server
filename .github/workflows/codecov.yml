@@ -39,9 +39,7 @@ jobs:
           fi
           nox -s tests
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          slug: loonghao/${{ steps.repo-name.outputs.repository-name }}
-          files: 'coverage.xml'
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          uses: codecov/codecov-action@v5
+          with:
+            token: ${{ secrets.CODECOV_TOKEN }}
+            slug: loonghao/shotgrid-mcp-server

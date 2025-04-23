@@ -44,7 +44,7 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.find")
+    @server.tool("sg_find")
     def sg_find(
         entity_type: EntityType,
         filters: List[Any],
@@ -94,7 +94,7 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.find")
             raise
 
-    @server.tool("sg.find_one")
+    @server.tool("sg_find_one")
     def sg_find_one(
         entity_type: EntityType,
         filters: List[Any],
@@ -144,7 +144,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.create")
+    @server.tool("sg_create")
     def sg_create(
         entity_type: EntityType,
         data: Dict[str, Any],
@@ -169,7 +169,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.create")
             raise
 
-    @server.tool("sg.update")
+    @server.tool("sg_update")
     def sg_update(
         entity_type: EntityType,
         entity_id: int,
@@ -210,7 +210,7 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.delete")
+    @server.tool("sg_delete")
     def sg_delete(entity_type: EntityType, entity_id: int) -> bool:
         """Delete an entity in ShotGrid.
 
@@ -230,7 +230,7 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.delete")
             raise
 
-    @server.tool("sg.revive")
+    @server.tool("sg_revive")
     def sg_revive(entity_type: EntityType, entity_id: int) -> bool:
         """Revive a deleted entity in ShotGrid.
 
@@ -259,7 +259,7 @@ def _register_batch_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.batch")
+    @server.tool("sg_batch")
     def sg_batch(requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Perform a batch operation in ShotGrid.
 
@@ -307,7 +307,7 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.summarize")
+    @server.tool("sg_summarize")
     def sg_summarize(
         entity_type: EntityType,
         filters: List[Any],
@@ -345,7 +345,7 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.summarize")
             raise
 
-    @server.tool("sg.text_search")
+    @server.tool("sg_text_search")
     def sg_text_search(
         text: str,
         entity_types: List[EntityType],
@@ -386,7 +386,7 @@ def register_schema_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.schema_entity_read")
+    @server.tool("sg_schema_entity_read")
     def sg_schema_entity_read() -> Dict[str, Dict[str, Any]]:
         """Read entity schema from ShotGrid.
 
@@ -402,7 +402,7 @@ def register_schema_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.schema_entity_read")
             raise
 
-    @server.tool("sg.schema_field_read")
+    @server.tool("sg_schema_field_read")
     def sg_schema_field_read(
         entity_type: EntityType,
         field_name: Optional[str] = None,
@@ -434,7 +434,7 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.upload")
+    @server.tool("sg_upload")
     def sg_upload(
         entity_type: EntityType,
         entity_id: int,
@@ -472,7 +472,7 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="sg.upload")
             raise
 
-    @server.tool("sg.download_attachment")
+    @server.tool("sg_download_attachment")
     def sg_download_attachment(
         attachment: Dict[str, Any],
         file_path: Optional[str] = None,
@@ -504,7 +504,7 @@ def register_activity_stream_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("sg.activity_stream_read")
+    @server.tool("sg_activity_stream_read")
     def sg_activity_stream_read(
         entity_type: EntityType,
         entity_id: int,
