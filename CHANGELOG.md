@@ -1,3 +1,9 @@
+## v0.7.2 (2025-04-23)
+
+### Fix
+
+- specify Python 3.10 for uvx to ensure compatibility
+
 ## v0.7.1 (2025-04-22)
 
 ### Fix
