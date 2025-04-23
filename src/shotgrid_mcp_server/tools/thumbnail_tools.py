@@ -3,7 +3,6 @@
 This module contains tools for working with thumbnails in ShotGrid.
 """
 
-import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
@@ -90,7 +89,7 @@ def download_thumbnail(
     file_path: Optional[str] = None,
     size: Optional[str] = None,
     image_format: Optional[str] = None,
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """Download a thumbnail for an entity.
 
     Args:
@@ -225,11 +224,13 @@ def batch_download_thumbnails(sg: Shotgun, operations: List[Dict[str, Any]]) -> 
                     result = future.result()
                     results.append(result)
                 except Exception as download_err:
-                    results.append({
-                        "error": str(download_err),
-                        "entity_type": op_info["entity_type"],
-                        "entity_id": op_info["entity_id"]
-                    })
+                    results.append(
+                        {
+                            "error": str(download_err),
+                            "entity_type": op_info["entity_type"],
+                            "entity_id": op_info["entity_id"],
+                        }
+                    )
 
         return results
     except Exception as err:
@@ -284,14 +285,16 @@ def batch_download_entity_thumbnails(
                 filename = f"{entity_type}_{entity_id}_{field_name}.{image_format_value}"
                 file_path = os.path.join(directory, filename)
 
-            operations.append({
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "field_name": field_name,
-                "file_path": file_path,
-                "size": size,
-                "image_format": image_format,
-            })
+            operations.append(
+                {
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                    "field_name": field_name,
+                    "file_path": file_path,
+                    "size": size,
+                    "image_format": image_format,
+                }
+            )
 
         # Download thumbnails in batch
         return batch_download_thumbnails(sg=sg, operations=operations)
@@ -335,7 +338,7 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         file_path: Optional[str] = None,
         size: Optional[str] = None,
         image_format: Optional[str] = None,
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         return download_thumbnail(
             sg=sg,
             entity_type=entity_type,
@@ -403,10 +406,13 @@ def validate_thumbnail_batch_operations(operations: List[Dict[str, Any]]) -> Non
         # Validate size format if provided
         size = op.get("size")
         if size and not (size in ["thumbnail", "large"] or "x" in size):
-            raise ToolError(f"Invalid size in operation {i}: {size}. Must be 'thumbnail', 'large', or dimensions like '800x600'.")
+            raise ToolError(
+                f"Invalid size in operation {i}: {size}. Must be 'thumbnail', 'large', or dimensions like '800x600'."
+            )
 
         # Validate image_format if provided
         image_format = op.get("image_format")
         if image_format and image_format not in ["jpg", "jpeg", "png", "gif"]:
-            raise ToolError(f"Invalid image_format in operation {i}: {image_format}. Must be 'jpg', 'jpeg', 'png', or 'gif'.")
-
+            raise ToolError(
+                f"Invalid image_format in operation {i}: {image_format}. Must be 'jpg', 'jpeg', 'png', or 'gif'."
+            )
