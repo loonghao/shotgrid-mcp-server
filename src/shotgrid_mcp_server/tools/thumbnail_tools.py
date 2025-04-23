@@ -6,8 +6,7 @@ This module contains tools for working with thumbnails in ShotGrid.
 import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
@@ -15,6 +14,7 @@ from shotgun_api3.lib.mockgun import Shotgun
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.types import EntityType
+from shotgrid_mcp_server.utils import generate_default_file_path
 
 
 def get_thumbnail_url(
@@ -132,27 +132,6 @@ def download_thumbnail(
     except Exception as err:
         handle_error(err, operation="download_thumbnail")
         raise  # This is needed to satisfy the type checker
-
-
-def generate_default_file_path(entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg") -> str:
-    """Generate a default file path for a thumbnail.
-
-    Args:
-        entity_type: Type of entity.
-        entity_id: ID of entity.
-        field_name: Name of field containing thumbnail.
-        image_format: Format of the image.
-
-    Returns:
-        str: Default file path.
-    """
-    # Create a temporary directory if it doesn't exist
-    temp_dir = Path(os.path.expanduser("~")) / ".shotgrid_mcp" / "thumbnails"
-    temp_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate a filename based on entity type, id, and field name
-    filename = f"{entity_type}_{entity_id}_{field_name}.{image_format}"
-    return str(temp_dir / filename)
 
 
 async def download_thumbnail_async(sg: Shotgun, op: Dict[str, Any]) -> Dict[str, Any]:
