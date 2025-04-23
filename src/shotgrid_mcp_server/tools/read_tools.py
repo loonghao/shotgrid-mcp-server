@@ -21,7 +21,7 @@ def register_read_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("get_schema")
+    @server.tool("schema_get")
     def get_schema(entity_type: EntityType) -> Dict[str, Any]:
         """Get schema for an entity type.
 

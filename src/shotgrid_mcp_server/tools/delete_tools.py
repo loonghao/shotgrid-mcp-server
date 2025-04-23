@@ -21,7 +21,7 @@ def register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("delete_entity")
+    @server.tool("entity_delete")
     def delete_entity(entity_type: EntityType, entity_id: int) -> None:
         """Delete an entity in ShotGrid.
 

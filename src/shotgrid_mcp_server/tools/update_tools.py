@@ -21,7 +21,7 @@ def register_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("update_entity")
+    @server.tool("entity_update")
     def update_entity(
         entity_type: EntityType,
         entity_id: int,
