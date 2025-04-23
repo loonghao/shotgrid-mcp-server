@@ -1,3 +1,11 @@
+## v0.7.3 (2025-04-23)
+
+### Fix
+
+- add missing sg parameter to download_thumbnail call
+- make thumbnail tests work in both test_server.py and test_thumbnail_tools.py
+- fix pyproject.toml format issues
+
 ## v0.7.2 (2025-04-23)
 
 ### Fix
