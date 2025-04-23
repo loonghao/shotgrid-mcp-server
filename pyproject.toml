@@ -170,7 +170,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 testpaths = ["tests"]
@@ -181,8 +180,9 @@ addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
 dependencies = [
     "git+https://github.com/shotgunsoftware/python-api.git#egg=shotgun-api3"
 ]
-python = "3.10"
+
+[tool.uvx.python]
+version = "3.10"
 
 [tool.uv]
-python = "3.10"
 python-preference = "only-managed"
