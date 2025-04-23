@@ -98,14 +98,28 @@ def download_thumbnail(
         if not entity or not entity.get(field_name):
             raise ToolError(f"No thumbnail found for {entity_type} {entity_id}")
 
-        # Get the attachment data - this should be a dict or int, not a string
+        # Get the attachment data
         attachment = entity[field_name]
 
         # Download the attachment directly
         try:
             # ShotGrid API's download_attachment only accepts attachment (dict or int) and file_path
             # It doesn't support size or image_format parameters
-            result = sg.download_attachment(attachment, file_path)
+
+            # Check if attachment is a string (URL) and convert it to a format download_attachment can use
+            if isinstance(attachment, str):
+                # For string attachments, we need to find the actual attachment ID
+                # This is a workaround for when the API returns a URL instead of an attachment object
+                entity_with_attachment = sg.find_one(entity_type, [["id", "is", entity_id]], [field_name])
+                if entity_with_attachment and entity_with_attachment.get(field_name):
+                    # Use the attachment ID directly if available
+                    attachment_id = entity_with_attachment[field_name].get("id") if isinstance(entity_with_attachment[field_name], dict) else entity_with_attachment[field_name]
+                    result = sg.download_attachment(attachment_id, file_path)
+                else:
+                    raise ToolError(f"Could not find valid attachment for {entity_type} {entity_id}")
+            else:
+                # Normal case - attachment is already a dict or int
+                result = sg.download_attachment(attachment, file_path)
 
             if result is None:
                 raise ToolError("Failed to download thumbnail")
