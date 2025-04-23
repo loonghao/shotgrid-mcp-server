@@ -102,10 +102,10 @@ print(f"Thumbnail downloaded to: {result['file_path']}")
 
 ## Batch Download Thumbnails
 
-The `batch_download_thumbnails` tool downloads multiple thumbnails in a single batch operation.
+The `batch_thumbnail_download` tool downloads multiple thumbnails in a single batch operation.
 
 ```python
-@server.tool()
+@server.tool("batch_thumbnail_download")
 def batch_download_thumbnails(
     operations: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
@@ -114,7 +114,6 @@ def batch_download_thumbnails(
 
     Args:
         operations: List of thumbnail download operations. Each operation should have:
-            - request_type: "download_thumbnail"
             - entity_type: Type of entity
             - entity_id: ID of entity
             - field_name: (Optional) Name of field containing thumbnail, defaults to "image"
@@ -134,7 +133,6 @@ def batch_download_thumbnails(
 # Download multiple thumbnails in a batch with different sizes and formats
 operations = [
     {
-        "request_type": "download_thumbnail",
         "entity_type": "Shot",
         "entity_id": 123,
         "field_name": "image",
@@ -143,7 +141,6 @@ operations = [
         "image_format": "jpg"
     },
     {
-        "request_type": "download_thumbnail",
         "entity_type": "Asset",
         "entity_id": 456,
         "field_name": "image",
@@ -153,7 +150,7 @@ operations = [
     }
 ]
 
-results = await client.call("batch_download_thumbnails", {
+results = await client.call("batch_thumbnail_download", {
     "operations": operations
 })
 
@@ -162,6 +159,66 @@ for result in results:
         print(f"Thumbnail downloaded to: {result['file_path']}")
     else:
         print(f"Error downloading thumbnail: {result.get('error')}")
+```
+
+## Batch Download Thumbnails by Filter
+
+The `thumbnail_batch_download_by_filter` tool downloads thumbnails for multiple entities matching a filter.
+
+```python
+@server.tool("thumbnail_batch_download_by_filter")
+def batch_download_entity_thumbnails(
+    entity_type: str,
+    filters: List[Dict[str, Any]],
+    field_name: str = "image",
+    size: Optional[str] = None,
+    image_format: Optional[str] = None,
+    directory: Optional[str] = None,
+    limit: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Download thumbnails for multiple entities matching filters.
+
+    Args:
+        entity_type: Type of entity.
+        filters: Filters to find entities.
+        field_name: Name of field containing thumbnail.
+        size: Optional size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600").
+        image_format: Optional format of the image (e.g. "jpg", "png").
+        directory: Optional directory to save thumbnails to.
+        limit: Optional limit on number of entities to process.
+
+    Returns:
+        List[Dict[str, Any]]: Results of the batch operations, each containing file_path.
+    """
+    # Implementation details
+```
+
+### Example
+
+```python
+# Download thumbnails for all shots in a project
+results = await client.call("thumbnail_batch_download_by_filter", {
+    "entity_type": "Shot",
+    "filters": [
+        {"field": "project.Project.id", "operator": "is", "value": 123},
+        {"field": "sg_status_list", "operator": "is", "value": "apr"}
+    ],
+    "field_name": "image",
+    "size": "large",
+    "image_format": "jpg",
+    "directory": "/path/to/thumbnails",
+    "limit": 100
+})
+
+# Process results
+for result in results:
+    if "file_path" in result:
+        print(f"Downloaded thumbnail to: {result['file_path']}")
+    elif "error" in result:
+        print(f"Error: {result['error']}")
+    else:
+        print(f"Message: {result.get('message', 'Unknown result')}")
 ```
 
 ## Using Batch Operations for Thumbnails
