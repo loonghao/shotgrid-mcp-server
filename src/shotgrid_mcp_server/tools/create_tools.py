@@ -95,14 +95,18 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
         """Execute multiple operations in a single batch request.
 
         This method allows for efficient execution of multiple operations
-        (create, update, delete) in a single API call.
+        (create, update, delete, download_thumbnail) in a single API call.
 
         Args:
             operations: List of operation dictionaries. Each operation should have:
-                - request_type: "create", "update", or "delete"
+                - request_type: "create", "update", "delete", or "download_thumbnail"
                 - entity_type: Type of entity
-                - data: Data for create/update (not needed for delete)
-                - entity_id: Entity ID for update/delete (not needed for create)
+                - data: Data for create/update (not needed for delete or download_thumbnail)
+                - entity_id: Entity ID for update/delete/download_thumbnail (not needed for create)
+                - field_name: (Optional) Field name for download_thumbnail, defaults to "image"
+                - file_path: (Optional) Path to save thumbnail to for download_thumbnail
+                - size: (Optional) Size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600")
+                - image_format: (Optional) Format of the image (e.g. "jpg", "png")
 
         Returns:
             List[Dict[str, Any]]: Results of the batch operations.
@@ -114,10 +118,45 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
             # Validate operations
             validate_batch_operations(operations)
 
-            # Execute batch request
-            results = sg.batch(operations)
-            if results is None:
-                raise ToolError("Failed to execute batch operations")
+            # Separate thumbnail operations from standard batch operations
+            thumbnail_operations = [op for op in operations if op.get("request_type") == "download_thumbnail"]
+            standard_operations = [op for op in operations if op.get("request_type") != "download_thumbnail"]
+
+            results = []
+
+            # Execute standard batch operations if any
+            if standard_operations:
+                standard_results = sg.batch(standard_operations)
+                if standard_results is None:
+                    raise ToolError("Failed to execute standard batch operations")
+                results.extend(standard_results)
+
+            # Execute thumbnail operations if any
+            if thumbnail_operations:
+                # Import the thumbnail_tools module here to avoid circular imports
+                from shotgrid_mcp_server.tools.thumbnail_tools import download_thumbnail
+
+                for op in thumbnail_operations:
+                    entity_type = op["entity_type"]
+                    entity_id = op["entity_id"]
+                    field_name = op.get("field_name", "image")
+                    file_path = op.get("file_path")
+                    size = op.get("size")
+                    image_format = op.get("image_format")
+
+                    try:
+                        # Use the download_thumbnail function to handle the operation
+                        result = download_thumbnail(
+                            entity_type=entity_type,
+                            entity_id=entity_id,
+                            field_name=field_name,
+                            file_path=file_path,
+                            size=size,
+                            image_format=image_format,
+                        )
+                        results.append(result)
+                    except Exception as download_err:
+                        results.append({"error": str(download_err)})
 
             # Format results
             return format_batch_results(results)
@@ -141,13 +180,13 @@ def validate_batch_operations(operations: List[Dict[str, Any]]) -> None:
     # Validate each operation
     for i, op in enumerate(operations):
         request_type = op.get("request_type")
-        if request_type not in ["create", "update", "delete"]:
+        if request_type not in ["create", "update", "delete", "download_thumbnail"]:
             raise ToolError(f"Invalid request_type in operation {i}: {request_type}")
 
         if "entity_type" not in op:
             raise ToolError(f"Missing entity_type in operation {i}")
 
-        if request_type in ["update", "delete"] and "entity_id" not in op:
+        if request_type in ["update", "delete", "download_thumbnail"] and "entity_id" not in op:
             raise ToolError(f"Missing entity_id in {request_type} operation {i}")
 
         if request_type in ["create", "update"] and "data" not in op:

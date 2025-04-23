@@ -1,0 +1,234 @@
+---
+title: Thumbnail Tools
+sidebarTitle: Thumbnail Tools
+description: Tools for working with thumbnails in ShotGrid
+icon: image
+---
+
+# Thumbnail Tools
+
+The ShotGrid MCP Server provides tools for working with thumbnails in ShotGrid. These tools allow you to retrieve thumbnail URLs and download thumbnails for entities.
+
+## Get Thumbnail URL
+
+The `get_thumbnail_url` tool retrieves the URL for an entity's thumbnail.
+
+```python
+@server.tool()
+def get_thumbnail_url(
+    entity_type: str,
+    entity_id: int,
+    field_name: str = "image",
+    size: Optional[str] = None,
+    image_format: Optional[str] = None,
+) -> str:
+    """
+    Get thumbnail URL for an entity.
+
+    Args:
+        entity_type: Type of entity.
+        entity_id: ID of entity.
+        field_name: Name of field containing thumbnail.
+        size: Optional size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600").
+        image_format: Optional format of the image (e.g. "jpg", "png").
+
+    Returns:
+        str: Thumbnail URL.
+    """
+    # Implementation details
+```
+
+### Example
+
+```python
+# Get thumbnail URL for a Shot with specific size and format
+thumbnail_url = await client.call("get_thumbnail_url", {
+    "entity_type": "Shot",
+    "entity_id": 123,
+    "field_name": "image",
+    "size": "800x600",
+    "image_format": "jpg"
+})
+
+print(f"Thumbnail URL: {thumbnail_url}")
+```
+
+## Download Thumbnail
+
+The `download_thumbnail` tool downloads a thumbnail for an entity.
+
+```python
+@server.tool()
+def download_thumbnail(
+    entity_type: str,
+    entity_id: int,
+    field_name: str = "image",
+    file_path: Optional[str] = None,
+    size: Optional[str] = None,
+    image_format: Optional[str] = None,
+) -> Dict[str, str]:
+    """
+    Download a thumbnail for an entity.
+
+    Args:
+        entity_type: Type of entity.
+        entity_id: ID of entity.
+        field_name: Name of field containing thumbnail.
+        file_path: Optional path to save thumbnail to.
+        size: Optional size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600").
+        image_format: Optional format of the image (e.g. "jpg", "png").
+
+    Returns:
+        Dict[str, str]: Path to downloaded thumbnail.
+    """
+    # Implementation details
+```
+
+### Example
+
+```python
+# Download thumbnail for a Shot with specific size and format
+result = await client.call("download_thumbnail", {
+    "entity_type": "Shot",
+    "entity_id": 123,
+    "field_name": "image",
+    "file_path": "/path/to/save/thumbnail.jpg",
+    "size": "800x600",
+    "image_format": "png"
+})
+
+print(f"Thumbnail downloaded to: {result['file_path']}")
+```
+
+## Batch Download Thumbnails
+
+The `batch_download_thumbnails` tool downloads multiple thumbnails in a single batch operation.
+
+```python
+@server.tool()
+def batch_download_thumbnails(
+    operations: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Download multiple thumbnails in a single batch operation.
+
+    Args:
+        operations: List of thumbnail download operations. Each operation should have:
+            - request_type: "download_thumbnail"
+            - entity_type: Type of entity
+            - entity_id: ID of entity
+            - field_name: (Optional) Name of field containing thumbnail, defaults to "image"
+            - file_path: (Optional) Path to save thumbnail to
+            - size: (Optional) Size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600")
+            - image_format: (Optional) Format of the image (e.g. "jpg", "png")
+
+    Returns:
+        List[Dict[str, Any]]: Results of the batch operations, each containing file_path.
+    """
+    # Implementation details
+```
+
+### Example
+
+```python
+# Download multiple thumbnails in a batch with different sizes and formats
+operations = [
+    {
+        "request_type": "download_thumbnail",
+        "entity_type": "Shot",
+        "entity_id": 123,
+        "field_name": "image",
+        "file_path": "/path/to/save/shot_123.jpg",
+        "size": "thumbnail",
+        "image_format": "jpg"
+    },
+    {
+        "request_type": "download_thumbnail",
+        "entity_type": "Asset",
+        "entity_id": 456,
+        "field_name": "image",
+        "file_path": "/path/to/save/asset_456.png",
+        "size": "1280x720",
+        "image_format": "png"
+    }
+]
+
+results = await client.call("batch_download_thumbnails", {
+    "operations": operations
+})
+
+for result in results:
+    if "file_path" in result:
+        print(f"Thumbnail downloaded to: {result['file_path']}")
+    else:
+        print(f"Error downloading thumbnail: {result.get('error')}")
+```
+
+## Using Batch Operations for Thumbnails
+
+You can also use the general `batch_operations` tool to download thumbnails along with other operations.
+
+```python
+# Mixed batch operations including thumbnail downloads with size and format
+operations = [
+    # Create a new Shot
+    {
+        "request_type": "create",
+        "entity_type": "Shot",
+        "data": {
+            "code": "SHOT_001",
+            "project": {"type": "Project", "id": 123}
+        }
+    },
+    # Download a thumbnail with specific size and format
+    {
+        "request_type": "download_thumbnail",
+        "entity_type": "Asset",
+        "entity_id": 456,
+        "field_name": "image",
+        "file_path": "/path/to/save/asset_456.jpg",
+        "size": "large",
+        "image_format": "jpg"
+    }
+]
+
+results = await client.call("batch_operations", {
+    "operations": operations
+})
+
+# Process results
+for result in results:
+    if "type" in result:
+        print(f"Created/Updated {result['type']} with ID {result['id']}")
+    elif "file_path" in result:
+        print(f"Downloaded thumbnail to: {result['file_path']}")
+```
+
+## Error Handling
+
+All thumbnail tools include proper error handling. If a thumbnail is not found or cannot be downloaded, a clear error message will be returned.
+
+```python
+try:
+    result = await client.call("download_thumbnail", {
+        "entity_type": "Shot",
+        "entity_id": 999,  # Non-existent ID
+        "field_name": "image"
+    })
+except Exception as e:
+    print(f"Error: {str(e)}")  # Will print "No thumbnail URL found" or similar error
+```
+
+For batch operations, individual errors are included in the results:
+
+```python
+results = await client.call("batch_download_thumbnails", {
+    "operations": operations
+})
+
+for result in results:
+    if "error" in result:
+        print(f"Error: {result['error']}")
+    else:
+        print(f"Success: {result['file_path']}")
+```
