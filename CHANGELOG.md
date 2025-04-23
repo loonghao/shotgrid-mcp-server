@@ -1,3 +1,13 @@
+## v0.7.5 (2025-04-23)
+
+### Fix
+
+- update tool names to comply with MCP naming convention
+
+### Refactor
+
+- standardize tool naming convention
+
 ## v0.7.4 (2025-04-23)
 
 ### Fix
