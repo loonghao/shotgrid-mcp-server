@@ -98,11 +98,23 @@ def download_thumbnail(
         if not entity or not entity.get(field_name):
             raise ToolError(f"No thumbnail found for {entity_type} {entity_id}")
 
-        # Download thumbnail
-        result = sg.download_attachment(entity[field_name], file_path, size=size, image_format=image_format)
-        if result is None:
-            raise ToolError("Failed to download thumbnail")
-        return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
+        # Get the attachment data - this should be a dict or int, not a string
+        attachment = entity[field_name]
+
+        # Download the attachment directly
+        try:
+            # ShotGrid API's download_attachment only accepts attachment (dict or int) and file_path
+            # It doesn't support size or image_format parameters
+            result = sg.download_attachment(attachment, file_path)
+
+            if result is None:
+                raise ToolError("Failed to download thumbnail")
+
+            return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
+
+        except Exception as download_err:
+            raise ToolError(f"Failed to download thumbnail: {str(download_err)}") from download_err
+
     except Exception as err:
         handle_error(err, operation="download_thumbnail")
         raise  # This is needed to satisfy the type checker
