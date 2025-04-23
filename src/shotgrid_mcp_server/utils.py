@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Dict, List, Set, TypeVar, Union
 
 # Import third-party modules
@@ -252,3 +253,24 @@ def serialize_entity(entity: Any) -> Dict[str, Any]:
     if not isinstance(entity, dict):
         return {}
     return {k: _serialize_value(v) for k, v in entity.items()}
+
+
+def generate_default_file_path(entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg") -> str:
+    """Generate a default file path for a thumbnail.
+
+    Args:
+        entity_type: Type of entity.
+        entity_id: ID of entity.
+        field_name: Name of field containing thumbnail.
+        image_format: Format of the image.
+
+    Returns:
+        str: Default file path.
+    """
+    # Create a temporary directory if it doesn't exist
+    temp_dir = Path(os.path.expanduser("~")) / ".shotgrid_mcp" / "thumbnails"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate a filename based on entity type, id, and field name
+    filename = f"{entity_type}_{entity_id}_{field_name}.{image_format}"
+    return str(temp_dir / filename)
