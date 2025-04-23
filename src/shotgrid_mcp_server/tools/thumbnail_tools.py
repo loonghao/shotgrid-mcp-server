@@ -42,13 +42,26 @@ def get_thumbnail_url(
         ToolError: If the URL retrieval fails.
     """
     try:
-        # Get the base thumbnail URL
-        result = sg.get_thumbnail_url(entity_type, entity_id, field_name)
-        if not result:
+        # Find the entity to get the field value
+        entity = sg.find_one(entity_type, [["id", "is", entity_id]], [field_name])
+        if not entity or field_name not in entity or not entity[field_name]:
+            raise ToolError(f"No thumbnail found for {entity_type} with ID {entity_id} in field {field_name}")
+
+        # Get the field value which contains the thumbnail URL or reference
+        field_value = entity[field_name]
+
+        # If the field value is a dict with a URL key, use that
+        if isinstance(field_value, dict) and "url" in field_value:
+            url = field_value["url"]
+        else:
+            # Otherwise, construct an attachment URL
+            attachment = {"id": entity_id, "type": entity_type, "field_name": field_name}
+            url = sg.get_attachment_download_url(attachment)
+
+        if not url:
             raise ToolError("No thumbnail URL found")
 
         # Add size and format parameters if provided
-        url = str(result)
         params = []
 
         if size:
