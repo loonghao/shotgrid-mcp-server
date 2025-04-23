@@ -21,7 +21,7 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("create_entity")
+    @server.tool("entity_create")
     def create_entity(entity_type: EntityType, data: Dict[str, Any]) -> EntityDict:
         """Create an entity in ShotGrid.
 
@@ -47,7 +47,7 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="create_entity")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("batch_create_entities")
+    @server.tool("batch_entity_create")
     def batch_create_entities(entity_type: EntityType, data_list: List[Dict[str, Any]]) -> List[EntityDict]:
         """Create multiple entities in ShotGrid.
 

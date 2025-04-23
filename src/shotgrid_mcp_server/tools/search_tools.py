@@ -234,7 +234,7 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("find_one_entity")
+    @server.tool("entity_find_one")
     def find_one_entity(
         entity_type: EntityType,
         filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
@@ -423,7 +423,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("find_recently_active_projects")
+    @server.tool("project_find_active")
     def find_recently_active_projects(days: int = 90) -> List[Dict[str, str]]:
         """Find projects that have been active in the last N days.
 
@@ -435,7 +435,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         """
         return _find_recently_active_projects(sg, days)
 
-    @server.tool("find_active_users")
+    @server.tool("user_find_active")
     def find_active_users(days: int = 30) -> List[Dict[str, str]]:
         """Find users who have been active in the last N days.
 
@@ -447,7 +447,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         """
         return _find_active_users(sg, days)
 
-    @server.tool("find_entities_by_date_range")
+    @server.tool("entity_find_by_date")
     def find_entities_by_date_range(
         entity_type: EntityType,
         date_field: str,

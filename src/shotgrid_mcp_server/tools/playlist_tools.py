@@ -133,7 +133,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         sg: ShotGrid connection.
     """
 
-    @server.tool("find_playlists")
+    @server.tool("playlist_find")
     def find_playlists(
         filters: Optional[List[Dict[str, Any]]] = None,
         fields: Optional[List[str]] = None,
@@ -180,7 +180,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="find_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("find_project_playlists")
+    @server.tool("playlist_find_by_project")
     def find_project_playlists(
         project_id: int,
         fields: Optional[List[str]] = None,
@@ -226,7 +226,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="find_project_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("find_recent_playlists")
+    @server.tool("playlist_find_recent")
     def find_recent_playlists(
         days: int = 7,
         project_id: Optional[int] = None,
@@ -276,7 +276,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="find_recent_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("create_playlist")
+    @server.tool("playlist_create")
     def create_playlist(
         code: str,
         project_id: int,
@@ -337,7 +337,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="create_playlist")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("update_playlist")
+    @server.tool("playlist_update")
     def update_playlist(
         playlist_id: int,
         code: Optional[str] = None,
@@ -382,7 +382,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="update_playlist")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("add_versions_to_playlist")
+    @server.tool("playlist_add_versions")
     def add_versions_to_playlist(
         playlist_id: int,
         version_ids: List[int],

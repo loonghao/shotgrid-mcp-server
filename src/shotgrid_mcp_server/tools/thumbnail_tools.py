@@ -176,7 +176,7 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     # Register get_thumbnail_url tool
-    @server.tool("get_thumbnail_url")
+    @server.tool("thumbnail_get_url")
     def get_thumbnail_url_tool(
         entity_type: EntityType,
         entity_id: int,
@@ -194,7 +194,7 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         )
 
     # Register download_thumbnail tool
-    @server.tool("download_thumbnail")
+    @server.tool("thumbnail_download")
     def download_thumbnail_tool(
         entity_type: EntityType,
         entity_id: int,
@@ -214,7 +214,7 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         )
 
     # Register batch_download_thumbnails tool
-    @server.tool("batch_download_thumbnails")
+    @server.tool("batch_thumbnail_download")
     def batch_download_thumbnails_tool(operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return batch_download_thumbnails(sg=sg, operations=operations)
 
