@@ -11,11 +11,11 @@ The ShotGrid MCP Server provides tools for working with thumbnails in ShotGrid. 
 
 ## Get Thumbnail URL
 
-The `get_thumbnail_url` tool retrieves the URL for an entity's thumbnail.
+The `thumbnail_get_url` tool retrieves the URL for an entity's thumbnail.
 
 ```python
-@server.tool()
-def get_thumbnail_url(
+@server.tool("thumbnail_get_url")
+def get_thumbnail_url_tool(
     entity_type: str,
     entity_id: int,
     field_name: str = "image",
@@ -42,7 +42,7 @@ def get_thumbnail_url(
 
 ```python
 # Get thumbnail URL for a Shot with specific size and format
-thumbnail_url = await client.call("get_thumbnail_url", {
+thumbnail_url = await client.call("thumbnail_get_url", {
     "entity_type": "Shot",
     "entity_id": 123,
     "field_name": "image",
@@ -55,18 +55,18 @@ print(f"Thumbnail URL: {thumbnail_url}")
 
 ## Download Thumbnail
 
-The `download_thumbnail` tool downloads a thumbnail for an entity.
+The `thumbnail_download` tool downloads a thumbnail for an entity.
 
 ```python
-@server.tool()
-def download_thumbnail(
+@server.tool("thumbnail_download")
+def download_thumbnail_tool(
     entity_type: str,
     entity_id: int,
     field_name: str = "image",
     file_path: Optional[str] = None,
     size: Optional[str] = None,
     image_format: Optional[str] = None,
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """
     Download a thumbnail for an entity.
 
@@ -79,7 +79,7 @@ def download_thumbnail(
         image_format: Optional format of the image (e.g. "jpg", "png").
 
     Returns:
-        Dict[str, str]: Path to downloaded thumbnail.
+        Dict[str, Any]: Dictionary containing the path to downloaded thumbnail.
     """
     # Implementation details
 ```
@@ -88,7 +88,7 @@ def download_thumbnail(
 
 ```python
 # Download thumbnail for a Shot with specific size and format
-result = await client.call("download_thumbnail", {
+result = await client.call("thumbnail_download", {
     "entity_type": "Shot",
     "entity_id": 123,
     "field_name": "image",
@@ -223,7 +223,7 @@ The `thumbnail_batch_download_by_filter` tool downloads thumbnails for multiple 
 
 ```python
 @server.tool("thumbnail_batch_download_by_filter")
-def batch_download_entity_thumbnails(
+def batch_download_entity_thumbnails_tool(
     entity_type: str,
     filters: List[Dict[str, Any]],
     field_name: str = "image",
@@ -231,6 +231,7 @@ def batch_download_entity_thumbnails(
     image_format: Optional[str] = None,
     directory: Optional[str] = None,
     limit: Optional[int] = None,
+    filter_operator: str = "and",
 ) -> List[Dict[str, Any]]:
     """
     Download thumbnails for multiple entities matching filters.
@@ -243,6 +244,7 @@ def batch_download_entity_thumbnails(
         image_format: Optional format of the image (e.g. "jpg", "png").
         directory: Optional directory to save thumbnails to.
         limit: Optional limit on number of entities to process.
+        filter_operator: Operator to use for combining filters ("and" or "or"). Default is "and".
 
     Returns:
         List[Dict[str, Any]]: Results of the batch operations, each containing file_path.
@@ -264,7 +266,8 @@ results = await client.call("thumbnail_batch_download_by_filter", {
     "size": "large",
     "image_format": "jpg",
     "directory": "/path/to/thumbnails",
-    "limit": 100
+    "limit": 100,
+    "filter_operator": "and"
 })
 
 # Process results
@@ -323,7 +326,7 @@ All thumbnail tools include proper error handling. If a thumbnail is not found o
 
 ```python
 try:
-    result = await client.call("download_thumbnail", {
+    result = await client.call("thumbnail_download", {
         "entity_type": "Shot",
         "entity_id": 999,  # Non-existent ID
         "field_name": "image"
@@ -335,7 +338,7 @@ except Exception as e:
 For batch operations, individual errors are included in the results:
 
 ```python
-results = await client.call("batch_download_thumbnails", {
+results = await client.call("batch_thumbnail_download", {
     "operations": operations
 })
 
@@ -345,3 +348,14 @@ for result in results:
     else:
         print(f"Success: {result['file_path']}")
 ```
+
+## Validation
+
+All thumbnail tools include validation for:
+
+1. Entity types - validates against ShotGrid schema
+2. Field names - validates that the field is an image field for the entity type
+3. Size format - must be 'thumbnail', 'large', or dimensions like '800x600'
+4. Image format - must be 'jpg', 'jpeg', 'png', or 'gif'
+
+This validation helps prevent errors and provides clear error messages when invalid parameters are provided.
