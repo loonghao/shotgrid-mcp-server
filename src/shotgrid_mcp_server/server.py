@@ -2,18 +2,13 @@
 
 # Import built-in modules
 import logging
-from typing import Optional
 
 # Import third-party modules
 from fastmcp import FastMCP
 
 # Import local modules
-from shotgrid_mcp_server.connection_pool import (
-    ShotGridConnectionContext,
-    ShotgunClientFactory,
-)
+from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
 from shotgrid_mcp_server.logger import setup_logging
-from shotgrid_mcp_server.schema_loader import find_schema_files
 from shotgrid_mcp_server.tools import register_all_tools
 
 # Configure logger
@@ -21,11 +16,11 @@ logger = logging.getLogger(__name__)
 setup_logging()
 
 
-def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:  # type: ignore[type-arg]
+def create_server(connection=None) -> FastMCP:  # type: ignore[type-arg]
     """Create a FastMCP server instance.
 
     Args:
-        factory: Optional factory for creating ShotGrid clients, used in testing.
+        connection: Optional direct ShotGrid connection, used in testing.
 
     Returns:
         FastMCP: The server instance.
@@ -38,7 +33,7 @@ def create_server(factory: Optional[ShotgunClientFactory] = None) -> FastMCP:  #
         logger.debug("Created FastMCP instance")
 
         # Register tools using connection context
-        with ShotGridConnectionContext(factory_or_connection=factory) as sg:
+        with ShotGridConnectionContext(factory_or_connection=connection) as sg:
             register_all_tools(mcp, sg)
             logger.debug("Registered all tools")
             return mcp
@@ -73,19 +68,9 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 else:
-    # When imported, create a mock server for testing
-    from shotgrid_mcp_server.connection_pool import MockShotgunFactory
-
-    # Find schema files
+    # When imported, create a server for testing
     try:
-        schema_path, schema_entity_path = find_schema_files()
-
-        # Create mock factory with resolved paths
-        mock_factory = MockShotgunFactory(
-            schema_path=schema_path,
-            schema_entity_path=schema_entity_path,
-        )
-        app = create_server(factory=mock_factory)
-    except FileNotFoundError as e:
-        logger.error(f"Failed to initialize mock server: {e}")
+        app = create_server()
+    except Exception as e:
+        logger.error(f"Failed to initialize server: {e}")
         # Don't raise here, as this is not the main entry point

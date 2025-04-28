@@ -9,7 +9,7 @@ from fastmcp import FastMCP
 from shotgun_api3 import Shotgun
 
 # Import local modules
-from shotgrid_mcp_server.connection_pool import MockShotgunFactory
+from shotgrid_mcp_server.mockgun_ext import MockgunExt
 from shotgrid_mcp_server.schema_loader import find_schema_files
 from shotgrid_mcp_server.server import create_server
 
@@ -18,11 +18,18 @@ from shotgrid_mcp_server.server import create_server
 def mock_sg() -> Shotgun:
     """Create a mock ShotGrid instance for testing."""
     schema_path, schema_entity_path = find_schema_files()
-    mock_factory = MockShotgunFactory(
-        schema_path=schema_path,
-        schema_entity_path=schema_entity_path,
+
+    # Set schema paths before creating the instance
+    MockgunExt.set_schema_paths(schema_path, schema_entity_path)
+
+    # Create the instance
+    sg = MockgunExt(
+        "https://test.shotgunstudio.com",
+        script_name="test_script",
+        api_key="test_key",
     )
-    return mock_factory.create_client()
+
+    return sg
 
 
 @pytest.fixture

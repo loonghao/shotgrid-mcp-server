@@ -101,3 +101,7 @@ class ConfigurationError(ShotGridMCPError):
             message: Error message.
         """
         super().__init__(f"Configuration error: {message}")
+
+
+class NoAvailableInstancesError(Exception):
+    """Pool manager does not have any available instances to provide"""

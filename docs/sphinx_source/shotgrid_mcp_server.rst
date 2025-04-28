@@ -31,5 +31,4 @@ Submodules
    shotgrid_mcp_server.models
    shotgrid_mcp_server.schema_loader
    shotgrid_mcp_server.server
-   shotgrid_mcp_server.types
    shotgrid_mcp_server.utils
