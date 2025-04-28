@@ -85,7 +85,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.find: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.find: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.find: {str(err)}") from err
 
     def find_one(self, request: FindOneRequest) -> Optional[Dict[str, Any]]:
         """Find a single entity in ShotGrid.
@@ -124,7 +124,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.find_one: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.find_one: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.find_one: {str(err)}") from err
 
     def create(self, request: CreateRequest) -> Dict[str, Any]:
         """Create an entity in ShotGrid.
@@ -147,7 +147,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.create: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.create: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.create: {str(err)}") from err
 
     def update(self, request: UpdateRequest) -> Dict[str, Any]:
         """Update an entity in ShotGrid.
@@ -171,7 +171,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.update: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.update: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.update: {str(err)}") from err
 
     def delete(self, request: DeleteRequest) -> bool:
         """Delete an entity in ShotGrid.
@@ -193,7 +193,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.delete: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.delete: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.delete: {str(err)}") from err
 
     def revive(self, request: ReviveRequest) -> bool:
         """Revive a deleted entity in ShotGrid.
@@ -215,7 +215,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.revive: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.revive: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.revive: {str(err)}") from err
 
     def batch(self, request: BatchRequest) -> List[Dict[str, Any]]:
         """Perform a batch operation in ShotGrid.
@@ -234,7 +234,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.batch: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.batch: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.batch: {str(err)}") from err
 
     def summarize(self, request: SummarizeRequest) -> Dict[str, Any]:
         """Summarize data in ShotGrid.
@@ -260,7 +260,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.summarize: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.summarize: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.summarize: {str(err)}") from err
 
     def text_search(self, request: TextSearchRequest) -> Dict[str, List[Dict[str, Any]]]:
         """Perform a text search in ShotGrid.
@@ -284,7 +284,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.text_search: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.text_search: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.text_search: {str(err)}") from err
 
     def schema_entity_read(self) -> Dict[str, Dict[str, Any]]:
         """Read entity schema from ShotGrid.
@@ -300,7 +300,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.schema_entity_read: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.schema_entity_read: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.schema_entity_read: {str(err)}") from err
 
     def schema_field_read(self, request: SchemaFieldReadRequest) -> Dict[str, Dict[str, Any]]:
         """Read field schema from ShotGrid.
@@ -322,7 +322,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.schema_field_read: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.schema_field_read: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.schema_field_read: {str(err)}") from err
 
     def upload(self, request: UploadRequest) -> Dict[str, Any]:
         """Upload a file to ShotGrid.
@@ -348,7 +348,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.upload: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.upload: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.upload: {str(err)}") from err
 
     def download_attachment(self, request: DownloadAttachmentRequest) -> str:
         """Download an attachment from ShotGrid.
@@ -370,7 +370,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.download_attachment: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.download_attachment: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.download_attachment: {str(err)}") from err
 
     def activity_stream_read(self, request: ActivityStreamReadRequest) -> Dict[str, Any]:
         """Read activity stream from ShotGrid.
@@ -395,7 +395,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.activity_stream_read: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.activity_stream_read: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.activity_stream_read: {str(err)}") from err
 
     def follow(self, request: FollowRequest) -> bool:
         """Follow an entity in ShotGrid.
@@ -418,7 +418,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.follow: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.follow: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.follow: {str(err)}") from err
 
     def unfollow(self, request: FollowRequest) -> bool:
         """Unfollow an entity in ShotGrid.
@@ -441,7 +441,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.unfollow: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.unfollow: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.unfollow: {str(err)}") from err
 
     def followers(self, request: FollowersRequest) -> List[Dict[str, Any]]:
         """Get followers of an entity in ShotGrid.
@@ -463,7 +463,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.followers: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.followers: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.followers: {str(err)}") from err
 
     def following(self, request: FollowingRequest) -> List[Dict[str, Any]]:
         """Get entities followed by a user in ShotGrid.
@@ -485,7 +485,7 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.following: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.following: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.following: {str(err)}") from err
 
     def note_thread_read(self, request: NoteThreadReadRequest) -> Dict[str, Any]:
         """Read a note thread from ShotGrid.
@@ -504,4 +504,4 @@ class ShotGridAPIClient:
             return result
         except Exception as err:
             logger.error(f"Error in sg.note_thread_read: {str(err)}")
-            raise ShotGridMCPError(f"Error executing sg.note_thread_read: {str(err)}")
+            raise ShotGridMCPError(f"Error executing sg.note_thread_read: {str(err)}") from err
