@@ -93,7 +93,10 @@ def _find_playlists_impl(
         limit = page_size
 
     # Execute query
-    # Note: Mockgun doesn't support retired_only parameter
+    # Use page parameter if provided, otherwise default to 1
+    page_value = page if page is not None else 1
+
+    # Try with all parameters
     try:
         result = sg.find(
             "Playlist",
@@ -103,17 +106,45 @@ def _find_playlists_impl(
             filter_operator=filter_operator,
             limit=limit,
             retired_only=False,
+            page=page_value,
+            page_size=page_size,
         )
-    except TypeError:
-        # Fallback for Mockgun which doesn't support retired_only
-        result = sg.find(
-            "Playlist",
-            filters,
-            fields=fields,
-            order=order,
-            filter_operator=filter_operator,
-            limit=limit,
-        )
+    except TypeError as e:
+        # If TypeError mentions 'page_size', try without it
+        if "page_size" in str(e):
+            try:
+                result = sg.find(
+                    "Playlist",
+                    filters,
+                    fields=fields,
+                    order=order,
+                    filter_operator=filter_operator,
+                    limit=limit,
+                    retired_only=False,
+                    page=page_value,
+                )
+            except TypeError:
+                # Fallback for older Mockgun which doesn't support retired_only or page
+                result = sg.find(
+                    "Playlist",
+                    filters,
+                    fields=fields,
+                    order=order,
+                    filter_operator=filter_operator,
+                    limit=limit,
+                )
+        else:
+            # Fallback for Mockgun which doesn't support retired_only
+            result = sg.find(
+                "Playlist",
+                filters,
+                fields=fields,
+                order=order,
+                filter_operator=filter_operator,
+                limit=limit,
+                page=page_value,
+                page_size=page_size,
+            )
 
     # Add ShotGrid URL to each playlist
     for playlist in result:
@@ -221,6 +252,8 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 order,
                 None,
                 limit,
+                page=1,  # Default to page 1
+                page_size=limit,  # Use limit as page_size
             )
         except Exception as err:
             handle_error(err, operation="find_project_playlists")
@@ -271,6 +304,8 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 order,
                 None,
                 limit,
+                page=1,  # Default to page 1
+                page_size=limit,  # Use limit as page_size
             )
         except Exception as err:
             handle_error(err, operation="find_recent_playlists")

@@ -9,7 +9,7 @@ from shotgun_api3 import ShotgunError
 from shotgun_api3.lib.mockgun import Shotgun
 
 # Import local modules
-from shotgrid_mcp_server.types import (
+from shotgrid_mcp_server.custom_types import (
     AttachmentResult,
     Entity,
     EntityType,
@@ -451,6 +451,9 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         order: Optional[List[str]] = None,
         filter_operator: Optional[str] = None,
         limit: Optional[int] = None,
+        retired_only: bool = False,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
     ) -> List[Entity]:
         """Find entities in the mock database.
 
@@ -461,6 +464,9 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             order: List of fields to order by.
             filter_operator: Operator to combine filters.
             limit: Maximum number of entities to return.
+            retired_only: Whether to return only retired entities (not used in mock).
+            page: Page number for pagination.
+            page_size: Page size for pagination.
 
         Returns:
             List[Dict[str, Any]]: List of found entities.
@@ -479,8 +485,13 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         if order:
             entities = self._sort_entities(entities, order)
 
-        # Apply limit
-        if limit is not None and limit > 0:
+        # Apply pagination if both page and page_size are specified
+        if page is not None and page_size is not None and page > 0 and page_size > 0:
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            entities = entities[start_idx:end_idx]
+        # Otherwise apply limit
+        elif limit is not None and limit > 0:
             entities = entities[:limit]
 
         return entities
@@ -493,6 +504,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         order: Optional[List[str]] = None,
         filter_operator: Optional[str] = None,
         retired_only: bool = False,
+        page: Optional[int] = None,
     ) -> Optional[Entity]:
         """Find a single entity in the mock database.
 
@@ -502,12 +514,24 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             fields: List of fields to return.
             order: List of fields to order by.
             filter_operator: Operator to use for filters.
-            retired_only: Whether to return only retired entities.
+            retired_only: Whether to return only retired entities (not used in mock).
+            page: Page number for pagination (not used in find_one).
 
         Returns:
             Optional[Dict[str, Any]]: The found entity, or None if not found.
         """
-        results = self.find(entity_type, filters, fields, order, filter_operator, limit=1)
+        # For find_one, we always limit to 1 result regardless of pagination
+        results = self.find(
+            entity_type,
+            filters,
+            fields,
+            order,
+            filter_operator,
+            limit=1,
+            retired_only=retired_only,
+            page=page,
+            page_size=1 if page is not None else None
+        )
         if not results:
             return None
 

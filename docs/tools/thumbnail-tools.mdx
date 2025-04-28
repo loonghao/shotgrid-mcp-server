@@ -127,6 +127,62 @@ def batch_download_thumbnails(
     # Implementation details
 ```
 
+## Download Recent Asset Thumbnails
+
+The `thumbnail_download_recent_assets` tool downloads thumbnails for recently updated assets.
+
+```python
+@server.tool("thumbnail_download_recent_assets")
+def download_recent_asset_thumbnails(
+    days: int = 7,
+    project_id: Optional[int] = None,
+    field_name: str = "image",
+    size: Optional[str] = None,
+    image_format: Optional[str] = None,
+    directory: Optional[str] = None,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Download thumbnails for recently updated assets.
+
+    Args:
+        days: Number of days to look back (default: 7).
+        project_id: Optional project ID to filter assets by.
+        field_name: Name of field containing thumbnail (default: "image").
+        size: Optional size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600").
+        image_format: Optional format of the image (e.g. "jpg", "png").
+        directory: Optional directory to save thumbnails to.
+        limit: Maximum number of assets to process (default: 10).
+
+    Returns:
+        List[Dict[str, Any]]: Results of the batch operations, each containing file_path.
+    """
+    # Implementation details
+```
+
+### Example
+
+```python
+# Download thumbnails for the 10 most recently updated assets
+results = await client.call("thumbnail_download_recent_assets", {
+    "days": 30,  # Look back 30 days
+    "field_name": "image",
+    "size": "large",
+    "image_format": "jpg",
+    "directory": "/path/to/thumbnails",
+    "limit": 10
+})
+
+# Process results
+for result in results:
+    if "file_path" in result:
+        print(f"Downloaded thumbnail to: {result['file_path']}")
+    elif "error" in result:
+        print(f"Error: {result['error']}")
+    else:
+        print(f"Message: {result.get('message', 'Unknown result')}")
+```
+
 ### Example
 
 ```python

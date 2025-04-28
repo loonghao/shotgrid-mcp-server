@@ -1,13 +1,17 @@
 """Schema loader module for ShotGrid MCP server.
 
-This module provides utilities for loading schema files for the MockgunExt class.
+This module provides utilities for loading schema files and entity types from ShotGrid.
 """
 
 # Import built-in modules
+import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Any
+
+# Import third-party modules
+from shotgun_api3.lib.mockgun import Shotgun
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -109,3 +113,55 @@ def copy_schema_files(source_dir: Path, target_dir: Optional[Path] = None) -> Tu
 
     logger.info(f"Copied schema files to {target_dir}")
     return target_schema, target_schema_entity
+
+
+def get_entity_types_from_schema(sg: 'Shotgun') -> Set[str]:
+    """Get entity types from ShotGrid schema.
+
+    Args:
+        sg: ShotGrid connection.
+
+    Returns:
+        Set[str]: Set of entity type names.
+    """
+    try:
+        # Get schema from ShotGrid
+        schema = sg.schema_read()
+
+        # Extract entity types from schema
+        entity_types = set(schema.keys())
+
+        logger.info(f"Retrieved {len(entity_types)} entity types from ShotGrid schema")
+        return entity_types
+    except Exception as e:
+        logger.error(f"Failed to get entity types from schema: {e}")
+        # Return empty set if schema read fails
+        return set()
+
+
+def get_entity_fields_with_image_type(sg: 'Shotgun', entity_type: str) -> Set[str]:
+    """Get fields of image type for a specific entity type.
+
+    Args:
+        sg: ShotGrid connection.
+        entity_type: Entity type to get fields for.
+
+    Returns:
+        Set[str]: Set of field names that are of image type.
+    """
+    try:
+        # Get schema for entity type
+        schema = sg.schema_field_read(entity_type)
+
+        # Find fields of image type
+        image_fields = {
+            field_name for field_name, field_info in schema.items()
+            if field_info.get('data_type', {}).get('value') == 'image'
+        }
+
+        logger.info(f"Found {len(image_fields)} image fields for entity type {entity_type}")
+        return image_fields
+    except Exception as e:
+        logger.error(f"Failed to get image fields for {entity_type}: {e}")
+        # Return default "image" field if schema read fails
+        return {"image"}
