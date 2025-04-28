@@ -5,16 +5,15 @@ This module contains tools for working with thumbnails in ShotGrid.
 
 import logging
 import os
-import ssl
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from shotgrid_mcp_server.custom_types import EntityType
-from shotgrid_mcp_server.schema_loader import get_entity_types_from_schema, get_entity_fields_with_image_type
+from shotgrid_mcp_server.schema_loader import get_entity_fields_with_image_type, get_entity_types_from_schema
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
 from shotgrid_mcp_server.tools.utils_date import to_iso8601
@@ -23,6 +22,7 @@ from shotgrid_mcp_server.utils import generate_default_file_path
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
 
 def get_thumbnail_url(
     sg: Shotgun,
@@ -62,9 +62,9 @@ def get_thumbnail_url(
             # If field_value is already a URL string, use it directly
             url = field_value
             logger.info("Field value is already a URL: %s", url[:100] + "..." if len(url) > 100 else url)
-        elif isinstance(field_value, dict) and 'id' in field_value:
+        elif isinstance(field_value, dict) and "id" in field_value:
             # If field_value is a dict with id, get the download URL
-            attachment_id = field_value['id']
+            attachment_id = field_value["id"]
             url = sg.get_attachment_download_url(attachment_id)
         elif isinstance(field_value, int):
             # If field_value is an integer ID, get the download URL
@@ -151,12 +151,19 @@ def download_thumbnail(
             if not url_dict:
                 raise ToolError(f"Invalid attachment data: {attachment}")
 
-            logger.info("Trying download_attachment with: %s", str(url_dict)[:100] + "..." if len(str(url_dict)) > 100 else str(url_dict))
+            logger.info(
+                "Trying download_attachment with: %s",
+                str(url_dict)[:100] + "..." if len(str(url_dict)) > 100 else str(url_dict),
+            )
             result = sg.download_attachment(url_dict, file_path=file_path)
 
             if result:
-                logger.info("Successfully downloaded thumbnail for %s %s to %s using download_attachment",
-                           entity_type, entity_id, result)
+                logger.info(
+                    "Successfully downloaded thumbnail for %s %s to %s using download_attachment",
+                    entity_type,
+                    entity_id,
+                    result,
+                )
                 return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
             else:
                 raise ToolError("download_attachment returned None")
@@ -188,8 +195,12 @@ def download_thumbnail(
                 # Try to download with our enhanced download_file function
                 download_file(url, file_path)
 
-                logger.info("Successfully downloaded thumbnail for %s %s to %s using download_file",
-                           entity_type, entity_id, file_path)
+                logger.info(
+                    "Successfully downloaded thumbnail for %s %s to %s using download_file",
+                    entity_type,
+                    entity_id,
+                    file_path,
+                )
                 return {"file_path": str(file_path), "entity_type": entity_type, "entity_id": entity_id}
 
             except Exception as url_err:
@@ -198,7 +209,7 @@ def download_thumbnail(
                 # Method 3: Last resort - try direct download with completely disabled SSL
                 try:
                     # Make sure we have a URL
-                    if 'url' not in locals() or not url:
+                    if "url" not in locals() or not url:
                         raise ToolError("No URL available for direct download")
 
                     logger.info("Trying direct download with completely disabled SSL")
@@ -218,17 +229,21 @@ def download_thumbnail(
                     context.maximum_version = ssl.TLSVersion.TLSv1
 
                     with urllib.request.urlopen(url, context=context, timeout=30) as response:
-                        with open(file_path, 'wb') as out_file:
+                        with open(file_path, "wb") as out_file:
                             out_file.write(response.read())
 
-                    logger.info("Successfully downloaded thumbnail for %s %s to %s using direct urllib with disabled SSL",
-                               entity_type, entity_id, file_path)
+                    logger.info(
+                        "Successfully downloaded thumbnail for %s %s to %s using direct urllib with disabled SSL",
+                        entity_type,
+                        entity_id,
+                        file_path,
+                    )
                     return {"file_path": str(file_path), "entity_type": entity_type, "entity_id": entity_id}
 
                 except Exception as direct_err:
                     error_msg = f"All download methods failed for {entity_type} {entity_id}: Method 1: {str(download_err)}, Method 2: {str(url_err)}, Method 3: {str(direct_err)}"
                     logger.error(error_msg)
-                    raise ToolError(error_msg)
+                    raise ToolError(error_msg) from direct_err
 
     except Exception as err:
         error_msg = f"Failed to download thumbnail for {entity_type} {entity_id}: {str(err)}"
@@ -343,15 +358,18 @@ def batch_download_thumbnails(sg: Shotgun, operations: List[Dict[str, Any]]) -> 
                     }
                     results.append(error_info)
                     error_count += 1
-                    logger.warning("Error downloading thumbnail for %s %s: %s",
-                                  op_info["entity_type"], op_info["entity_id"], str(download_err))
+                    logger.warning(
+                        "Error downloading thumbnail for %s %s: %s",
+                        op_info["entity_type"],
+                        op_info["entity_id"],
+                        str(download_err),
+                    )
 
         logger.info("Batch download complete: %d successful, %d failed", success_count, error_count)
         return results
     except Exception as err:
         handle_error(err, operation="batch_download_thumbnails")
         raise  # This is needed to satisfy the type checker
-
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
@@ -386,6 +404,7 @@ def download_recent_asset_thumbnails(
     try:
         # Build filters for recently updated assets
         from datetime import datetime, timedelta
+
         threshold = datetime.now() - timedelta(days=days)
 
         # Make sure to include the field_name in the query to avoid missing field errors
@@ -403,13 +422,7 @@ def download_recent_asset_thumbnails(
 
         # Find assets
         logger.info("Finding recently updated assets in the last %d days (limit: %d)", days, limit)
-        assets = sg.find(
-            "Asset",
-            filters,
-            fields,
-            order=order,
-            limit=limit
-        )
+        assets = sg.find("Asset", filters, fields, order=order, limit=limit)
 
         if not assets:
             logger.info("No recently updated assets found")
@@ -426,11 +439,13 @@ def download_recent_asset_thumbnails(
             # Check if the asset has the specified field
             if field_name not in asset or not asset[field_name]:
                 logger.warning("Asset %s (ID: %s) has no %s field or it's empty", code, asset_id, field_name)
-                operations.append({
-                    "entity_type": "Asset",
-                    "entity_id": asset_id,
-                    "error": f"No {field_name} field found or it's empty"
-                })
+                operations.append(
+                    {
+                        "entity_type": "Asset",
+                        "entity_id": asset_id,
+                        "error": f"No {field_name} field found or it's empty",
+                    }
+                )
                 continue
 
             file_path = None
@@ -440,14 +455,16 @@ def download_recent_asset_thumbnails(
                 filename = safe_slug_filename(code, image_format_value)
                 file_path = os.path.join(directory, filename)
 
-            operations.append({
-                "entity_type": "Asset",
-                "entity_id": asset_id,
-                "field_name": field_name,
-                "file_path": file_path,
-                "size": size,
-                "image_format": image_format,
-            })
+            operations.append(
+                {
+                    "entity_type": "Asset",
+                    "entity_id": asset_id,
+                    "field_name": field_name,
+                    "file_path": file_path,
+                    "size": size,
+                    "image_format": image_format,
+                }
+            )
 
         # Execute batch download
         return batch_download_thumbnails(sg=sg, operations=operations)
@@ -497,13 +514,15 @@ def batch_download_entity_thumbnails(
 
         # Validate filter_operator
         if filter_operator not in ["and", "or"]:
-            logger.warning("Invalid filter_operator: %s. Must be 'and' or 'or'. Using 'and' as default.", filter_operator)
+            logger.warning(
+                "Invalid filter_operator: %s. Must be 'and' or 'or'. Using 'and' as default.", filter_operator
+            )
             filter_operator = "and"
 
         # Find entities matching filters, include code for file naming and the field_name
         # If filters contain date, ensure ISO8601 using to_iso8601
         patched_filters = []
-        for f in (filters or []):
+        for f in filters or []:
             if isinstance(f, (list, tuple)) and len(f) >= 3 and ("date" in str(f[0]).lower()):
                 patched_filters.append([f[0], f[1], to_iso8601(f[2])])
             else:
@@ -513,13 +532,7 @@ def batch_download_entity_thumbnails(
         fields = ["id", "code", field_name]
 
         # Pass filter_operator to sg.find
-        entities = sg.find(
-            entity_type,
-            patched_filters,
-            fields,
-            limit=limit,
-            filter_operator=filter_operator
-        )
+        entities = sg.find(entity_type, patched_filters, fields, limit=limit, filter_operator=filter_operator)
 
         if not entities:
             return [{"message": "No entities found matching filters"}]
@@ -532,11 +545,13 @@ def batch_download_entity_thumbnails(
             # Check if the entity has the specified field
             if field_name not in entity or not entity[field_name]:
                 logger.warning("Entity %s (ID: %s) has no %s field or it's empty", code, entity_id, field_name)
-                operations.append({
-                    "entity_type": entity_type,
-                    "entity_id": entity_id,
-                    "error": f"No {field_name} field found or it's empty"
-                })
+                operations.append(
+                    {
+                        "entity_type": entity_type,
+                        "entity_id": entity_id,
+                        "error": f"No {field_name} field found or it's empty",
+                    }
+                )
                 continue
 
             file_path = None
@@ -549,14 +564,16 @@ def batch_download_entity_thumbnails(
                 else:
                     filename = safe_slug_filename(code, image_format_value)
                 file_path = os.path.join(directory, filename)
-            operations.append({
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "field_name": field_name,
-                "file_path": file_path,
-                "size": size,
-                "image_format": image_format,
-            })
+            operations.append(
+                {
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                    "field_name": field_name,
+                    "file_path": file_path,
+                    "size": size,
+                    "image_format": image_format,
+                }
+            )
         return batch_download_thumbnails(sg=sg, operations=operations)
 
     except Exception as err:
@@ -593,7 +610,9 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         # Validate field name
         if image_fields and field_name not in image_fields:
-            raise ToolError(f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}")
+            raise ToolError(
+                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
+            )
 
         return get_thumbnail_url(
             sg=sg,
@@ -623,7 +642,9 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         # Validate field name
         if image_fields and field_name not in image_fields:
-            raise ToolError(f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}")
+            raise ToolError(
+                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
+            )
 
         return download_thumbnail(
             sg=sg,
@@ -646,7 +667,9 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
             if "entity_type" in op and "field_name" in op:
                 image_fields = get_entity_fields_with_image_type(sg, op["entity_type"])
                 if image_fields and op["field_name"] not in image_fields:
-                    raise ToolError(f"Invalid field name in operation {i}: {op['field_name']}. Valid image fields: {', '.join(sorted(image_fields))}")
+                    raise ToolError(
+                        f"Invalid field name in operation {i}: {op['field_name']}. Valid image fields: {', '.join(sorted(image_fields))}"
+                    )
 
         return batch_download_thumbnails(sg=sg, operations=operations)
 
@@ -671,7 +694,9 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         # Validate field name
         if image_fields and field_name not in image_fields:
-            raise ToolError(f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}")
+            raise ToolError(
+                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
+            )
 
         return batch_download_entity_thumbnails(
             sg=sg,
@@ -698,14 +723,16 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
     ) -> List[Dict[str, Any]]:
         # Validate entity type "Asset" if we have schema information
         if entity_types and "Asset" not in entity_types:
-            raise ToolError(f"Entity type 'Asset' not found in schema")
+            raise ToolError("Entity type 'Asset' not found in schema")
 
         # Get image fields for Asset entity type
         image_fields = get_entity_fields_with_image_type(sg, "Asset")
 
         # Validate field name
         if image_fields and field_name not in image_fields:
-            raise ToolError(f"Invalid field name: {field_name}. Valid image fields for Asset: {', '.join(sorted(image_fields))}")
+            raise ToolError(
+                f"Invalid field name: {field_name}. Valid image fields for Asset: {', '.join(sorted(image_fields))}"
+            )
 
         return download_recent_asset_thumbnails(
             sg=sg,
