@@ -87,6 +87,76 @@ def get_thumbnail_url(
         raise  # This is needed to satisfy the type checker
 
 
+def _prepare_url_dict(attachment: Any) -> Dict[str, Any]:
+    """Prepare URL dictionary from attachment data.
+
+    Args:
+        attachment: Attachment data from ShotGrid.
+
+    Returns:
+        Dict[str, Any]: URL dictionary for download_attachment.
+
+    Raises:
+        ToolError: If attachment data is invalid.
+    """
+    if isinstance(attachment, str):
+        # If attachment is a URL string, wrap it in a dict
+        url_dict = {"url": attachment}
+    elif isinstance(attachment, dict) and "url" in attachment:
+        # If attachment already has a url key, use it directly
+        url_dict = attachment
+    elif isinstance(attachment, dict) and "id" in attachment:
+        # If attachment has an id, use it directly
+        url_dict = attachment
+    elif isinstance(attachment, int):
+        # If attachment is an integer ID, wrap it in a dict
+        url_dict = {"id": attachment}
+    else:
+        # For other cases, try to use the attachment directly
+        url_dict = {"url": attachment} if attachment else None
+
+    if not url_dict:
+        raise ToolError(f"Invalid attachment data: {attachment}")
+
+    return url_dict
+
+
+def _download_with_shotgun_api(
+    sg: Shotgun, url_dict: Dict[str, Any], file_path: str, entity_type: str, entity_id: int
+) -> Dict[str, Any]:
+    """Download thumbnail using ShotGrid API.
+
+    Args:
+        sg: ShotGrid connection.
+        url_dict: URL dictionary for download_attachment.
+        file_path: Path to save thumbnail to.
+        entity_type: Type of entity.
+        entity_id: ID of entity.
+
+    Returns:
+        Dict[str, Any]: Result with file path.
+
+    Raises:
+        ToolError: If download fails.
+    """
+    logger.info(
+        "Trying download_attachment with: %s",
+        str(url_dict)[:100] + "..." if len(str(url_dict)) > 100 else str(url_dict),
+    )
+    result = sg.download_attachment(url_dict, file_path=file_path)
+
+    if result:
+        logger.info(
+            "Successfully downloaded thumbnail for %s %s to %s using download_attachment",
+            entity_type,
+            entity_id,
+            result,
+        )
+        return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
+    else:
+        raise ToolError("download_attachment returned None")
+
+
 def download_thumbnail(
     sg: Shotgun,
     entity_type: EntityType,
@@ -126,27 +196,12 @@ def download_thumbnail(
         if not entity or not entity.get(field_name):
             raise ToolError(f"No thumbnail found for {entity_type} {entity_id}")
 
-        # Download the thumbnail using ShotGrid API's download_thumbnail method
-        logger.info("Downloading thumbnail using ShotGrid API's download_thumbnail method")
-        result = sg.download_thumbnail(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            field_name=field_name,
-            file_path=file_path,
-            size=size,
-            image_format=image_format,
-        )
+        # Get the attachment data
+        attachment = entity[field_name]
 
-        if result:
-            logger.info(
-                "Successfully downloaded thumbnail for %s %s to %s",
-                entity_type,
-                entity_id,
-                result,
-            )
-            return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
-        else:
-            raise ToolError("download_thumbnail returned None")
+        # Use _download_with_shotgun_api to download the thumbnail
+        url_dict = _prepare_url_dict(attachment)
+        return _download_with_shotgun_api(sg, url_dict, file_path, entity_type, entity_id)
 
     except Exception as err:
         error_msg = f"Failed to download thumbnail for {entity_type} {entity_id}: {str(err)}"
