@@ -231,3 +231,105 @@ class TestThumbnailTools:
 
         # For simplicity, we'll skip the other validation tests
         # since they're covered by the implementation
+
+    @pytest.mark.asyncio
+    async def test_download_recent_asset_thumbnails(self, thumbnail_server: FastMCP, mock_sg: Shotgun):
+        """Test download_recent_asset_thumbnails tool."""
+        # Create test assets with thumbnails and updated_at dates
+        project = mock_sg.find_one("Project", [["code", "is", "main"]])
+
+        # Create assets with different updated_at dates
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+
+        asset1 = mock_sg.create(
+            "Asset",
+            {
+                "code": "asset_recent_1",
+                "project": project,
+                "sg_status_list": "ip",
+                "description": "Recent asset 1",
+                "updated_at": now - timedelta(days=1),
+            },
+        )
+
+        asset2 = mock_sg.create(
+            "Asset",
+            {
+                "code": "asset_recent_2",
+                "project": project,
+                "sg_status_list": "ip",
+                "description": "Recent asset 2",
+                "updated_at": now - timedelta(days=2),
+            },
+        )
+
+        asset3 = mock_sg.create(
+            "Asset",
+            {
+                "code": "asset_old",
+                "project": project,
+                "sg_status_list": "ip",
+                "description": "Old asset",
+                "updated_at": now - timedelta(days=30),
+            },
+        )
+
+        # Add thumbnails directly to the entities
+        mock_sg.update(
+            "Asset",
+            asset1["id"],
+            {"image": {"url": "https://example.com/asset1.jpg", "type": "Attachment"}},
+        )
+
+        mock_sg.update(
+            "Asset",
+            asset2["id"],
+            {"image": {"url": "https://example.com/asset2.jpg", "type": "Attachment"}},
+        )
+
+        mock_sg.update(
+            "Asset",
+            asset3["id"],
+            {"image": {"url": "https://example.com/asset3.jpg", "type": "Attachment"}},
+        )
+
+        # Create a temporary directory for the test
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Download recent asset thumbnails
+            result = await call_tool(
+                thumbnail_server,
+                "thumbnail_download_recent_assets",
+                {
+                    "days": 7,  # Only get assets updated in the last 7 days
+                    "field_name": "image",
+                    "directory": temp_dir,
+                    "limit": 10,
+                },
+            )
+
+            # Verify result
+            assert result is not None
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            # Parse the JSON response
+            response_text = result[0].text
+            response_data = json.loads(response_text)
+
+            # In the test environment, we should get 2 recent assets (not the old one)
+            assert response_data is not None
+            assert isinstance(response_data, list)
+
+            # We should have 2 results (the recent assets)
+            # The old asset should be excluded by the date filter
+            assert len(response_data) == 2
+
+            # Check each result
+            for item in response_data:
+                assert isinstance(item, dict)
+                assert "file_path" in item
+                assert "entity_type" in item
+                assert "entity_id" in item
+                assert item["entity_type"] == "Asset"

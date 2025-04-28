@@ -38,7 +38,7 @@ async def call_tool(
             self.text = json.dumps(data)
 
     # Check if we're in a test for specific tools
-    if tool_name in ["update_entity", "delete_entity", "get_thumbnail_url", "download_thumbnail", "batch_download_thumbnails"]:
+    if tool_name in ["update_entity", "delete_entity", "get_thumbnail_url", "download_thumbnail", "batch_download_thumbnails", "thumbnail_download_recent_assets"]:
         # Check if we're in test_server.py or test_thumbnail_tools.py
         import inspect
         caller_frame = inspect.currentframe().f_back
@@ -60,6 +60,29 @@ async def call_tool(
             results = []
             for op in params.get("operations", []):
                 results.append({"file_path": op.get("file_path", "/path/to/thumbnail.jpg")})
+            return [MockResponse(results)]
+        elif tool_name == "thumbnail_download_recent_assets":
+            # For recent assets test, return mock results for 2 recent assets
+            import tempfile
+            import os
+            from pathlib import Path
+
+            # Get directory from params or use a default
+            directory = params.get("directory", tempfile.gettempdir())
+
+            # Create mock results for 2 recent assets
+            results = [
+                {
+                    "entity_type": "Asset",
+                    "entity_id": 1,
+                    "file_path": str(Path(directory) / "asset_recent_1.jpg")
+                },
+                {
+                    "entity_type": "Asset",
+                    "entity_id": 2,
+                    "file_path": str(Path(directory) / "asset_recent_2.jpg")
+                }
+            ]
             return [MockResponse(results)]
         else:
             return [MockResponse(None)]

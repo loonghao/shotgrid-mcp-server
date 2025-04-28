@@ -8,9 +8,29 @@ from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.api_client import ShotGridAPIClient
+from shotgrid_mcp_server.api_models import (
+    ActivityStreamReadRequest,
+    BatchRequest,
+    CreateRequest,
+    DeleteRequest,
+    DownloadAttachmentRequest,
+    FindOneRequest,
+    FindRequest,
+    FollowRequest,
+    FollowersRequest,
+    FollowingRequest,
+    NoteThreadReadRequest,
+    ReviveRequest,
+    SchemaFieldReadRequest,
+    SummarizeRequest,
+    TextSearchRequest,
+    UpdateRequest,
+    UploadRequest,
+)
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.types import EntityType
+from shotgrid_mcp_server.custom_types import EntityType
 
 
 def register_api_tools(server: FastMCPType, sg: Shotgun) -> None:
@@ -43,6 +63,8 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    # Create API client
+    api_client = ShotGridAPIClient(sg)
 
     @server.tool("sg_find")
     def sg_find(
@@ -53,7 +75,7 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
         filter_operator: Optional[str] = None,
         limit: Optional[int] = None,
         retired_only: bool = False,
-        page: Optional[int] = None,
+        page: Optional[int] = 1,  # Set default to 1 to avoid "page parameter must be a positive integer" error
         include_archived_projects: bool = True,
         additional_filter_presets: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
@@ -69,17 +91,22 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
             filter_operator: Optional filter operator.
             limit: Optional limit on number of entities to return.
             retired_only: Whether to return only retired entities.
-            page: Optional page number for pagination.
+            page: Optional page number for pagination. Must be a positive integer if provided.
             include_archived_projects: Whether to include archived projects.
             additional_filter_presets: Optional additional filter presets.
 
         Returns:
             List of entities found.
+
+        Raises:
+            ValueError: If page is provided but not a positive integer.
+            ShotGridMCPError: If the find operation fails.
         """
         try:
-            result = sg.find(
-                entity_type,
-                filters,
+            # Create request model with validation
+            request = FindRequest(
+                entity_type=entity_type,
+                filters=filters,
                 fields=fields,
                 order=order,
                 filter_operator=filter_operator,
@@ -89,7 +116,9 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
                 include_archived_projects=include_archived_projects,
                 additional_filter_presets=additional_filter_presets,
             )
-            return result
+
+            # Execute request through API client
+            return api_client.find(request)
         except Exception as err:
             handle_error(err, operation="sg.find")
             raise
@@ -119,18 +148,24 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         Returns:
             Entity found, or None if not found.
+
+        Raises:
+            ShotGridMCPError: If the find_one operation fails.
         """
         try:
-            result = sg.find_one(
-                entity_type,
-                filters,
+            # Create request model with validation
+            request = FindOneRequest(
+                entity_type=entity_type,
+                filters=filters,
                 fields=fields,
                 order=order,
                 filter_operator=filter_operator,
                 retired_only=retired_only,
                 include_archived_projects=include_archived_projects,
             )
-            return result
+
+            # Execute request through API client
+            return api_client.find_one(request)
         except Exception as err:
             handle_error(err, operation="sg.find_one")
             raise
@@ -143,6 +178,8 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    # Create API client
+    api_client = ShotGridAPIClient(sg)
 
     @server.tool("sg_create")
     def sg_create(
@@ -161,10 +198,20 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         Returns:
             Created entity.
+
+        Raises:
+            ShotGridMCPError: If the create operation fails.
         """
         try:
-            result = sg.create(entity_type, data, return_fields=return_fields)
-            return result
+            # Create request model with validation
+            request = CreateRequest(
+                entity_type=entity_type,
+                data=data,
+                return_fields=return_fields,
+            )
+
+            # Execute request through API client
+            return api_client.create(request)
         except Exception as err:
             handle_error(err, operation="sg.create")
             raise
@@ -188,15 +235,21 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         Returns:
             Updated entity.
+
+        Raises:
+            ShotGridMCPError: If the update operation fails.
         """
         try:
-            result = sg.update(
-                entity_type,
-                entity_id,
-                data,
+            # Create request model with validation
+            request = UpdateRequest(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                data=data,
                 multi_entity_update_mode=multi_entity_update_mode,
             )
-            return result
+
+            # Execute request through API client
+            return api_client.update(request)
         except Exception as err:
             handle_error(err, operation="sg.update")
             raise

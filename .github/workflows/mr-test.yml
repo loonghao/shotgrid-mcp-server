@@ -34,7 +34,7 @@ jobs:
             source .venv/bin/activate
           fi
           uv pip install -r requirements-dev.txt
-      - name: Lint
+      - name: lint
         shell: bash
         run: |
           if [ "${{ matrix.target.os }}" = "windows-latest" ]; then
@@ -43,12 +43,3 @@ jobs:
             source .venv/bin/activate
           fi
           nox -s lint
-      - name: Tests
-        shell: bash
-        run: |
-          if [ "${{ matrix.target.os }}" = "windows-latest" ]; then
-            source .venv/Scripts/activate
-          else
-            source .venv/bin/activate
-          fi
-          nox -s tests

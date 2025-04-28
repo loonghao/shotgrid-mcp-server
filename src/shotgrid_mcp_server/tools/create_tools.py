@@ -10,7 +10,7 @@ from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
-from shotgrid_mcp_server.types import EntityType
+from shotgrid_mcp_server.custom_types import EntityType
 
 
 def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
