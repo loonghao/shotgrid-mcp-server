@@ -4,6 +4,9 @@
 ShotGrid connection pool and factory implementation.
 Provides thread-safe API calls for Python 3.x
 Requires Shotgun Python API: https://github.com/shotgunsoftware/python-api
+
+The connection pool implementation is based on:
+https://gist.github.com/danielskovli/cfec8aae6c0e1ab7e418e5a222a489fb
 """
 
 from __future__ import annotations
@@ -87,16 +90,16 @@ def get_shotgun_connection_args(
     """
     shotgun_args = shotgun_args or {}
 
-    # Get connection parameters with defaults (increased for better reliability)
+    # Get connection parameters with defaults
     max_rpc_attempts = _get_value_from_shotgun_args(
         shotgun_args, "max_rpc_attempts", default_value=10
-    )  # Increased from 5 to 10 for better reliability with slow connections
+    )  # Increased from 5 to 10 for better reliability with slow connections (default: 5)
     timeout_secs = _get_value_from_shotgun_args(
         shotgun_args, "timeout_secs", default_value=30
-    )  # Increased from 10 to 30 seconds to handle larger responses
+    )  # Increased from 10 to 30 seconds to handle larger responses (default: 10)
     rpc_attempt_interval = _get_value_from_shotgun_args(
         shotgun_args, "rpc_attempt_interval", default_value=10000
-    )  # Increased from 5000 to 10000ms to reduce server load
+    )  # Increased from 5000 to 10000ms to reduce server load (default: 5000)
 
     # Create connection arguments dictionary
     connection_args = {
@@ -170,7 +173,11 @@ class InstancePoolManager:
 
 
 class InstancePool:
-    """Instance pool that keeps track of `Shotgun` instances"""
+    """Instance pool that keeps track of `Shotgun` instances.
+
+    Based on the implementation from:
+    https://gist.github.com/danielskovli/cfec8aae6c0e1ab7e418e5a222a489fb
+    """
 
     def __init__(self, host: str, scriptName: str, apiKey: str, size: int = -1):
         """Initialize a new InstancePool
