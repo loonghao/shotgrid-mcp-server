@@ -26,8 +26,19 @@ T = TypeVar("T")
 
 # Default entity types to support
 DEFAULT_ENTITY_TYPES: Set[str] = {
-    "Asset", "Shot", "Sequence", "Project", "Task", "HumanUser", "Group",
-    "Version", "PublishedFile", "Note", "Department", "Step", "Playlist"
+    "Asset",
+    "Shot",
+    "Sequence",
+    "Project",
+    "Task",
+    "HumanUser",
+    "Group",
+    "Version",
+    "PublishedFile",
+    "Note",
+    "Department",
+    "Step",
+    "Playlist",
 }
 
 
@@ -50,8 +61,10 @@ def create_ssl_context(minimum_version: Optional[int] = None) -> ssl.SSLContext:
         # Default to TLSv1.2 which is widely supported
         context.minimum_version = ssl.TLSVersion.TLSv1_2
 
-    logger.debug("Created SSL context with minimum TLS version: %s",
-                 "TLSv1.2" if context.minimum_version == ssl.TLSVersion.TLSv1_2 else str(context.minimum_version))
+    logger.debug(
+        "Created SSL context with minimum TLS version: %s",
+        "TLSv1.2" if context.minimum_version == ssl.TLSVersion.TLSv1_2 else str(context.minimum_version),
+    )
 
     return context
 
@@ -71,9 +84,6 @@ def create_session() -> requests.Session:
         status_forcelist=[500, 502, 503, 504],
     )
 
-    # Create SSL context with TLSv1.2 minimum
-    ssl_context = create_ssl_context()
-
     # Mount retry adapter with SSL configuration
     adapter = HTTPAdapter(max_retries=retries, pool_connections=10, pool_maxsize=10)
     session.mount("http://", adapter)
@@ -82,14 +92,13 @@ def create_session() -> requests.Session:
     return session
 
 
-def download_file(url: str, local_path: str, chunk_size: int = 8192, ssl_version: Optional[int] = None) -> str:
+def download_file(url: str, local_path: str, chunk_size: int = 8192) -> str:
     """Download a file from a URL with multiple fallback mechanisms for SSL issues.
 
     Args:
         url: URL to download from.
         local_path: Path to save the file to.
         chunk_size: Size of chunks to download in bytes.
-        ssl_version: Optional SSL/TLS version to use. Defaults to TLSv1.2.
 
     Returns:
         str: Path to the downloaded file.
@@ -98,8 +107,9 @@ def download_file(url: str, local_path: str, chunk_size: int = 8192, ssl_version
         Exception: If all download methods fail.
     """
     # Import certifi for SSL certificate verification
-    import certifi
     from urllib.request import urlopen
+
+    import certifi
 
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
@@ -371,9 +381,6 @@ def serialize_entity(entity: Any) -> Dict[str, Any]:
     if not isinstance(entity, dict):
         return {}
     return {k: _serialize_value(v) for k, v in entity.items()}
-
-
-
 
 
 def generate_default_file_path(
