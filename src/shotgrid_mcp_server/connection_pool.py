@@ -233,10 +233,8 @@ class InstancePool:
         elif self.inUse and self.inUse[0].config.session_token:
             existingInstance = self.inUse[0]
 
-        # Get connection parameters with defaults (increased for better reliability)
-        max_rpc_attempts = 10  # Increased from 5 to 10 for better reliability with slow connections
-        timeout_secs = 30  # Increased from 10 to 30 seconds to handle larger responses
-        rpc_attempt_interval = 10000  # Increased from 5000 to 10000ms to reduce server load
+        # Get connection parameters with defaults
+        connection_args = get_shotgun_connection_args()
 
         # We have an instance, clone it
         if existingInstance:
@@ -245,14 +243,13 @@ class InstancePool:
                 base_url=self.host,
                 connect=False,
                 session_token=existingInstance.config.session_token,
-                # session_token = existingInstance.get_session_token()
             )
             instance._connection = None
 
             # Configure connection parameters
-            instance.config.max_rpc_attempts = max_rpc_attempts
-            instance.config.timeout_secs = timeout_secs
-            instance.config.rpc_attempt_interval = rpc_attempt_interval
+            instance.config.max_rpc_attempts = connection_args["max_rpc_attempts"]
+            instance.config.timeout_secs = connection_args["timeout_secs"]
+            instance.config.rpc_attempt_interval = connection_args["rpc_attempt_interval"]
 
             return instance
 
@@ -263,16 +260,16 @@ class InstancePool:
             instance.config.session_token = instance.get_session_token()  # Force auth, store session token
 
             # Configure connection parameters
-            instance.config.max_rpc_attempts = max_rpc_attempts
-            instance.config.timeout_secs = timeout_secs
-            instance.config.rpc_attempt_interval = rpc_attempt_interval
+            instance.config.max_rpc_attempts = connection_args["max_rpc_attempts"]
+            instance.config.timeout_secs = connection_args["timeout_secs"]
+            instance.config.rpc_attempt_interval = connection_args["rpc_attempt_interval"]
 
             logger.info(
                 "Successfully connected to ShotGrid at %s with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
                 self.host,
-                max_rpc_attempts,
-                timeout_secs,
-                rpc_attempt_interval,
+                connection_args["max_rpc_attempts"],
+                connection_args["timeout_secs"],
+                connection_args["rpc_attempt_interval"],
             )
             return instance
 
