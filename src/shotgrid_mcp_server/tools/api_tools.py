@@ -10,27 +10,14 @@ from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.api_client import ShotGridAPIClient
 from shotgrid_mcp_server.api_models import (
-    ActivityStreamReadRequest,
-    BatchRequest,
     CreateRequest,
-    DeleteRequest,
-    DownloadAttachmentRequest,
     FindOneRequest,
     FindRequest,
-    FollowRequest,
-    FollowersRequest,
-    FollowingRequest,
-    NoteThreadReadRequest,
-    ReviveRequest,
-    SchemaFieldReadRequest,
-    SummarizeRequest,
-    TextSearchRequest,
     UpdateRequest,
-    UploadRequest,
 )
+from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.custom_types import EntityType
 
 
 def register_api_tools(server: FastMCPType, sg: Shotgun) -> None:

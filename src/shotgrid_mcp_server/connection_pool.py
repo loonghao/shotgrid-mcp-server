@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 ShotGrid connection pool and factory implementation.
 Provides thread-safe API calls for Python 3.x
 Requires Shotgun Python API: https://github.com/shotgunsoftware/python-api
-'''
+"""
 
 from __future__ import annotations
 
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, TypeVar, Union
+from typing import Any, Dict, Optional, TypeVar
 
 import shotgun_api3
 
@@ -88,9 +88,15 @@ def get_shotgun_connection_args(
     shotgun_args = shotgun_args or {}
 
     # Get connection parameters with defaults (increased for better reliability)
-    max_rpc_attempts = _get_value_from_shotgun_args(shotgun_args, "max_rpc_attempts", default_value=10)  # Increased from 5 to 10 for better reliability with slow connections
-    timeout_secs = _get_value_from_shotgun_args(shotgun_args, "timeout_secs", default_value=30)  # Increased from 10 to 30 seconds to handle larger responses
-    rpc_attempt_interval = _get_value_from_shotgun_args(shotgun_args, "rpc_attempt_interval", default_value=10000)  # Increased from 5000 to 10000ms to reduce server load
+    max_rpc_attempts = _get_value_from_shotgun_args(
+        shotgun_args, "max_rpc_attempts", default_value=10
+    )  # Increased from 5 to 10 for better reliability with slow connections
+    timeout_secs = _get_value_from_shotgun_args(
+        shotgun_args, "timeout_secs", default_value=30
+    )  # Increased from 10 to 30 seconds to handle larger responses
+    rpc_attempt_interval = _get_value_from_shotgun_args(
+        shotgun_args, "rpc_attempt_interval", default_value=10000
+    )  # Increased from 5000 to 10000ms to reduce server load
 
     # Create connection arguments dictionary
     connection_args = {
@@ -111,67 +117,69 @@ def get_shotgun_connection_args(
 
 
 class ShotgunConfig:
-    '''ShotGrid credentials and config'''
+    """ShotGrid credentials and config"""
 
-    host = os.getenv("SHOTGRID_URL", 'https://example.shotgunstudio.com')
-    clientId = os.getenv("SHOTGRID_SCRIPT_NAME", 'script_name')
-    clientSecret = os.getenv("SHOTGRID_SCRIPT_KEY", 'script_key')
+    host = os.getenv("SHOTGRID_URL", "https://example.shotgunstudio.com")
+    clientId = os.getenv("SHOTGRID_SCRIPT_NAME", "script_name")
+    clientSecret = os.getenv("SHOTGRID_SCRIPT_KEY", "script_key")
     demoProjectId = 0
 
     class Entity:
-        '''Entity types'''
+        """Entity types"""
 
-        project = 'Project'
-        shot = 'Shot'
+        project = "Project"
+        shot = "Shot"
 
     class Fields:
-        '''Default field requests'''
+        """Default field requests"""
 
-        _default = ['id', 'code', 'sg_status', 'sg_status_list', 'description']
-        shot = _default + ['sg_camera_lens', 'sg_camera_framing', 'sg_camera_description', 'sg_sequence']
+        _default = ["id", "code", "sg_status", "sg_status_list", "description"]
+        shot = _default + ["sg_camera_lens", "sg_camera_framing", "sg_camera_description", "sg_sequence"]
 
 
 class NoAvailableInstancesError(Exception):
-    '''Pool manager does not have any available instances to provide'''
+    """Pool manager does not have any available instances to provide"""
 
 
 class InstancePoolManager:
-    '''Manager for `InstancePool`'''
+    """Manager for `InstancePool`"""
 
     def __init__(self, pool: InstancePool):
-        '''Initialize a new InstancePoolManager. This object will handle enter/exit hooks during a `with` clause
+        """Initialize a new InstancePoolManager. This object will handle enter/exit hooks during a `with` clause
         Args:
             pool (InstancePool): The InstancePool to interact with
-        '''
+        """
 
         self.pool = pool
         self.obj = None
 
     def __enter__(self):
-        '''User-code has entered `with` clause, acquire Shotgun instance'''
+        """User-code has entered `with` clause, acquire Shotgun instance"""
 
         self.instance = self.pool.acquire()
-        logger.debug(f'Manager: Allocated Shotgun instance with ID {id(self.instance)} (session token {self.instance.config.session_token})')
+        logger.debug(
+            f"Manager: Allocated Shotgun instance with ID {id(self.instance)} (session token {self.instance.config.session_token})"
+        )
 
         return self.instance
 
     def __exit__(self, *_):
-        '''User-code has exited `with` clause, release Shotgun instance'''
+        """User-code has exited `with` clause, release Shotgun instance"""
 
         self.pool.release(self.instance)
 
 
 class InstancePool:
-    '''Instance pool that keeps track of `Shotgun` instances'''
+    """Instance pool that keeps track of `Shotgun` instances"""
 
-    def __init__(self, host: str, scriptName: str, apiKey: str, size: int=-1):
-        '''Initialize a new InstancePool
+    def __init__(self, host: str, scriptName: str, apiKey: str, size: int = -1):
+        """Initialize a new InstancePool
         Args:
             host (str): Base URL to Shotgun site. Eg. https://your-site.shotgunstudio.com
             scriptName (str): API key name
             apiKey (str): API key secret
             size (int, optional): Max pool size. Defaults to -1, which means unlimited
-        '''
+        """
 
         self.host = host
         self.scriptName = scriptName
@@ -185,35 +193,37 @@ class InstancePool:
         return len(self.free) + len(self.inUse)
 
     def acquire(self) -> shotgun_api3.Shotgun:
-        '''Acquire an instance from the pool. Recycle if possible, create new if required (within `self.size` limits)'''
+        """Acquire an instance from the pool. Recycle if possible, create new if required (within `self.size` limits)"""
 
         numFree = len(self.free)
         numUsed = len(self.inUse)
 
         if self.size > -1 and numFree == 0 and numUsed >= self.size:
-            raise NoAvailableInstancesError(f'No further instances can be allocated, as defined by user-defined maximum pool size: {self.size}')
+            raise NoAvailableInstancesError(
+                f"No further instances can be allocated, as defined by user-defined maximum pool size: {self.size}"
+            )
 
         instance: shotgun_api3.Shotgun
         if numFree:
-            logger.debug('Acquire: Returning existing free instance')
+            logger.debug("Acquire: Returning existing free instance")
             instance = self.free.pop(0)
         else:
-            logger.debug('Acquire: Generating new instance')
+            logger.debug("Acquire: Generating new instance")
             instance = self.instanceFactory()
 
         self.inUse.append(instance)
         return instance
 
     def release(self, r: shotgun_api3.Shotgun):
-        '''Release an instance -> move it from `inUse` to `free`'''
+        """Release an instance -> move it from `inUse` to `free`"""
 
         self.inUse.remove(r)
         self.free.append(r)
 
     def instanceFactory(self) -> shotgun_api3.Shotgun:
-        '''Generate a new, or clone existing shotgun connection as applicable'''
+        """Generate a new, or clone existing shotgun connection as applicable"""
 
-        existingInstance: shotgun_api3.Shotgun|None = None
+        existingInstance: shotgun_api3.Shotgun | None = None
 
         # Realistically this never happens if called from `self.acquire`
         if self.free and self.free[0].config.session_token:
@@ -230,11 +240,11 @@ class InstancePool:
 
         # We have an instance, clone it
         if existingInstance:
-            logger.debug(f'Factory: Using existing instance session token: {existingInstance.config.session_token}')
+            logger.debug(f"Factory: Using existing instance session token: {existingInstance.config.session_token}")
             instance = shotgun_api3.Shotgun(
-                base_url = self.host,
-                connect = False,
-                session_token = existingInstance.config.session_token
+                base_url=self.host,
+                connect=False,
+                session_token=existingInstance.config.session_token,
                 # session_token = existingInstance.get_session_token()
             )
             instance._connection = None
@@ -248,21 +258,22 @@ class InstancePool:
 
         # Need to generate new instance, which will require authentication
         else:
-            logger.debug('Factory: Generating new instance with auth creds')
-            instance = shotgun_api3.Shotgun(
-                base_url = self.host,
-                script_name = self.scriptName,
-                api_key = self.apiKey
-            )
-            instance.config.session_token = instance.get_session_token() # Force auth, store session token
+            logger.debug("Factory: Generating new instance with auth creds")
+            instance = shotgun_api3.Shotgun(base_url=self.host, script_name=self.scriptName, api_key=self.apiKey)
+            instance.config.session_token = instance.get_session_token()  # Force auth, store session token
 
             # Configure connection parameters
             instance.config.max_rpc_attempts = max_rpc_attempts
             instance.config.timeout_secs = timeout_secs
             instance.config.rpc_attempt_interval = rpc_attempt_interval
 
-            logger.info("Successfully connected to ShotGrid at %s with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
-                       self.host, max_rpc_attempts, timeout_secs, rpc_attempt_interval)
+            logger.info(
+                "Successfully connected to ShotGrid at %s with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
+                self.host,
+                max_rpc_attempts,
+                timeout_secs,
+                rpc_attempt_interval,
+            )
             return instance
 
 
@@ -287,20 +298,21 @@ def create_shotgun_connection(
     shotgun_args = shotgun_args or {}
 
     # Get connection parameters with defaults (increased for better reliability)
-    max_rpc_attempts = _get_value_from_shotgun_args(shotgun_args, "max_rpc_attempts", default_value=10)  # Increased from 5 to 10 for better reliability with slow connections
-    timeout_secs = _get_value_from_shotgun_args(shotgun_args, "timeout_secs", default_value=30)  # Increased from 10 to 30 seconds to handle larger responses
-    rpc_attempt_interval = _get_value_from_shotgun_args(shotgun_args, "rpc_attempt_interval", default_value=10000)  # Increased from 5000 to 10000ms to reduce server load
+    max_rpc_attempts = _get_value_from_shotgun_args(
+        shotgun_args, "max_rpc_attempts", default_value=10
+    )  # Increased from 5 to 10 for better reliability with slow connections
+    timeout_secs = _get_value_from_shotgun_args(
+        shotgun_args, "timeout_secs", default_value=30
+    )  # Increased from 10 to 30 seconds to handle larger responses
+    rpc_attempt_interval = _get_value_from_shotgun_args(
+        shotgun_args, "rpc_attempt_interval", default_value=10000
+    )  # Increased from 5000 to 10000ms to reduce server load
 
     # Get remaining kwargs
     kwargs = _ignore_shotgun_args(shotgun_args)
 
     # Create ShotGrid connection
-    sg = shotgun_api3.Shotgun(
-        base_url=url,
-        script_name=script_name,
-        api_key=api_key,
-        **kwargs
-    )
+    sg = shotgun_api3.Shotgun(base_url=url, script_name=script_name, api_key=api_key, **kwargs)
 
     # Configure connection parameters
     sg.config.max_rpc_attempts = max_rpc_attempts
@@ -378,32 +390,29 @@ def create_shotgun_connection_from_env(
 
 
 class ShotgunClient:
-    '''Shotgun API Wrapper'''
+    """Shotgun API Wrapper"""
 
-    def __init__(self, poolSize: int=-1) -> None:
-        '''Shotgun API wrapper.
+    def __init__(self, poolSize: int = -1) -> None:
+        """Shotgun API wrapper.
 
         Most methods will block while waiting for http, so best called on a separate thread.
 
         To access the `shotgun_api3.Shotgun` instance directly at any stage, use the `InstancePoolManager` or in a pinch, the `.instance` getter
-        '''
+        """
 
         super().__init__()
 
         self.instancePool = InstancePool(
-            host=ShotgunConfig.host,
-            scriptName=ShotgunConfig.clientId,
-            apiKey=ShotgunConfig.clientSecret,
-            size=poolSize
+            host=ShotgunConfig.host, scriptName=ShotgunConfig.clientId, apiKey=ShotgunConfig.clientSecret, size=poolSize
         )
 
     @property
     def instance(self) -> shotgun_api3.Shotgun:
-        '''Acquires a `Shotgun` instance from the instance pool directly.
+        """Acquires a `Shotgun` instance from the instance pool directly.
         This will work, and will be tracked, but will never be recycled unless done so manually by the caller
         Eg. herein lies memory leaks...
         A better way to access the Shotgun instance is to call the pool manager via `with InstancePoolManager(self.instancePool) as sg: ...`
-        '''
+        """
 
         # This will be tracked in the pool, but unless the caller manually releases it,
         # the instance will never be returned and recycled
@@ -411,20 +420,21 @@ class ShotgunClient:
 
     @classmethod
     def generateEntityObject(cls, entityType: str, shotgunId: int) -> dict[str, Any]:
-        '''Helper: Generate and return a dict containing the correct query parameter for an entity type + id'''
+        """Helper: Generate and return a dict containing the correct query parameter for an entity type + id"""
 
-        return {
-            'type': entityType,
-            'id': shotgunId
-        }
+        return {"type": entityType, "id": shotgunId}
 
     @classmethod
-    def generateDefaultProjectFilter(cls, projectId: int|None) -> list[Any]|list[list[Any]]:
-        '''Helper: Generate and return a default filter for the given project id'''
+    def generateDefaultProjectFilter(cls, projectId: int | None) -> list[Any] | list[list[Any]]:
+        """Helper: Generate and return a default filter for the given project id"""
 
         if projectId is not None:
             return [
-                [ShotgunConfig.Entity.project.lower(), 'is', cls.generateEntityObject(ShotgunConfig.Entity.project, projectId)],
+                [
+                    ShotgunConfig.Entity.project.lower(),
+                    "is",
+                    cls.generateEntityObject(ShotgunConfig.Entity.project, projectId),
+                ],
             ]
         else:
             return []
@@ -484,9 +494,7 @@ class ShotGridConnectionContext:
             logger.error("Failed to create connection: %s", str(e), exc_info=True)
             raise
 
-    def __exit__(
-        self, *_
-    ) -> None:
+    def __exit__(self, *_) -> None:
         """Clean up the connection."""
         # Release the connection back to the pool if using ShotgunClient
         if self.sg_client and self.connection in self.sg_client.instancePool.inUse:
@@ -557,10 +565,7 @@ class RealShotgunFactory(ShotgunClientFactory):
 
         # Create and return the connection
         return create_shotgun_connection(
-            url=self.url,
-            script_name=self.script_name,
-            api_key=self.script_key,
-            shotgun_args=shotgun_args
+            url=self.url, script_name=self.script_name, api_key=self.script_key, shotgun_args=shotgun_args
         )
 
 
@@ -609,8 +614,12 @@ class MockShotgunFactory(ShotgunClientFactory):
         sg.config.timeout_secs = timeout_secs
         sg.config.rpc_attempt_interval = rpc_attempt_interval
 
-        logger.debug("Created mock ShotGrid connection with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
-                    max_rpc_attempts, timeout_secs, rpc_attempt_interval)
+        logger.debug(
+            "Created mock ShotGrid connection with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
+            max_rpc_attempts,
+            timeout_secs,
+            rpc_attempt_interval,
+        )
         return sg
 
 

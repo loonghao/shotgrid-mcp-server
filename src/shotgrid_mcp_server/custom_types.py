@@ -72,24 +72,30 @@ FilterOperator = Literal[
     "type_is_not",
 ]
 
+
 # ShotGrid entity reference
 class EntityRef(TypedDict):
     """ShotGrid entity reference."""
+
     type: str
     id: int
     name: Optional[str]
 
+
 # ShotGrid URL field
 class UrlField(TypedDict):
     """ShotGrid URL field."""
+
     content_type: str
     link_type: Literal["local", "url", "upload"]
     name: str
     url: str
 
+
 # ShotGrid local file URL field
 class LocalUrlField(UrlField):
     """ShotGrid local file URL field."""
+
     # Note: link_type is already defined in UrlField
     local_path: Optional[str]
     local_path_linux: Optional[str]
@@ -97,28 +103,36 @@ class LocalUrlField(UrlField):
     local_path_windows: Optional[str]
     local_storage: Dict[str, Any]
 
+
 # ShotGrid filter
 Filter = Tuple[str, FilterOperator, Any]
+
 
 # ShotGrid batch request
 class BatchRequest(TypedDict):
     """ShotGrid batch request."""
+
     request_type: Literal["create", "update", "delete"]
     entity_type: str
     data: Dict[str, Any]
     entity_id: Optional[int]  # Required for update and delete
 
+
 # ShotGrid field schema
 class FieldSchema(TypedDict):
     """ShotGrid field schema."""
+
     data_type: Dict[str, str]
     properties: Dict[str, Dict[str, Any]]
+
 
 # ShotGrid entity schema
 class EntitySchema(TypedDict):
     """ShotGrid entity schema."""
+
     type: str
     fields: Dict[str, Dict[str, Any]]
+
 
 # ShotGrid value types
 ShotGridValue = Union[
@@ -134,9 +148,11 @@ ShotGridValue = Union[
     List[str],
 ]
 
+
 # ShotGrid entity
 class Entity(TypedDict, total=False):
     """ShotGrid entity."""
+
     type: str
     id: int
     name: Optional[str]
@@ -151,6 +167,7 @@ class Entity(TypedDict, total=False):
     image: Optional[str]
     tags: Optional[List[EntityRef]]
     attachments: Optional[Union[str, List[Dict[str, Any]]]]
+
 
 # ShotGrid event types
 EventType = Literal[
@@ -216,9 +233,11 @@ EventType = Literal[
     "Shotgun_Version_Revival",
 ]
 
+
 # ShotGrid additional filter presets
 class AdditionalFilterPreset(TypedDict, total=False):
     """ShotGrid additional filter preset."""
+
     preset_name: str
     latest_by: str
     cut_id: int

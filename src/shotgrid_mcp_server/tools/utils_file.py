@@ -2,7 +2,9 @@
 File name utilities for ShotGrid MCP server.
 Provides safe file name conversion helpers.
 """
+
 from slugify import slugify
+
 
 def safe_slug_filename(name: str, ext: str = "") -> str:
     """

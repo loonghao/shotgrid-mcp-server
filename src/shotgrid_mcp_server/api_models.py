@@ -4,7 +4,8 @@ This module provides Pydantic models for validating and standardizing ShotGrid A
 These models ensure that all parameters passed to the ShotGrid API are valid and properly formatted.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from shotgrid_mcp_server.custom_types import EntityType
@@ -15,6 +16,7 @@ class BaseAPIRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         extra = "forbid"  # Prevent extra fields
 
 
@@ -28,11 +30,13 @@ class FindRequest(BaseAPIRequest):
     filter_operator: Optional[str] = None
     limit: Optional[int] = None
     retired_only: bool = False
-    page: Optional[int] = Field(None, gt=0, description="Page number for pagination. Must be a positive integer if provided.")
+    page: Optional[int] = Field(
+        None, gt=0, description="Page number for pagination. Must be a positive integer if provided."
+    )
     include_archived_projects: bool = True
     additional_filter_presets: Optional[List[Dict[str, Any]]] = None
 
-    @field_validator('limit')
+    @field_validator("limit")
     @classmethod
     def validate_limit(cls, v):
         """Validate limit parameter."""
@@ -89,24 +93,24 @@ class BatchRequest(BaseAPIRequest):
 
     requests: List[Dict[str, Any]]
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_batch_requests(self):
         """Validate batch requests."""
         for request in self.requests:
-            if 'request_type' not in request:
+            if "request_type" not in request:
                 raise ValueError("Each batch request must have a 'request_type'")
 
-            request_type = request['request_type']
-            if request_type not in ['create', 'update', 'delete']:
+            request_type = request["request_type"]
+            if request_type not in ["create", "update", "delete"]:
                 raise ValueError(f"Invalid request_type: {request_type}. Must be one of: create, update, delete")
 
-            if 'entity_type' not in request:
+            if "entity_type" not in request:
                 raise ValueError("Each batch request must have an 'entity_type'")
 
-            if request_type in ['update', 'delete'] and 'entity_id' not in request:
+            if request_type in ["update", "delete"] and "entity_id" not in request:
                 raise ValueError(f"Batch request of type '{request_type}' must have an 'entity_id'")
 
-            if request_type in ['create', 'update'] and 'data' not in request:
+            if request_type in ["create", "update"] and "data" not in request:
                 raise ValueError(f"Batch request of type '{request_type}' must have 'data'")
 
         return self
@@ -202,10 +206,12 @@ class SearchEntitiesRequest(BaseAPIRequest):
     filters: List[Dict[str, Any]] = Field(default_factory=list)
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
-    filter_operator: Optional[str] = Field("and", description="Logical operator for combining filters. Must be 'and' or 'or'.")
+    filter_operator: Optional[str] = Field(
+        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+    )
     limit: Optional[int] = Field(None, gt=0)
 
-    @field_validator('filter_operator')
+    @field_validator("filter_operator")
     @classmethod
     def validate_filter_operator(cls, v):
         """Validate filter_operator parameter."""
@@ -213,7 +219,7 @@ class SearchEntitiesRequest(BaseAPIRequest):
             raise ValueError("filter_operator must be 'and' or 'or'")
         return v
 
-    @field_validator('filters')
+    @field_validator("filters")
     @classmethod
     def validate_filters(cls, v):
         """Validate filters parameter."""
@@ -242,7 +248,7 @@ class SearchEntitiesWithRelatedRequest(SearchEntitiesRequest):
 
     related_fields: Optional[Dict[str, List[str]]] = None
 
-    @field_validator('related_fields')
+    @field_validator("related_fields")
     @classmethod
     def validate_related_fields(cls, v):
         """Validate related_fields parameter."""
@@ -252,11 +258,15 @@ class SearchEntitiesWithRelatedRequest(SearchEntitiesRequest):
                     raise ValueError(f"Related field key must be a string, got {type(field).__name__}")
 
                 if not isinstance(related_field_list, list):
-                    raise ValueError(f"Related field value for '{field}' must be a list, got {type(related_field_list).__name__}")
+                    raise ValueError(
+                        f"Related field value for '{field}' must be a list, got {type(related_field_list).__name__}"
+                    )
 
                 for related_field in related_field_list:
                     if not isinstance(related_field, str):
-                        raise ValueError(f"Related field item for '{field}' must be a string, got {type(related_field).__name__}")
+                        raise ValueError(
+                            f"Related field item for '{field}' must be a string, got {type(related_field).__name__}"
+                        )
 
         return v
 
@@ -268,9 +278,11 @@ class FindOneEntityRequest(BaseAPIRequest):
     filters: List[Dict[str, Any]] = Field(default_factory=list)
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
-    filter_operator: Optional[str] = Field("and", description="Logical operator for combining filters. Must be 'and' or 'or'.")
+    filter_operator: Optional[str] = Field(
+        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+    )
 
-    @field_validator('filter_operator')
+    @field_validator("filter_operator")
     @classmethod
     def validate_filter_operator(cls, v):
         """Validate filter_operator parameter."""
@@ -278,7 +290,7 @@ class FindOneEntityRequest(BaseAPIRequest):
             raise ValueError("filter_operator must be 'and' or 'or'")
         return v
 
-    @field_validator('filters')
+    @field_validator("filters")
     @classmethod
     def validate_filters(cls, v):
         """Validate filters parameter."""

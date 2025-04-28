@@ -530,7 +530,7 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             limit=1,
             retired_only=retired_only,
             page=page,
-            page_size=1 if page is not None else None
+            page_size=1 if page is not None else None,
         )
         if not results:
             return None

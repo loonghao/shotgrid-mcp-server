@@ -4,11 +4,10 @@ This module provides utilities for loading schema files and entity types from Sh
 """
 
 # Import built-in modules
-import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Any
+from typing import Optional, Set, Tuple
 
 # Import third-party modules
 from shotgun_api3.lib.mockgun import Shotgun
@@ -115,7 +114,7 @@ def copy_schema_files(source_dir: Path, target_dir: Optional[Path] = None) -> Tu
     return target_schema, target_schema_entity
 
 
-def get_entity_types_from_schema(sg: 'Shotgun') -> Set[str]:
+def get_entity_types_from_schema(sg: "Shotgun") -> Set[str]:
     """Get entity types from ShotGrid schema.
 
     Args:
@@ -139,7 +138,7 @@ def get_entity_types_from_schema(sg: 'Shotgun') -> Set[str]:
         return set()
 
 
-def get_entity_fields_with_image_type(sg: 'Shotgun', entity_type: str) -> Set[str]:
+def get_entity_fields_with_image_type(sg: "Shotgun", entity_type: str) -> Set[str]:
     """Get fields of image type for a specific entity type.
 
     Args:
@@ -155,8 +154,9 @@ def get_entity_fields_with_image_type(sg: 'Shotgun', entity_type: str) -> Set[st
 
         # Find fields of image type
         image_fields = {
-            field_name for field_name, field_info in schema.items()
-            if field_info.get('data_type', {}).get('value') == 'image'
+            field_name
+            for field_name, field_info in schema.items()
+            if field_info.get("data_type", {}).get("value") == "image"
         }
 
         logger.info(f"Found {len(image_fields)} image fields for entity type {entity_type}")
