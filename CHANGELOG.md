@@ -1,3 +1,30 @@
+## v0.8.0 (2025-04-28)
+
+### Feat
+
+- optimize thumbnail download functionality
+
+### Fix
+
+- Fix B904 warnings in api_client.py
+- Fix lint issues in utils and thumbnail tools
+- Fix MockgunExt to support page parameter and fix tests
+- handle string attachment data in thumbnail download
+- simplify thumbnail download implementation to fix URL handling issue
+- correct thumbnail download method to use proper ShotGrid API parameters
+- correct YAML syntax in codecov workflow
+- correct thumbnail URL retrieval method
+
+### Refactor
+
+- Remove compatibility code and simplify connection pool
+- Use _download_with_shotgun_api for thumbnail downloads
+- Simplify thumbnail download code
+- Remove ShotgunConfig class and use custom_types.py
+- Use get_shotgun_connection_args in create_shotgun_connection
+- Use get_shotgun_connection_args in instanceFactory
+- move generate_default_file_path to utils.py for better maintainability
+
 ## v0.7.7 (2025-04-28)
 
 ### Fix
