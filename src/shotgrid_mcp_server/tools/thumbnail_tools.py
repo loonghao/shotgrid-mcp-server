@@ -126,157 +126,9 @@ def download_thumbnail(
         if not entity or not entity.get(field_name):
             raise ToolError(f"No thumbnail found for {entity_type} {entity_id}")
 
-        # Get the attachment data
-        attachment = entity[field_name]
-
-        # Simplified approach based on sg_thumbnail.py reference
-        try:
-            # Method 1: Try direct download using download_attachment with URL dict
-            if isinstance(attachment, str):
-                # If attachment is a URL string, wrap it in a dict
-                url_dict = {"url": attachment}
-            elif isinstance(attachment, dict) and "url" in attachment:
-                # If attachment already has a url key, use it directly
-                url_dict = attachment
-            elif isinstance(attachment, dict) and "id" in attachment:
-                # If attachment has an id, use it directly
-                url_dict = attachment
-            elif isinstance(attachment, int):
-                # If attachment is an integer ID, wrap it in a dict
-                url_dict = {"id": attachment}
-            else:
-                # For other cases, try to use the attachment directly
-                url_dict = {"url": attachment} if attachment else None
-
-            if not url_dict:
-                raise ToolError(f"Invalid attachment data: {attachment}")
-
-            logger.info(
-                "Trying download_attachment with: %s",
-                str(url_dict)[:100] + "..." if len(str(url_dict)) > 100 else str(url_dict),
-            )
-            result = sg.download_attachment(url_dict, file_path=file_path)
-
-            if result:
-                logger.info(
-                    "Successfully downloaded thumbnail for %s %s to %s using download_attachment",
-                    entity_type,
-                    entity_id,
-                    result,
-                )
-                return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
-            else:
-                raise ToolError("download_attachment returned None")
-
-        except Exception as download_err:
-            logger.warning("Method 1 (download_attachment) failed: %s", str(download_err))
-
-            # Method 2: Try to get URL and download with our utility function
-            try:
-                # Get URL from attachment
-                if isinstance(attachment, str):
-                    url = attachment
-                elif isinstance(attachment, dict) and "url" in attachment:
-                    url = attachment["url"]
-                elif isinstance(attachment, dict) and "id" in attachment:
-                    url = sg.get_attachment_download_url(attachment["id"])
-                elif isinstance(attachment, int):
-                    url = sg.get_attachment_download_url(attachment)
-                else:
-                    # Try to get URL directly
-                    url = sg.get_attachment_download_url(attachment)
-
-                if not url:
-                    raise ToolError("Could not get thumbnail URL")
-
-                logger.info("Got download URL: %s", url[:100] + "..." if len(url) > 100 else url)
-                from shotgrid_mcp_server.utils import download_file
-
-                # Try to download with our enhanced download_file function
-                download_file(url, file_path)
-
-                logger.info(
-                    "Successfully downloaded thumbnail for %s %s to %s using download_file",
-                    entity_type,
-                    entity_id,
-                    file_path,
-                )
-                return {"file_path": str(file_path), "entity_type": entity_type, "entity_id": entity_id}
-
-            except Exception as url_err:
-                logger.warning("Method 2 (download_file) failed: %s", str(url_err))
-
-                # Method 3: Last resort - try direct download with completely disabled SSL
-                try:
-                    # Make sure we have a URL
-                    if "url" not in locals() or not url:
-                        raise ToolError("No URL available for direct download")
-
-                    logger.info("Trying direct download with completely disabled SSL")
-                    import ssl
-                    import urllib.request
-
-                    # Create a context with no verification at all
-                    context = ssl._create_unverified_context()
-                    context.check_hostname = False
-                    context.verify_mode = ssl.CERT_NONE
-                    # Try with older protocol versions
-                    context.options |= ssl.OP_NO_TLSv1_3
-                    context.options |= ssl.OP_NO_TLSv1_2
-                    context.options |= ssl.OP_NO_TLSv1_1
-                    # Force TLSv1.0
-                    context.minimum_version = ssl.TLSVersion.TLSv1
-                    context.maximum_version = ssl.TLSVersion.TLSv1
-
-                    with urllib.request.urlopen(url, context=context, timeout=30) as response:
-                        with open(file_path, "wb") as out_file:
-                            out_file.write(response.read())
-
-                    logger.info(
-                        "Successfully downloaded thumbnail for %s %s to %s using direct urllib with disabled SSL",
-                        entity_type,
-                        entity_id,
-                        file_path,
-                    )
-                    return {"file_path": str(file_path), "entity_type": entity_type, "entity_id": entity_id}
-
-                except Exception as direct_err:
-                    error_msg = f"All download methods failed for {entity_type} {entity_id}: Method 1: {str(download_err)}, Method 2: {str(url_err)}, Method 3: {str(direct_err)}"
-                    logger.error(error_msg)
-                    raise ToolError(error_msg) from direct_err
-
-    except Exception as err:
-        error_msg = f"Failed to download thumbnail for {entity_type} {entity_id}: {str(err)}"
-        logger.error(error_msg)
-        handle_error(err, operation="download_thumbnail")
-        raise  # This is needed to satisfy the type checker
-
-
-async def download_thumbnail_async(sg: Shotgun, op: Dict[str, Any]) -> Dict[str, Any]:
-    """Download a thumbnail asynchronously.
-
-    Args:
-        sg: ShotGrid connection.
-        op: Thumbnail download operation.
-
-    Returns:
-        Dict[str, Any]: Result of the download operation.
-    """
-    entity_type = op["entity_type"]
-    entity_id = op["entity_id"]
-    field_name = op.get("field_name", "image")
-    file_path = op.get("file_path")
-    size = op.get("size")
-    image_format = op.get("image_format", "jpg")
-
-    # Generate a default file path if none is provided
-    if not file_path:
-        file_path = generate_default_file_path(entity_type, entity_id, field_name, image_format)
-
-    try:
-        # Use the download_thumbnail function to handle the operation
-        result = download_thumbnail(
-            sg=sg,
+        # Download the thumbnail using ShotGrid API's download_thumbnail method
+        logger.info("Downloading thumbnail using ShotGrid API's download_thumbnail method")
+        result = sg.download_thumbnail(
             entity_type=entity_type,
             entity_id=entity_id,
             field_name=field_name,
@@ -284,9 +136,23 @@ async def download_thumbnail_async(sg: Shotgun, op: Dict[str, Any]) -> Dict[str,
             size=size,
             image_format=image_format,
         )
-        return result
-    except Exception as download_err:
-        return {"error": str(download_err), "entity_type": entity_type, "entity_id": entity_id}
+
+        if result:
+            logger.info(
+                "Successfully downloaded thumbnail for %s %s to %s",
+                entity_type,
+                entity_id,
+                result,
+            )
+            return {"file_path": str(result), "entity_type": entity_type, "entity_id": entity_id}
+        else:
+            raise ToolError("download_thumbnail returned None")
+
+    except Exception as err:
+        error_msg = f"Failed to download thumbnail for {entity_type} {entity_id}: {str(err)}"
+        logger.error(error_msg)
+        handle_error(err, operation="download_thumbnail")
+        raise  # This is needed to satisfy the type checker
 
 
 def batch_download_thumbnails(sg: Shotgun, operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -581,18 +447,47 @@ def batch_download_entity_thumbnails(
         raise
 
 
-def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
-    """Register thumbnail tools with the server.
+def _validate_entity_type(entity_types: List[str], entity_type: str) -> None:
+    """Validate entity type against schema.
+
+    Args:
+        entity_types: List of valid entity types from schema.
+        entity_type: Entity type to validate.
+
+    Raises:
+        ToolError: If entity type is invalid.
+    """
+    if entity_types and entity_type not in entity_types:
+        raise ToolError(f"Invalid entity type: {entity_type}. Valid types: {', '.join(sorted(entity_types))}")
+
+
+def _validate_field_name(sg: Shotgun, entity_type: str, field_name: str) -> None:
+    """Validate field name against schema.
+
+    Args:
+        sg: ShotGrid connection.
+        entity_type: Entity type.
+        field_name: Field name to validate.
+
+    Raises:
+        ToolError: If field name is invalid.
+    """
+    image_fields = get_entity_fields_with_image_type(sg, entity_type)
+    if image_fields and field_name not in image_fields:
+        raise ToolError(
+            f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
+        )
+
+
+def _register_get_thumbnail_url_tool(server: FastMCPType, sg: Shotgun, entity_types: List[str]) -> None:
+    """Register get_thumbnail_url tool.
 
     Args:
         server: FastMCP server instance.
         sg: ShotGrid connection.
+        entity_types: List of valid entity types from schema.
     """
-    # Get entity types from schema
-    entity_types = get_entity_types_from_schema(sg)
-    logger.info(f"Registering thumbnail tools with {len(entity_types)} entity types from schema")
 
-    # Register get_thumbnail_url tool
     @server.tool("thumbnail_get_url")
     def get_thumbnail_url_tool(
         entity_type: str,
@@ -601,18 +496,8 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         size: Optional[str] = None,
         image_format: Optional[str] = None,
     ) -> str:
-        # Validate entity type if we have schema information
-        if entity_types and entity_type not in entity_types:
-            raise ToolError(f"Invalid entity type: {entity_type}. Valid types: {', '.join(sorted(entity_types))}")
-
-        # Get image fields for this entity type
-        image_fields = get_entity_fields_with_image_type(sg, entity_type)
-
-        # Validate field name
-        if image_fields and field_name not in image_fields:
-            raise ToolError(
-                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
-            )
+        _validate_entity_type(entity_types, entity_type)
+        _validate_field_name(sg, entity_type, field_name)
 
         return get_thumbnail_url(
             sg=sg,
@@ -623,7 +508,16 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
             image_format=image_format,
         )
 
-    # Register download_thumbnail tool
+
+def _register_download_thumbnail_tool(server: FastMCPType, sg: Shotgun, entity_types: List[str]) -> None:
+    """Register download_thumbnail tool.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+        entity_types: List of valid entity types from schema.
+    """
+
     @server.tool("thumbnail_download")
     def download_thumbnail_tool(
         entity_type: str,
@@ -633,18 +527,8 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         size: Optional[str] = None,
         image_format: Optional[str] = None,
     ) -> Dict[str, Any]:
-        # Validate entity type if we have schema information
-        if entity_types and entity_type not in entity_types:
-            raise ToolError(f"Invalid entity type: {entity_type}. Valid types: {', '.join(sorted(entity_types))}")
-
-        # Get image fields for this entity type
-        image_fields = get_entity_fields_with_image_type(sg, entity_type)
-
-        # Validate field name
-        if image_fields and field_name not in image_fields:
-            raise ToolError(
-                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
-            )
+        _validate_entity_type(entity_types, entity_type)
+        _validate_field_name(sg, entity_type, field_name)
 
         return download_thumbnail(
             sg=sg,
@@ -656,7 +540,16 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
             image_format=image_format,
         )
 
-    # Register batch_download_thumbnails tool
+
+def _register_batch_download_thumbnails_tool(server: FastMCPType, sg: Shotgun, entity_types: List[str]) -> None:
+    """Register batch_download_thumbnails tool.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+        entity_types: List of valid entity types from schema.
+    """
+
     @server.tool("batch_thumbnail_download")
     def batch_download_thumbnails_tool(operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # Validate operations
@@ -665,15 +558,20 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
                 raise ToolError(f"Invalid entity type in operation {i}: {op['entity_type']}")
 
             if "entity_type" in op and "field_name" in op:
-                image_fields = get_entity_fields_with_image_type(sg, op["entity_type"])
-                if image_fields and op["field_name"] not in image_fields:
-                    raise ToolError(
-                        f"Invalid field name in operation {i}: {op['field_name']}. Valid image fields: {', '.join(sorted(image_fields))}"
-                    )
+                _validate_field_name(sg, op["entity_type"], op["field_name"])
 
         return batch_download_thumbnails(sg=sg, operations=operations)
 
-    # Register batch_download_entity_thumbnails tool
+
+def _register_batch_download_entity_thumbnails_tool(server: FastMCPType, sg: Shotgun, entity_types: List[str]) -> None:
+    """Register batch_download_entity_thumbnails tool.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+        entity_types: List of valid entity types from schema.
+    """
+
     @server.tool("thumbnail_batch_download_by_filter")
     def batch_download_entity_thumbnails_tool(
         entity_type: str,
@@ -685,18 +583,8 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         limit: Optional[int] = None,
         filter_operator: str = "and",
     ) -> List[Dict[str, Any]]:
-        # Validate entity type if we have schema information
-        if entity_types and entity_type not in entity_types:
-            raise ToolError(f"Invalid entity type: {entity_type}. Valid types: {', '.join(sorted(entity_types))}")
-
-        # Get image fields for this entity type
-        image_fields = get_entity_fields_with_image_type(sg, entity_type)
-
-        # Validate field name
-        if image_fields and field_name not in image_fields:
-            raise ToolError(
-                f"Invalid field name: {field_name}. Valid image fields for {entity_type}: {', '.join(sorted(image_fields))}"
-            )
+        _validate_entity_type(entity_types, entity_type)
+        _validate_field_name(sg, entity_type, field_name)
 
         return batch_download_entity_thumbnails(
             sg=sg,
@@ -710,7 +598,16 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
             filter_operator=filter_operator,
         )
 
-    # Register download_recent_asset_thumbnails tool
+
+def _register_download_recent_asset_thumbnails_tool(server: FastMCPType, sg: Shotgun, entity_types: List[str]) -> None:
+    """Register download_recent_asset_thumbnails tool.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+        entity_types: List of valid entity types from schema.
+    """
+
     @server.tool("thumbnail_download_recent_assets")
     def download_recent_asset_thumbnails_tool(
         days: int = 7,
@@ -725,14 +622,7 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         if entity_types and "Asset" not in entity_types:
             raise ToolError("Entity type 'Asset' not found in schema")
 
-        # Get image fields for Asset entity type
-        image_fields = get_entity_fields_with_image_type(sg, "Asset")
-
-        # Validate field name
-        if image_fields and field_name not in image_fields:
-            raise ToolError(
-                f"Invalid field name: {field_name}. Valid image fields for Asset: {', '.join(sorted(image_fields))}"
-            )
+        _validate_field_name(sg, "Asset", field_name)
 
         return download_recent_asset_thumbnails(
             sg=sg,
@@ -744,6 +634,25 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
             directory=directory,
             limit=limit,
         )
+
+
+def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register thumbnail tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+    # Get entity types from schema
+    entity_types = get_entity_types_from_schema(sg)
+    logger.info(f"Registering thumbnail tools with {len(entity_types)} entity types from schema")
+
+    # Register all tools
+    _register_get_thumbnail_url_tool(server, sg, entity_types)
+    _register_download_thumbnail_tool(server, sg, entity_types)
+    _register_batch_download_thumbnails_tool(server, sg, entity_types)
+    _register_batch_download_entity_thumbnails_tool(server, sg, entity_types)
+    _register_download_recent_asset_thumbnails_tool(server, sg, entity_types)
 
 
 def validate_thumbnail_batch_operations(operations: List[Dict[str, Any]]) -> None:
