@@ -294,16 +294,8 @@ def create_shotgun_connection(
     """
     shotgun_args = shotgun_args or {}
 
-    # Get connection parameters with defaults (increased for better reliability)
-    max_rpc_attempts = _get_value_from_shotgun_args(
-        shotgun_args, "max_rpc_attempts", default_value=10
-    )  # Increased from 5 to 10 for better reliability with slow connections
-    timeout_secs = _get_value_from_shotgun_args(
-        shotgun_args, "timeout_secs", default_value=30
-    )  # Increased from 10 to 30 seconds to handle larger responses
-    rpc_attempt_interval = _get_value_from_shotgun_args(
-        shotgun_args, "rpc_attempt_interval", default_value=10000
-    )  # Increased from 5000 to 10000ms to reduce server load
+    # Get connection parameters with defaults
+    connection_args = get_shotgun_connection_args(shotgun_args)
 
     # Get remaining kwargs
     kwargs = _ignore_shotgun_args(shotgun_args)
@@ -312,16 +304,16 @@ def create_shotgun_connection(
     sg = shotgun_api3.Shotgun(base_url=url, script_name=script_name, api_key=api_key, **kwargs)
 
     # Configure connection parameters
-    sg.config.max_rpc_attempts = max_rpc_attempts
-    sg.config.timeout_secs = timeout_secs
-    sg.config.rpc_attempt_interval = rpc_attempt_interval
+    sg.config.max_rpc_attempts = connection_args["max_rpc_attempts"]
+    sg.config.timeout_secs = connection_args["timeout_secs"]
+    sg.config.rpc_attempt_interval = connection_args["rpc_attempt_interval"]
 
     # Log connection parameters
     logger.debug(
         "ShotGrid connection parameters: max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s",
-        max_rpc_attempts,
-        timeout_secs,
-        rpc_attempt_interval,
+        connection_args["max_rpc_attempts"],
+        connection_args["timeout_secs"],
+        connection_args["rpc_attempt_interval"],
     )
 
     return sg
