@@ -1,3 +1,9 @@
+## v0.7.7 (2025-04-28)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.510
+
 ## v0.7.6 (2025-04-25)
 
 ### Fix
