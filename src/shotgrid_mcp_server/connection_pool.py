@@ -19,7 +19,9 @@ from typing import Any, Dict, Optional, TypeVar
 import shotgun_api3
 
 # Import local modules
+from shotgrid_mcp_server.custom_types import PROJECT_ENTITY_TYPE
 from shotgrid_mcp_server.mockgun_ext import MockgunExt
+from shotgrid_mcp_server.exceptions import NoAvailableInstancesError
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -119,29 +121,7 @@ def get_shotgun_connection_args(
     return connection_args
 
 
-class ShotgunConfig:
-    """ShotGrid credentials and config"""
-
-    host = os.getenv("SHOTGRID_URL", "https://example.shotgunstudio.com")
-    clientId = os.getenv("SHOTGRID_SCRIPT_NAME", "script_name")
-    clientSecret = os.getenv("SHOTGRID_SCRIPT_KEY", "script_key")
-    demoProjectId = 0
-
-    class Entity:
-        """Entity types"""
-
-        project = "Project"
-        shot = "Shot"
-
-    class Fields:
-        """Default field requests"""
-
-        _default = ["id", "code", "sg_status", "sg_status_list", "description"]
-        shot = _default + ["sg_camera_lens", "sg_camera_framing", "sg_camera_description", "sg_sequence"]
-
-
-class NoAvailableInstancesError(Exception):
-    """Pool manager does not have any available instances to provide"""
+# Entity types and field lists are now imported from custom_types.py
 
 
 class InstancePoolManager:
@@ -388,18 +368,28 @@ def create_shotgun_connection_from_env(
 class ShotgunClient:
     """Shotgun API Wrapper"""
 
-    def __init__(self, poolSize: int = -1) -> None:
+    def __init__(self, poolSize: int = -1, url: str = None, script_name: str = None, api_key: str = None) -> None:
         """Shotgun API wrapper.
 
         Most methods will block while waiting for http, so best called on a separate thread.
 
         To access the `shotgun_api3.Shotgun` instance directly at any stage, use the `InstancePoolManager` or in a pinch, the `.instance` getter
-        """
 
+        Args:
+            poolSize: Maximum number of connections in the pool. -1 means unlimited.
+            url: ShotGrid server URL. If None, uses SHOTGRID_URL environment variable.
+            script_name: ShotGrid script name. If None, uses SHOTGRID_SCRIPT_NAME environment variable.
+            api_key: ShotGrid API key. If None, uses SHOTGRID_SCRIPT_KEY environment variable.
+        """
         super().__init__()
 
+        # Get connection parameters from arguments or environment variables
+        host = url or os.getenv("SHOTGRID_URL", "https://example.shotgunstudio.com")
+        script_name = script_name or os.getenv("SHOTGRID_SCRIPT_NAME", "script_name")
+        api_key = api_key or os.getenv("SHOTGRID_SCRIPT_KEY", "script_key")
+
         self.instancePool = InstancePool(
-            host=ShotgunConfig.host, scriptName=ShotgunConfig.clientId, apiKey=ShotgunConfig.clientSecret, size=poolSize
+            host=host, scriptName=script_name, apiKey=api_key, size=poolSize
         )
 
     @property
@@ -427,9 +417,9 @@ class ShotgunClient:
         if projectId is not None:
             return [
                 [
-                    ShotgunConfig.Entity.project.lower(),
+                    PROJECT_ENTITY_TYPE.lower(),
                     "is",
-                    cls.generateEntityObject(ShotgunConfig.Entity.project, projectId),
+                    cls.generateEntityObject(PROJECT_ENTITY_TYPE, projectId),
                 ],
             ]
         else:
@@ -460,9 +450,9 @@ class ShotGridConnectionContext:
             self.connection = None
             self.sg_client = None
         else:
-            # Create a ShotgunClient with default pool size
+            # Create a ShotgunClient with default pool size and environment variables
             self.factory = None
-            self.sg_client = ShotgunClient()
+            self.sg_client = ShotgunClient(poolSize=-1)  # Use unlimited pool size by default
             self.connection = None
 
     def __enter__(self) -> shotgun_api3.Shotgun:
@@ -600,21 +590,19 @@ class MockShotgunFactory(ShotgunClientFactory):
             api_key="test_key",
         )
 
-        # Configure connection parameters with improved defaults
-        max_rpc_attempts = 10  # Increased from 5 to 10 for better reliability with slow connections
-        timeout_secs = 30  # Increased from 10 to 30 seconds to handle larger responses
-        rpc_attempt_interval = 10000  # Increased from 5000 to 10000ms to reduce server load
+        # Get connection parameters with defaults
+        connection_args = get_shotgun_connection_args()
 
         # Apply optimized parameters
-        sg.config.max_rpc_attempts = max_rpc_attempts
-        sg.config.timeout_secs = timeout_secs
-        sg.config.rpc_attempt_interval = rpc_attempt_interval
+        sg.config.max_rpc_attempts = connection_args["max_rpc_attempts"]
+        sg.config.timeout_secs = connection_args["timeout_secs"]
+        sg.config.rpc_attempt_interval = connection_args["rpc_attempt_interval"]
 
         logger.debug(
             "Created mock ShotGrid connection with optimized parameters (max_rpc_attempts=%s, timeout_secs=%s, rpc_attempt_interval=%s)",
-            max_rpc_attempts,
-            timeout_secs,
-            rpc_attempt_interval,
+            connection_args["max_rpc_attempts"],
+            connection_args["timeout_secs"],
+            connection_args["rpc_attempt_interval"],
         )
         return sg
 
