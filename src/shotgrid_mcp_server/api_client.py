@@ -5,7 +5,7 @@ It ensures that all parameters passed to the ShotGrid API are valid and properly
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
@@ -17,9 +17,9 @@ from shotgrid_mcp_server.api_models import (
     DownloadAttachmentRequest,
     FindOneRequest,
     FindRequest,
-    FollowRequest,
     FollowersRequest,
     FollowingRequest,
+    FollowRequest,
     NoteThreadReadRequest,
     ReviveRequest,
     SchemaFieldReadRequest,
