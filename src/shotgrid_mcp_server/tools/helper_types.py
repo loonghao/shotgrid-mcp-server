@@ -5,7 +5,7 @@ This module provides type definitions for helper functions in the ShotGrid MCP s
 
 from typing import Dict, List, Literal, Optional, TypedDict, Union
 
-from shotgrid_mcp_server.types import Filter
+from shotgrid_mcp_server.custom_types import Filter
 
 
 class ProjectDict(TypedDict, total=False):
