@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/loonghao-shotgrid-mcp-server-badge.png)](https://mseep.ai/app/loonghao-shotgrid-mcp-server)
+
 # 🎯 ShotGrid MCP Server
 
 English | [简体中文](README_zh.md)
