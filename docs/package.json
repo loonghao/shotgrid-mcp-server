@@ -7,6 +7,6 @@
     "build": "mintlify build"
   },
   "dependencies": {
-    "mintlify": "^4.0.0"
+    "mintlify": "^4.0.560"
   }
 }
