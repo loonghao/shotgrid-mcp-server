@@ -160,9 +160,9 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
+
     # Expose search_entities implementation at module level for tests and internal use
     globals()["search_entities"] = search_entities
-
 
 
 def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:

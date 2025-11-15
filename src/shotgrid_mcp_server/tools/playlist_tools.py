@@ -426,6 +426,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         except Exception as err:
             handle_error(err, operation="add_versions_to_playlist")
             raise  # This is needed to satisfy the type checker
+
     # Expose playlist tool implementations at module level for tests and internal use
     globals()["find_playlists"] = find_playlists
     globals()["find_project_playlists"] = find_project_playlists
@@ -433,4 +434,3 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
     globals()["create_playlist"] = create_playlist
     globals()["update_playlist"] = update_playlist
     globals()["add_versions_to_playlist"] = add_versions_to_playlist
-

@@ -33,7 +33,7 @@ def create_server(connection=None) -> FastMCP:  # type: ignore[type-arg]
         logger.debug("Created FastMCP instance")
 
         # Register tools using connection context
-        with ShotGridConnectionContext(factory_or_connection=factory) as sg:
+        with ShotGridConnectionContext(factory_or_connection=connection) as sg:
             register_all_tools(mcp, sg)
             logger.debug("Registered all tools")
             return mcp

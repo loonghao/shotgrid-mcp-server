@@ -435,25 +435,21 @@ class ShotGridConnectionContext:
 
     def __init__(
         self,
-        factory_or_connection: Optional[ShotgunClientFactory] = None,
+        factory_or_connection: Optional[shotgun_api3.Shotgun] = None,
     ) -> None:
         """Initialize the context manager.
 
         Args:
-            factory_or_connection: Factory for creating ShotGrid clients or a direct Shotgun connection.
+            factory_or_connection: Direct Shotgun connection or None.
         """
         # If a direct connection is provided, use it
-        if isinstance(factory_or_connection, Shotgun):
-            self.factory = None
-            self.connection = factory_or_connection
+        if isinstance(factory_or_connection, shotgun_api3.Shotgun):
+            self.connection: Optional[shotgun_api3.Shotgun] = factory_or_connection
+            self.sg_client: Optional[ShotgunClient] = None
         else:
-            # Otherwise, use the factory to create a connection
-            self.factory = factory_or_connection or create_default_factory()
-            try:
-                self.connection = self.factory.create_client()
-            except Exception as e:
-                logger.error("Failed to create connection: %s", str(e), exc_info=True)
-                self.connection = None
+            # Create a ShotgunClient with default pool size and environment variables
+            self.sg_client = ShotgunClient(poolSize=-1)  # Use unlimited pool size by default
+            self.connection = None
 
     def __enter__(self) -> shotgun_api3.Shotgun:
         """Create a new ShotGrid connection.
