@@ -106,7 +106,8 @@ setattr(FastMCP, "_mcp_call_tool", _test_mcp_call_tool)
 
 
 # Import local modules
-from shotgrid_mcp_server.connection_pool import MockShotgunFactory, ShotGridConnectionContext
+from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
+from shotgrid_mcp_server.mockgun_ext import MockgunExt
 from shotgrid_mcp_server.tools import register_all_tools
 
 
@@ -230,17 +231,33 @@ def schema_paths():
 
 
 @pytest.fixture
-def mock_factory(schema_paths):
-    """Create a MockShotgunFactory instance."""
-    return MockShotgunFactory(
-        schema_path=schema_paths["schema_path"], schema_entity_path=schema_paths["schema_entity_path"]
+def mock_sg(schema_paths):
+    """Create a mock ShotGrid client."""
+    # Set schema paths before creating the instance
+    MockgunExt.set_schema_paths(schema_paths["schema_path"], schema_paths["schema_entity_path"])
+
+    # Create the instance
+    sg = MockgunExt(
+        "https://test.shotgunstudio.com",
+        script_name="test_script",
+        api_key="test_key",
     )
+
+    return sg
 
 
 @pytest.fixture
-def mock_sg(mock_factory):
+def mock_sg(schema_paths):
     """Create a mock ShotGrid client with test data."""
-    sg = mock_factory.create_client()
+    # Set schema paths before creating the instance
+    MockgunExt.set_schema_paths(schema_paths["schema_path"], schema_paths["schema_entity_path"])
+
+    # Create the instance
+    sg = MockgunExt(
+        "https://test.shotgunstudio.com",
+        script_name="test_script",
+        api_key="test_key",
+    )
 
     # Create test groups
     admin_group = sg.create("Group", {"code": "Admin"})
@@ -562,7 +579,7 @@ def mock_sg(mock_factory):
 
 
 @pytest.fixture
-def mock_context(mock_factory):
+def mock_context(mock_sg):
     """Create a mock ShotGrid connection context."""
     return ShotGridConnectionContext(factory_or_connection=mock_factory)
 

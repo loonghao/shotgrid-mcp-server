@@ -10,7 +10,7 @@ from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.types import EntityType
+from shotgrid_mcp_server.custom_types import EntityType
 
 
 def register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
@@ -21,7 +21,7 @@ def register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("delete_entity")
+    @server.tool("entity_delete")
     def delete_entity(entity_type: EntityType, entity_id: int) -> None:
         """Delete an entity in ShotGrid.
 

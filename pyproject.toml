@@ -1,6 +1,6 @@
 [project]
 name = "shotgrid-mcp-server"
-version = "0.6.0"
+version = "0.8.1"
 description = "A Model Context Protocol (MCP) server implementation using fastmcp"
 readme = "README.md"
 requires-python = ">=3.10,<3.11"
@@ -14,6 +14,9 @@ dependencies = [
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
     "shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",
+    "python-slugify (>=8.0.4,<9.0.0)",
+    "pendulum (>=3.1.0,<4.0.0)",
+    "tenacity (>=9.1.2,<10.0.0)",
 ]
 authors = [
     { name = "Hal Long", email = "hal.long@outlook.com" },
@@ -70,7 +73,7 @@ shotgrid-mcp-server = "shotgrid_mcp_server.server:main"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.6.0"
+version = "0.8.1"
 tag_format = "v$version"
 version_files = [
     "pyproject.toml:version",
@@ -170,7 +173,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 testpaths = ["tests"]
@@ -181,3 +183,9 @@ addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
 dependencies = [
     "git+https://github.com/shotgunsoftware/python-api.git#egg=shotgun-api3"
 ]
+
+[tool.uvx.python]
+version = "3.10"
+
+[tool.uv]
+python-preference = "only-managed"

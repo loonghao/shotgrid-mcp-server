@@ -1,3 +1,112 @@
+## v0.8.1 (2025-05-29)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.560
+
+## v0.8.0 (2025-04-28)
+
+### Feat
+
+- optimize thumbnail download functionality
+
+### Fix
+
+- Fix B904 warnings in api_client.py
+- Fix lint issues in utils and thumbnail tools
+- Fix MockgunExt to support page parameter and fix tests
+- handle string attachment data in thumbnail download
+- simplify thumbnail download implementation to fix URL handling issue
+- correct thumbnail download method to use proper ShotGrid API parameters
+- correct YAML syntax in codecov workflow
+- correct thumbnail URL retrieval method
+
+### Refactor
+
+- Remove compatibility code and simplify connection pool
+- Use _download_with_shotgun_api for thumbnail downloads
+- Simplify thumbnail download code
+- Remove ShotgunConfig class and use custom_types.py
+- Use get_shotgun_connection_args in create_shotgun_connection
+- Use get_shotgun_connection_args in instanceFactory
+- move generate_default_file_path to utils.py for better maintainability
+
+## v0.7.7 (2025-04-28)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.510
+
+## v0.7.6 (2025-04-25)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.507
+
+## v0.7.5 (2025-04-23)
+
+### Fix
+
+- update tool names to comply with MCP naming convention
+
+### Refactor
+
+- standardize tool naming convention
+
+## v0.7.4 (2025-04-23)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.504
+
+## v0.7.3 (2025-04-23)
+
+### Fix
+
+- add missing sg parameter to download_thumbnail call
+- make thumbnail tests work in both test_server.py and test_thumbnail_tools.py
+- fix pyproject.toml format issues
+
+## v0.7.2 (2025-04-23)
+
+### Fix
+
+- specify Python 3.10 for uvx to ensure compatibility
+
+## v0.7.1 (2025-04-22)
+
+### Fix
+
+- **deps**: update dependency mintlify to v4.0.497
+
+## v0.7.0 (2025-04-21)
+
+### Feat
+
+- add note and playlist tools
+- add direct ShotGrid API tools for increased flexibility
+- add standardized response models and fix circular dependencies
+- enhance playlist creation to include URL in response
+- enhance note and playlist functionality with vendor support
+
+### Fix
+
+- fix test failures and lint issues
+- update mockgun_ext to handle dict order items and update test_find_recent_playlists to be more flexible
+- update mockgun_ext to handle dict values in sort and update test_find_recent_playlists to use a more recent date
+- update mockgun_ext to handle non-string order fields and update tests to handle TextContent responses
+- update playlist_tools to handle Mockgun limitations and use TimeUnit enum
+- update error_handler to handle entity not found errors correctly
+- resolve test failures in error_handler and api_tools tests
+- correct parameter format in note tools tests
+- parse JSON responses in vendor tools
+- update playlist URL format to match ShotGrid web interface
+
+### Refactor
+
+- update thumbnail_tools.py to use new return value format
+- update search_tools.py to use new return value format
+
 ## v0.6.0 (2025-04-16)
 
 ### Feat

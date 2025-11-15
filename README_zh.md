@@ -8,7 +8,10 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/shotgrid-mcp-server.svg)](https://pypi.org/project/shotgrid-mcp-server/)
 [![License](https://img.shields.io/github/license/loonghao/shotgrid-mcp-server.svg)](LICENSE)
 [![PyPI version](https://badge.fury.io/py/shotgrid-mcp-server.svg)](https://badge.fury.io/py/shotgrid-mcp-server)
+[![codecov](https://codecov.io/gh/loonghao/shotgrid-mcp-server/branch/main/graph/badge.svg)](https://codecov.io/gh/loonghao/shotgrid-mcp-server)
 [![Downloads](https://pepy.tech/badge/shotgrid-mcp-server)](https://pepy.tech/project/shotgrid-mcp-server)
+[![Downloads](https://static.pepy.tech/badge/shotgrid-mcp-server/week)](https://pepy.tech/project/shotgrid-mcp-server)
+[![Downloads](https://static.pepy.tech/badge/shotgrid-mcp-server/month)](https://pepy.tech/project/shotgrid-mcp-server)
 
 </div>
 
@@ -220,6 +223,7 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "command": "uvx",
       "args": [
+        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {

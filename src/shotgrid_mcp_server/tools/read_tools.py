@@ -8,9 +8,9 @@ from typing import Any, Dict
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.types import EntityType
 
 
 def register_read_tools(server: FastMCPType, sg: Shotgun) -> None:
@@ -21,7 +21,7 @@ def register_read_tools(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("get_schema")
+    @server.tool("schema_get")
     def get_schema(entity_type: EntityType) -> Dict[str, Any]:
         """Get schema for an entity type.
 

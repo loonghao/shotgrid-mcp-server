@@ -8,7 +8,7 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Tuple, Union
 
-from shotgrid_mcp_server.types import Filter
+from shotgrid_mcp_server.custom_types import Filter
 
 logger = logging.getLogger(__name__)
 

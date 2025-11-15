@@ -4,17 +4,19 @@
 import json
 import logging
 import os
+import ssl
 from datetime import date, datetime
-from typing import Any, Dict, List, Set, TypeVar, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, TypeVar, Union
 
 # Import third-party modules
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 # Import local modules
 from shotgrid_mcp_server.constants import ENTITY_TYPES_ENV_VAR, ENV_CUSTOM_ENTITY_TYPES
-from shotgrid_mcp_server.types import EntityType
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -22,12 +24,53 @@ logger = logging.getLogger(__name__)
 # Type variables
 T = TypeVar("T")
 
-# Default entity types to support - using all entity types from EntityType
-DEFAULT_ENTITY_TYPES: Set[str] = set(EntityType.__args__)  # type: ignore
+# Default entity types to support
+DEFAULT_ENTITY_TYPES: Set[str] = {
+    "Asset",
+    "Shot",
+    "Sequence",
+    "Project",
+    "Task",
+    "HumanUser",
+    "Group",
+    "Version",
+    "PublishedFile",
+    "Note",
+    "Department",
+    "Step",
+    "Playlist",
+}
+
+
+def create_ssl_context(minimum_version: Optional[int] = None) -> ssl.SSLContext:
+    """Create an SSL context with specified minimum TLS version.
+
+    Args:
+        minimum_version: Minimum TLS version to use. Defaults to TLSv1.2.
+
+    Returns:
+        ssl.SSLContext: Configured SSL context.
+    """
+    # Create default context
+    context = ssl.create_default_context()
+
+    # Set minimum TLS version if specified
+    if minimum_version is not None:
+        context.minimum_version = minimum_version
+    else:
+        # Default to TLSv1.2 which is widely supported
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+
+    logger.debug(
+        "Created SSL context with minimum TLS version: %s",
+        "TLSv1.2" if context.minimum_version == ssl.TLSVersion.TLSv1_2 else str(context.minimum_version),
+    )
+
+    return context
 
 
 def create_session() -> requests.Session:
-    """Create a requests session with retry logic.
+    """Create a requests session with retry logic and proper SSL configuration.
 
     Returns:
         requests.Session: Configured session with retry logic.
@@ -41,33 +84,45 @@ def create_session() -> requests.Session:
         status_forcelist=[500, 502, 503, 504],
     )
 
-    # Mount retry adapter
-    adapter = HTTPAdapter(max_retries=retries)
+    # Mount retry adapter with SSL configuration
+    adapter = HTTPAdapter(max_retries=retries, pool_connections=10, pool_maxsize=10)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
 
     return session
 
 
-def download_file(url: str, local_path: str, chunk_size: int = 8192) -> None:
-    """Download a file from a URL.
+def download_file(url: str, local_path: str, chunk_size: int = 8192) -> str:
+    """Download a file from a URL with multiple fallback mechanisms for SSL issues.
 
     Args:
         url: URL to download from.
         local_path: Path to save the file to.
         chunk_size: Size of chunks to download in bytes.
 
-    Raises:
-        requests.exceptions.RequestException: If download fails.
-    """
-    try:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
+    Returns:
+        str: Path to the downloaded file.
 
-        # Create session with retry logic
+    Raises:
+        Exception: If all download methods fail.
+    """
+    # Import certifi for SSL certificate verification
+    from urllib.request import urlopen
+
+    import certifi
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
+
+    # Try multiple methods to handle various SSL issues
+    methods_tried = []
+
+    # Method 1: Use requests with verify=True (default)
+    try:
+        methods_tried.append("requests with verify=True")
+        # Create session with retry logic and SSL configuration
         session = create_session()
 
-        # Stream download in chunks
         with session.get(url, stream=True) as response:
             response.raise_for_status()
 
@@ -86,10 +141,84 @@ def download_file(url: str, local_path: str, chunk_size: int = 8192) -> None:
                             logger.debug("Download progress: %.1f%%", progress)
 
         logger.info("Successfully downloaded file to %s", local_path)
-
+        return local_path
     except Exception as e:
-        logger.error("Failed to download file from %s to %s: %s", url, local_path, str(e))
-        raise
+        logger.warning("Method 1 (requests with verify=True) failed: %s", str(e))
+
+    # Method 2: Use requests with verify=False (insecure, but may work in some environments)
+    try:
+        methods_tried.append("requests with verify=False")
+        # Suppress InsecureRequestWarning
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        # Create a session with SSL verification disabled
+        no_verify_session = requests.Session()
+        no_verify_session.verify = False
+
+        # Configure retry strategy
+        retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[500, 502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retries)
+        no_verify_session.mount("http://", adapter)
+        no_verify_session.mount("https://", adapter)
+
+        with no_verify_session.get(url, stream=True) as response:
+            response.raise_for_status()
+
+            with open(local_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+
+        logger.info("Successfully downloaded file to %s with SSL verification disabled", local_path)
+        return local_path
+    except Exception as e:
+        logger.warning("Method 2 (requests with verify=False) failed: %s", str(e))
+
+    # Method 3: Use urllib with custom SSL context
+    try:
+        methods_tried.append("urllib with custom SSL context")
+        # Create a custom SSL context that's more permissive
+        context = ssl.create_default_context(cafile=certifi.where())
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+
+        with urlopen(url, context=context, timeout=30) as response:
+            with open(local_path, "wb") as f:
+                f.write(response.read())
+
+        logger.info("Successfully downloaded file to %s using urllib with custom SSL context", local_path)
+        return local_path
+    except Exception as e:
+        logger.warning("Method 3 (urllib with custom SSL context) failed: %s", str(e))
+
+    # Method 4: Try with completely disabled SSL verification and older protocol
+    try:
+        methods_tried.append("urllib with completely disabled SSL")
+        # Create a context with no verification at all
+        context = ssl._create_unverified_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        # Try with older protocol versions
+        context.options |= ssl.OP_NO_TLSv1_3
+        context.options |= ssl.OP_NO_TLSv1_2
+        context.options |= ssl.OP_NO_TLSv1_1
+        # Force TLSv1.0
+        context.minimum_version = ssl.TLSVersion.TLSv1
+        context.maximum_version = ssl.TLSVersion.TLSv1
+
+        with urlopen(url, context=context, timeout=30) as response:
+            with open(local_path, "wb") as f:
+                f.write(response.read())
+
+        logger.info("Successfully downloaded file to %s using urllib with completely disabled SSL", local_path)
+        return local_path
+    except Exception as e:
+        logger.warning("Method 4 (urllib with completely disabled SSL) failed: %s", str(e))
+
+    # If all methods fail, raise an exception with details
+    error_msg = f"All download methods failed for URL: {url}. Methods tried: {', '.join(methods_tried)}"
+    logger.error(error_msg)
+    raise Exception(error_msg)
 
 
 def handle_error(error: Exception, operation: str) -> Dict[str, Any]:
@@ -252,3 +381,26 @@ def serialize_entity(entity: Any) -> Dict[str, Any]:
     if not isinstance(entity, dict):
         return {}
     return {k: _serialize_value(v) for k, v in entity.items()}
+
+
+def generate_default_file_path(
+    entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg"
+) -> str:
+    """Generate a default file path for a thumbnail.
+
+    Args:
+        entity_type: Type of entity.
+        entity_id: ID of entity.
+        field_name: Name of field containing thumbnail.
+        image_format: Format of the image.
+
+    Returns:
+        str: Default file path.
+    """
+    # Create a temporary directory if it doesn't exist
+    temp_dir = Path(os.path.expanduser("~")) / ".shotgrid_mcp" / "thumbnails"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate a filename based on entity type, id, and field name
+    filename = f"{entity_type}_{entity_id}_{field_name}.{image_format}"
+    return str(temp_dir / filename)

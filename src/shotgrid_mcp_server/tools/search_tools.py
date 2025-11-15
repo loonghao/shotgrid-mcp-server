@@ -8,6 +8,15 @@ from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.api_client import ShotGridAPIClient
+from shotgrid_mcp_server.api_models import (
+    FindOneEntityRequest,
+    FindOneRequest,
+    FindRequest,
+    SearchEntitiesRequest,
+    SearchEntitiesWithRelatedRequest,
+)
+from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.models import (
     EntitiesResponse,
     EntityDict,
@@ -53,6 +62,8 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    # Create API client
+    api_client = ShotGridAPIClient(sg)
 
     @server.tool("search_entities")
     def search_entities(
@@ -80,9 +91,19 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
+            # Create request model with validation
+            request = SearchEntitiesRequest(
+                entity_type=entity_type,
+                filters=filters,
+                fields=fields,
+                order=order,
+                filter_operator=filter_operator,
+                limit=limit,
+            )
+
             # Convert dict filters to Filter objects
             filter_objects = []
-            for filter_dict in filters:
+            for filter_dict in request.filters:
                 try:
                     filter_obj = Filter(
                         field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
@@ -96,15 +117,19 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             # Process filters
             processed_filters = process_filters(filter_objects)
 
-            # Execute query
-            result = sg.find(
-                entity_type,
-                processed_filters,
-                fields=fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
+            # Create FindRequest for API client
+            find_request = FindRequest(
+                entity_type=request.entity_type,
+                filters=processed_filters,
+                fields=request.fields,
+                order=request.order,
+                filter_operator=request.filter_operator,
+                limit=request.limit,
+                page=1,  # Set a default page value to avoid "page parameter must be a positive integer" error
             )
+
+            # Execute query through API client
+            result = api_client.find(find_request)
 
             # Format response
             if result is None:
@@ -148,6 +173,8 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    # Create API client
+    api_client = ShotGridAPIClient(sg)
 
     @server.tool("search_entities_with_related")
     def search_entities_with_related(
@@ -181,21 +208,36 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
-            # Use the new process_filters function that can handle dictionaries directly
-            processed_filters = process_filters(filters)
-
-            # Process fields with related entity fields
-            all_fields = prepare_fields_with_related(sg, entity_type, fields, related_fields)
-
-            # Execute query
-            result = sg.find(
-                entity_type,
-                processed_filters,
-                fields=all_fields,
+            # Create request model with validation
+            request = SearchEntitiesWithRelatedRequest(
+                entity_type=entity_type,
+                filters=filters,
+                fields=fields,
+                related_fields=related_fields,
                 order=order,
                 filter_operator=filter_operator,
                 limit=limit,
             )
+
+            # Use the new process_filters function that can handle dictionaries directly
+            processed_filters = process_filters(request.filters)
+
+            # Process fields with related entity fields
+            all_fields = prepare_fields_with_related(sg, request.entity_type, request.fields, request.related_fields)
+
+            # Create FindRequest for API client
+            find_request = FindRequest(
+                entity_type=request.entity_type,
+                filters=processed_filters,
+                fields=all_fields,
+                order=request.order,
+                filter_operator=request.filter_operator,
+                limit=request.limit,
+                page=1,  # Set a default page value to avoid "page parameter must be a positive integer" error
+            )
+
+            # Execute query through API client
+            result = api_client.find(find_request)
 
             # Format response
             if result is None:
@@ -239,8 +281,10 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    # Create API client
+    api_client = ShotGridAPIClient(sg)
 
-    @server.tool("find_one_entity")
+    @server.tool("entity_find_one")
     def find_one_entity(
         entity_type: EntityType,
         filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
@@ -264,16 +308,30 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
-            # Use the new process_filters function that can handle dictionaries directly
-            processed_filters = process_filters(filters)
-
-            result = sg.find_one(
-                entity_type,
-                processed_filters,
+            # Create request model with validation
+            request = FindOneEntityRequest(
+                entity_type=entity_type,
+                filters=filters,
                 fields=fields,
                 order=order,
                 filter_operator=filter_operator,
             )
+
+            # Use the new process_filters function that can handle dictionaries directly
+            processed_filters = process_filters(request.filters)
+
+            # Create FindOneRequest for API client
+            find_one_request = FindOneRequest(
+                entity_type=request.entity_type,
+                filters=processed_filters,
+                fields=request.fields,
+                order=request.order,
+                filter_operator=request.filter_operator,
+            )
+
+            # Execute query through API client
+            result = api_client.find_one(find_one_request)
+
             if result is None:
                 return {"entity": None}
 
@@ -318,7 +376,7 @@ def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str
         fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
         order = [{"field_name": "updated_at", "direction": "desc"}]
 
-        result = sg.find("Project", filters, fields=fields, order=order)
+        result = sg.find("Project", filters, fields=fields, order=order, page=1)
 
         if result is None:
             # Use Pydantic model for response
@@ -351,7 +409,7 @@ def _find_active_users(sg: Shotgun, days: int = 30) -> List[Dict[str, str]]:
         fields = ["id", "name", "login", "email", "last_login"]
         order = [{"field_name": "last_login", "direction": "desc"}]
 
-        result = sg.find("HumanUser", filters, fields=fields, order=order)
+        result = sg.find("HumanUser", filters, fields=fields, order=order, page=1)
 
         if result is None:
             # Use Pydantic model for response
@@ -410,7 +468,7 @@ def _find_entities_by_date_range(
             fields = ["id", "name", date_field]
 
         # Execute query
-        result = sg.find(entity_type, filters, fields=fields)
+        result = sg.find(entity_type, filters, fields=fields, page=1)
 
         if result is None:
             # Use Pydantic model for response
@@ -432,7 +490,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         sg: ShotGrid connection.
     """
 
-    @server.tool("find_recently_active_projects")
+    @server.tool("project_find_active")
     def find_recently_active_projects(days: int = 90) -> List[Dict[str, str]]:
         """Find projects that have been active in the last N days.
 
@@ -444,7 +502,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         """
         return _find_recently_active_projects(sg, days)
 
-    @server.tool("find_active_users")
+    @server.tool("user_find_active")
     def find_active_users(days: int = 30) -> List[Dict[str, str]]:
         """Find users who have been active in the last N days.
 
@@ -456,7 +514,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         """
         return _find_active_users(sg, days)
 
-    @server.tool("find_entities_by_date_range")
+    @server.tool("entity_find_by_date")
     def find_entities_by_date_range(
         entity_type: EntityType,
         date_field: str,

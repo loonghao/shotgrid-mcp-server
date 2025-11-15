@@ -1,6 +1,6 @@
 """Type definitions for ShotGrid MCP server.
 
-This module provides type definitions for ShotGrid API data types.
+This module provides type definitions for ShotGrid API data custom_types.py
 """
 
 # Import built-in modules
@@ -11,58 +11,26 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 AttachmentResult = Union[bytes, str]
 
 # ShotGrid entity types
-EntityType = Literal[
-    "Asset",
-    "Attachment",
-    "Booking",
-    "ClientUser",
-    "CustomEntity01",
-    "CustomEntity02",
-    "CustomEntity03",
-    "CustomEntity04",
-    "CustomEntity05",
-    "CustomEntity06",
-    "CustomNonProjectEntity01",
-    "CustomNonProjectEntity02",
-    "CustomNonProjectEntity03",
-    "CustomNonProjectEntity04",
-    "CustomNonProjectEntity05",
-    "CustomNonProjectEntity06",
-    "CustomThreadedEntity01",
-    "CustomThreadedEntity02",
-    "CustomThreadedEntity03",
-    "CustomThreadedEntity04",
-    "CustomThreadedEntity05",
-    "CustomThreadedEntity06",
-    "Department",
-    "EventLogEntry",
-    "Group",
-    "HumanUser",
-    "Icon",
-    "Level",
-    "LocalStorage",
-    "Note",
-    "Page",
-    "PageHit",
-    "PageSetting",
-    "PermissionRuleSet",
-    "Phase",
-    "Pipeline",
-    "PipelineStep",
-    "Playlist",
-    "Project",
-    "PublishedFile",
-    "PublishedFileType",
-    "Reply",
-    "Sequence",
-    "Shot",
-    "Step",
-    "Task",
-    "TaskTemplate",
-    "Ticket",
-    "TimeLog",
-    "Version",
-]
+# This is a fallback list of common entity types
+# The actual list should be retrieved from ShotGrid schema at runtime
+# using schema_loader.get_entity_types_from_schema
+EntityType = str  # Use string type instead of Literal for flexibility
+
+# Common entity type constants
+PROJECT_ENTITY_TYPE = "Project"
+SHOT_ENTITY_TYPE = "Shot"
+ASSET_ENTITY_TYPE = "Asset"
+TASK_ENTITY_TYPE = "Task"
+VERSION_ENTITY_TYPE = "Version"
+NOTE_ENTITY_TYPE = "Note"
+PLAYLIST_ENTITY_TYPE = "Playlist"
+HUMAN_USER_ENTITY_TYPE = "HumanUser"
+GROUP_ENTITY_TYPE = "Group"
+PUBLISHED_FILE_ENTITY_TYPE = "PublishedFile"
+
+# Default field lists
+DEFAULT_FIELDS = ["id", "code", "sg_status", "sg_status_list", "description"]
+SHOT_FIELDS = DEFAULT_FIELDS + ["sg_camera_lens", "sg_camera_framing", "sg_camera_description", "sg_sequence"]
 
 # ShotGrid data types
 ShotGridDataType = Literal[
