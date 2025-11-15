@@ -136,6 +136,9 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
+    # Expose search_entities implementation at module level for tests and internal use
+    globals()["search_entities"] = search_entities
+
 
 
 def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
@@ -225,6 +228,9 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="search_entities_with_related")
             raise  # This is needed to satisfy the type checker
 
+    # Expose search_entities_with_related implementation at module level for tests and internal use
+    globals()["search_entities_with_related"] = search_entities_with_related
+
 
 def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
     """Register find_one_entity tool.
@@ -289,6 +295,9 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
+
+    # Expose find_one_entity implementation at module level for tests and internal use
+    globals()["find_one_entity"] = find_one_entity
 
 
 def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str, str]]:

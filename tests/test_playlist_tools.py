@@ -284,8 +284,17 @@ class TestPlaylistTools:
         assert response_dict["data"]["code"] == "New Playlist"
         assert response_dict["data"]["description"] == "New playlist description"
         assert "sg_url" in response_dict["data"]
+        assert "id" in response_dict["data"]
+
+        # Verify versions
         assert "versions" in response_dict["data"]
         assert len(response_dict["data"]["versions"]) == 1
+
+        # Verify playlist URL format and top-level URL
+        playlist_id = response_dict["data"]["id"]
+        expected_url = f"{mock_sg.base_url.rstrip('/')}/Playlist/detail/{playlist_id}"
+        assert response_dict["data"]["sg_url"] == expected_url
+        assert response_dict.get("url") == expected_url
 
     @pytest.mark.asyncio
     async def test_update_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
