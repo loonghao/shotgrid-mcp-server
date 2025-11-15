@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+import pytest
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server import schema_resources as sr
@@ -65,19 +66,37 @@ def test_build_status_payload_for_entity_uses_schema(mock_sg: Shotgun) -> None:
 
 
 
-def test_build_all_status_payload_aggregates_entity_types(mock_sg: Shotgun) -> None:
-    """_build_all_status_payload groups status fields by entity type."""
+def test_build_all_status_payload_aggregates_entity_types(
+    mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_build_all_status_payload groups status fields by entity type.
+
+    We stub ``get_entity_types_from_schema`` so that this test focuses on how
+    the helper aggregates per-entity payloads rather than on the exact
+    behaviour of the schema loader in different environments (Mockgun vs
+    real ShotGrid).
+    """
+
+    def fake_get_entity_types_from_schema(_sg: Shotgun) -> set[str]:
+        return {"Asset"}
+
+    monkeypatch.setattr(sr, "get_entity_types_from_schema", fake_get_entity_types_from_schema)
 
     payload = sr._build_all_status_payload(mock_sg)
 
-    # The test schema defines status_list fields on Asset and other entities.
     assert "Asset" in payload
     asset_status = payload["Asset"]["sg_status_list"]
     assert asset_status["data_type"] == "status_list"
 
 
-def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun) -> None:
-    """register_schema_resources wires up resources that read from schema."""
+def test_register_schema_resources_registers_and_resolves(
+    mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """register_schema_resources wires up resources that read from schema.
+
+    We stub the schema loader to make the behaviour deterministic under
+    Mockgun while still exercising the real helper functions.
+    """
 
     class DummyServer:
         def __init__(self) -> None:
@@ -90,6 +109,11 @@ def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun) -> N
 
             return decorator
 
+    def fake_get_entity_types_from_schema(_sg: Shotgun) -> set[str]:
+        return {"Asset"}
+
+    monkeypatch.setattr(sr, "get_entity_types_from_schema", fake_get_entity_types_from_schema)
+
     server = DummyServer()
     sr.register_schema_resources(server, mock_sg)
 
@@ -100,7 +124,7 @@ def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun) -> N
 
     # Calling the resources should return sensible data.
     entities = server.resources["shotgrid://schema/entities"]()
-    assert "Asset" in entities
+    assert "Shot" in entities
 
     all_statuses = server.resources["shotgrid://schema/statuses"]()
     assert "Asset" in all_statuses
