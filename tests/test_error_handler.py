@@ -14,6 +14,7 @@ from shotgrid_mcp_server.error_handler import (
     handle_tool_error,
     is_entity_not_found_error,
     is_permission_error,
+    _is_invalid_status_value_error,
 )
 from shotgrid_mcp_server.exceptions import (
     ConnectionError,
@@ -309,3 +310,31 @@ class TestIsPermissionError:
         """Test with non-ShotgunError."""
         error = ValueError("Permission denied")
         assert is_permission_error(error) is False
+
+
+class TestInvalidStatusValueDetector:
+    """Tests for the _is_invalid_status_value_error helper."""
+
+    def test_non_status_message_returns_false(self) -> None:
+        """Messages without status keywords should not be treated as status errors."""
+
+        msg = "Field some_field has invalid value 'foo'; valid values are: bar, baz"
+        assert _is_invalid_status_value_error(msg) is False
+
+    def test_detects_common_status_error_markers(self) -> None:
+        """Messages mentioning status fields and markers should be detected."""
+
+        messages = [
+            "Field sg_status_list has invalid value 'foo'",
+            "Field sg_status_list has invalid status 'foo'",
+            "Field sg_status_list must be one of wtg, ip, fin",
+            "Field sg_status_list valid values are wtg, ip, fin",
+            "Field sg_status_list valid values: wtg, ip, fin",
+            "Field sg_status_list value 'foo' not in [wtg, ip, fin]",
+            "Field sg_status_list is not a valid choice",
+            "Status 'foo' is not a valid value for sg_status_list",
+        ]
+
+        for msg in messages:
+            assert _is_invalid_status_value_error(msg) is True
+
