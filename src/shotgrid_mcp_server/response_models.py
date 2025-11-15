@@ -175,9 +175,7 @@ def create_playlist_response(
     )
 
 
-def generate_playlist_url_variants(
-    base_url: str, playlist_id: int, project_id: Optional[int] = None
-) -> Dict[str, str]:
+def generate_playlist_url_variants(base_url: str, playlist_id: int, project_id: Optional[int] = None) -> Dict[str, str]:
     """Generate multiple ShotGrid URLs for a playlist.
 
     This returns several commonly used entrypoints so that clients or
@@ -191,9 +189,7 @@ def generate_playlist_url_variants(
     }
 
     if project_id is not None:
-        urls["media_center"] = (
-            f"{base}/page/media_center?type=Playlist&id={playlist_id}&project_id={project_id}"
-        )
+        urls["media_center"] = f"{base}/page/media_center?type=Playlist&id={playlist_id}&project_id={project_id}"
 
     return urls
 

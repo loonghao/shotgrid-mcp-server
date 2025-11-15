@@ -136,4 +136,3 @@ def register_schema_resources(server: FastMCPType, sg: Shotgun) -> None:
         """Return status field metadata for a specific entity type."""
 
         return _build_status_payload_for_entity(sg, entity_type)
-
