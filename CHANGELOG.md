@@ -1,3 +1,9 @@
+## v0.9.0 (2025-11-15)
+
+### Feat
+
+- add schema resources and playlist URL variants
+
 ## v0.8.1 (2025-05-29)
 
 ### Fix
