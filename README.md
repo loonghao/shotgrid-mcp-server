@@ -1,5 +1,3 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/loonghao-shotgrid-mcp-server-badge.png)](https://mseep.ai/app/loonghao-shotgrid-mcp-server)
-
 # 🎯 ShotGrid MCP Server
 
 English | [简体中文](README_zh.md)
@@ -49,23 +47,10 @@ uv pip install shotgrid-mcp-server
 
 Once installed, you can start the server directly with:
 ```bash
-uvx --python 3.10 shotgrid-mcp-server
-```
-
-**Important**: The ShotGrid MCP server requires Python 3.10. When using `uvx`, you must specify the Python version with `--python 3.10` to ensure compatibility, as `uvx` may default to using the latest Python version (e.g., 3.13) which is not compatible with this package.
-
-Alternatively, you can set the Python version using an environment variable:
-```bash
-# Windows
-set UV_PYTHON=3.10
-uvx shotgrid-mcp-server
-
-# Linux/macOS
-export UV_PYTHON=3.10
 uvx shotgrid-mcp-server
 ```
 
-Make sure you have set the required environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) before starting the server.
+This will start the ShotGrid MCP server with default settings. Make sure you have set the required environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) before starting the server.
 
 ### Development Setup
 
@@ -274,7 +259,6 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -296,7 +280,6 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -318,7 +301,6 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -360,7 +342,7 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
     "shotgrid-server": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--python", "3.10", "shotgrid-mcp-server"],
+      "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "${input:shotgrid-script-name}",
         "SHOTGRID_SCRIPT_KEY": "${input:shotgrid-script-key}",
@@ -380,7 +362,7 @@ To use the ShotGrid MCP server in your MCP client, add the appropriate configura
     "shotgrid-server": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--python", "3.10", "shotgrid-mcp-server"],
+      "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "XXX",
         "SHOTGRID_SCRIPT_KEY": "XX",

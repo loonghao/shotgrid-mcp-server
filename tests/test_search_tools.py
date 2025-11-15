@@ -285,7 +285,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "entity_find_one",
+            "find_one_entity",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -315,7 +315,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "entity_find_one",
+            "find_one_entity",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -357,7 +357,7 @@ class TestSearchTools:
 
         # Call the tool with default days (90)
         result = await search_server._mcp_call_tool(
-            "project_find_active",
+            "find_recently_active_projects",
             {}
         )
 
@@ -404,7 +404,7 @@ class TestSearchTools:
 
         # Call the tool with default days (30)
         result = await search_server._mcp_call_tool(
-            "user_find_active",
+            "find_active_users",
             {}
         )
 
@@ -455,7 +455,7 @@ class TestSearchTools:
 
         # Call the tool with date range
         result = await search_server._mcp_call_tool(
-            "entity_find_by_date",
+            "find_entities_by_date_range",
             {
                 "entity_type": "Shot",
                 "date_field": "created_at",

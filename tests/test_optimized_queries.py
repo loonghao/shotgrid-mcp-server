@@ -5,6 +5,7 @@ import json
 
 # Import third-party modules
 import pytest
+import pytest_asyncio
 from fastmcp import FastMCP
 from shotgun_api3 import Shotgun
 
@@ -32,7 +33,7 @@ def mock_sg() -> Shotgun:
     return sg
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def server(mock_sg: Shotgun) -> FastMCP:
     """Create a FastMCP server instance for testing.
 
@@ -56,9 +57,6 @@ class TestOptimizedQueries:
     @pytest.mark.skip(reason="This test requires a real ShotGrid server. Use test_optimized_queries_mock.py instead.")
     async def test_search_entities_with_related(self, server, mock_sg):
         """Test search_entities_with_related method."""
-        # Await the server fixture
-        server = await server
-
         # Create test project
         project = mock_sg.create(
             "Project",
@@ -119,9 +117,6 @@ class TestOptimizedQueries:
     @pytest.mark.skip(reason="This test requires a real ShotGrid server. Use test_optimized_queries_mock.py instead.")
     async def test_batch_operations(self, server, mock_sg):
         """Test batch_operations method."""
-        # Await the server fixture
-        server = await server
-
         # Create test project
         project = mock_sg.create(
             "Project",
@@ -228,9 +223,6 @@ class TestOptimizedQueries:
     @pytest.mark.skip(reason="This test requires a real ShotGrid server. Use test_optimized_queries_mock.py instead.")
     async def test_batch_create_entities(self, server, mock_sg):
         """Test batch_create_entities method."""
-        # Await the server fixture
-        server = await server
-
         # Create test project
         project = mock_sg.create(
             "Project",
@@ -252,7 +244,7 @@ class TestOptimizedQueries:
 
         # Execute batch create
         response = await server._mcp_call_tool(
-            "batch_entity_create",
+            "batch_create_entities",
             {
                 "entity_type": "Shot",
                 "data_list": data_list,

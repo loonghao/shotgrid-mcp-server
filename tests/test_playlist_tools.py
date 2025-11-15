@@ -70,7 +70,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_find",
+            "find_playlists",
             {}
         )
 
@@ -146,7 +146,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_find_by_project",
+            "find_project_playlists",
             {"project_id": project1["id"]}
         )
 
@@ -219,7 +219,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_find_recent",
+            "find_recent_playlists",
             {"project_id": project["id"], "days": 1}
         )
 
@@ -261,7 +261,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_create",
+            "create_playlist",
             {
                 "code": "New Playlist",
                 "project_id": project["id"],
@@ -284,8 +284,17 @@ class TestPlaylistTools:
         assert response_dict["data"]["code"] == "New Playlist"
         assert response_dict["data"]["description"] == "New playlist description"
         assert "sg_url" in response_dict["data"]
+        assert "id" in response_dict["data"]
+
+        # Verify versions
         assert "versions" in response_dict["data"]
         assert len(response_dict["data"]["versions"]) == 1
+
+        # Verify playlist URL format and top-level URL
+        playlist_id = response_dict["data"]["id"]
+        expected_url = f"{mock_sg.base_url.rstrip('/')}/Playlist/detail/{playlist_id}"
+        assert response_dict["data"]["sg_url"] == expected_url
+        assert response_dict.get("url") == expected_url
 
     @pytest.mark.asyncio
     async def test_update_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -311,7 +320,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_update",
+            "update_playlist",
             {
                 "playlist_id": playlist["id"],
                 "code": "Updated Playlist",
@@ -370,7 +379,7 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "playlist_add_versions",
+            "add_versions_to_playlist",
             {
                 "playlist_id": playlist["id"],
                 "version_ids": [version2["id"]]

@@ -8,6 +8,102 @@ from pathlib import Path
 import pytest
 import yaml
 from fastmcp import FastMCP
+import json
+import inspect
+from fastmcp.tools.tool import ToolResult
+
+
+from typing import Any
+
+
+async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None = None):
+    """Test-only shim to preserve legacy _mcp_call_tool behavior **without** using Client.
+
+    For tests we don't need full MCP transport behavior. Instead, we call the underlying
+    tool implementation functions directly and wrap the result to match the historical
+    return shape: a list with a single object exposing a ``text`` attribute containing
+    JSON.
+    """
+
+    # Local imports to avoid import cycles at collection time
+    from shotgrid_mcp_server.tools import playlist_tools, search_tools, create_tools
+
+    arguments: dict[str, Any] = params or {}
+    payload: Any | None = None
+
+    # Map tool names to their underlying implementation functions.
+    # These functions are registered with FastMCP via decorators but are still
+    # regular callables we can invoke directly in tests.
+    tool_map: dict[str, Any] = {
+        # Playlist tools
+        "find_playlists": getattr(playlist_tools, "find_playlists", None),
+        "find_project_playlists": getattr(playlist_tools, "find_project_playlists", None),
+        "find_recent_playlists": getattr(playlist_tools, "find_recent_playlists", None),
+        "create_playlist": getattr(playlist_tools, "create_playlist", None),
+        "update_playlist": getattr(playlist_tools, "update_playlist", None),
+        "add_versions_to_playlist": getattr(playlist_tools, "add_versions_to_playlist", None),
+        # Search tools
+        "search_entities": getattr(search_tools, "search_entities", None),
+        "search_entities_with_related": getattr(search_tools, "search_entities_with_related", None),
+        "find_one_entity": getattr(search_tools, "find_one_entity", None),
+        "find_recently_active_projects": getattr(search_tools, "find_recently_active_projects", None),
+        "find_active_users": getattr(search_tools, "find_active_users", None),
+        "find_entities_by_date_range": getattr(search_tools, "find_entities_by_date_range", None),
+        # Optimized / batch operations
+        "batch_operations": getattr(create_tools, "batch_operations", None),
+        "batch_create_entities": getattr(create_tools, "batch_create_entities", None),
+    }
+
+    func = tool_map.get(tool_name)
+    if func is not None:
+        # FastMCP v2 tools are usually instances of FunctionTool. In that case
+        # we should use their ``run`` method instead of calling them directly.
+        run_method = getattr(func, "run", None)
+        if callable(run_method):
+            # FunctionTool.run expects a single ``arguments`` dict parameter and
+            # returns a ToolResult or an awaitable that resolves to ToolResult.
+            result = run_method(arguments)
+            if inspect.isawaitable(result):
+                result = await result
+
+            if isinstance(result, ToolResult):
+                # For our tools we always use structured_content for the JSON-
+                # serializable payload when present; otherwise fall back to the
+                # human-readable content.
+                payload = result.structured_content if result.structured_content is not None else result.content
+            else:
+                payload = result
+        else:
+            # Some decorators may wrap the original function; prefer the
+            # underlying implementation if ``__wrapped__`` is present.
+            impl = getattr(func, "__wrapped__", func)
+            payload = impl(**arguments)
+
+    def _to_jsonable(value: Any) -> Any:
+        """Recursively convert pydantic models and containers into JSON-serializable data."""
+        if hasattr(value, "model_dump") and callable(getattr(value, "model_dump")):
+            try:
+                return value.model_dump()
+            except Exception:  # pragma: no cover - very defensive
+                pass
+        if isinstance(value, list):
+            return [_to_jsonable(item) for item in value]
+        if isinstance(value, dict):
+            return {key: _to_jsonable(val) for key, val in value.items()}
+        return value
+
+    json_payload = _to_jsonable(payload)
+
+    class MockResponse:
+        def __init__(self, data: Any) -> None:
+            self.text = json.dumps(data)
+
+    return [MockResponse(json_payload)]
+
+
+# Attach the shim to FastMCP so tests using server._mcp_call_tool continue to work
+setattr(FastMCP, "_mcp_call_tool", _test_mcp_call_tool)
+
 
 # Import local modules
 from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
@@ -485,7 +581,7 @@ def mock_sg(schema_paths):
 @pytest.fixture
 def mock_context(mock_sg):
     """Create a mock ShotGrid connection context."""
-    return ShotGridConnectionContext(factory_or_connection=mock_sg)
+    return ShotGridConnectionContext(factory_or_connection=mock_factory)
 
 
 @pytest.fixture

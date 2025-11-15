@@ -61,12 +61,6 @@
         ]
       },
       {
-        "group": "Development",
-        "pages": [
-          "guides/tool-naming-convention"
-        ]
-      },
-      {
         "group": "Patterns",
         "pages": [
           "patterns/optimized-queries",

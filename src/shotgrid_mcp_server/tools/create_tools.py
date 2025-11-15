@@ -78,6 +78,10 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="batch_create_entities")
             raise  # This is needed to satisfy the type checker
 
+    # Expose create tool implementations at module level for tests and internal use
+    globals()["create_entity"] = create_entity
+    globals()["batch_create_entities"] = batch_create_entities
+
     # Register batch operations tool
     register_batch_operations(server, sg)
 
@@ -164,6 +168,9 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
         except Exception as err:
             handle_error(err, operation="batch_operations")
             raise  # This is needed to satisfy the type checker
+
+    # Expose batch_operations implementation at module level for tests and internal use
+    globals()["batch_operations"] = batch_operations
 
 
 def validate_batch_operations(operations: List[Dict[str, Any]]) -> None:

@@ -143,21 +143,6 @@ Analyze the feedback notes from the client review yesterday, summarize the commo
 Help me prepare for tomorrow's review: find all shots due this week, check their status, create a playlist of the ones ready for review, and generate a summary report.
 ```
 
-## Understanding Tool Names
-
-The ShotGrid MCP Server uses a consistent naming convention for its tools. This helps AI assistants better understand and use the tools. The tools follow these patterns:
-
-- `sg_*` - Direct ShotGrid API operations (e.g., `sg_find`, `sg_create`)
-- `note_*` - Note-related operations (e.g., `note_create`, `note_read`)
-- `playlist_*` - Playlist operations (e.g., `playlist_create`, `playlist_find`)
-- `thumbnail_*` - Thumbnail operations (e.g., `thumbnail_get_url`, `thumbnail_download`)
-- `search_*` - Search operations (e.g., `search_entities`)
-- `entity_*` - Entity operations (e.g., `entity_create`, `entity_update`)
-- `vendor_*` - Vendor-related operations (e.g., `vendor_find_users`)
-- `batch_*` - Batch operations (e.g., `batch_create`, `batch_download`)
-
-For more details on tool naming and how to create new tools, see the [Tool Naming Convention](/guides/tool-naming-convention) guide.
-
 ## Tips for Effective Prompts
 
 1. **Be specific about timeframes**: "in the last week", "yesterday", "this month"
@@ -166,6 +151,5 @@ For more details on tool naming and how to create new tools, see the [Tool Namin
 4. **Use natural language** - you don't need to know the exact API calls or field names
 5. **Combine operations** for complex workflows
 6. **Ask for visualizations** when dealing with numerical data
-7. **Reference tool names** when you need specific functionality
 
 Remember that the AI assistant will translate your natural language requests into the appropriate ShotGrid MCP tool calls, making it easy to interact with your production data without needing to remember specific API details.

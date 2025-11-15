@@ -93,10 +93,7 @@ def _find_playlists_impl(
         limit = page_size
 
     # Execute query
-    # Use page parameter if provided, otherwise default to 1
-    page_value = page if page is not None else 1
-
-    # Try with all parameters
+    # Note: Mockgun doesn't support retired_only parameter
     try:
         result = sg.find(
             "Playlist",
@@ -106,45 +103,17 @@ def _find_playlists_impl(
             filter_operator=filter_operator,
             limit=limit,
             retired_only=False,
-            page=page_value,
-            page_size=page_size,
         )
-    except TypeError as e:
-        # If TypeError mentions 'page_size', try without it
-        if "page_size" in str(e):
-            try:
-                result = sg.find(
-                    "Playlist",
-                    filters,
-                    fields=fields,
-                    order=order,
-                    filter_operator=filter_operator,
-                    limit=limit,
-                    retired_only=False,
-                    page=page_value,
-                )
-            except TypeError:
-                # Fallback for older Mockgun which doesn't support retired_only or page
-                result = sg.find(
-                    "Playlist",
-                    filters,
-                    fields=fields,
-                    order=order,
-                    filter_operator=filter_operator,
-                    limit=limit,
-                )
-        else:
-            # Fallback for Mockgun which doesn't support retired_only
-            result = sg.find(
-                "Playlist",
-                filters,
-                fields=fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
-                page=page_value,
-                page_size=page_size,
-            )
+    except TypeError:
+        # Fallback for Mockgun which doesn't support retired_only
+        result = sg.find(
+            "Playlist",
+            filters,
+            fields=fields,
+            order=order,
+            filter_operator=filter_operator,
+            limit=limit,
+        )
 
     # Add ShotGrid URL to each playlist
     for playlist in result:
@@ -164,7 +133,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         sg: ShotGrid connection.
     """
 
-    @server.tool("playlist_find")
+    @server.tool("find_playlists")
     def find_playlists(
         filters: Optional[List[Dict[str, Any]]] = None,
         fields: Optional[List[str]] = None,
@@ -211,7 +180,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="find_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("playlist_find_by_project")
+    @server.tool("find_project_playlists")
     def find_project_playlists(
         project_id: int,
         fields: Optional[List[str]] = None,
@@ -252,14 +221,12 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 order,
                 None,
                 limit,
-                page=1,  # Default to page 1
-                page_size=limit,  # Use limit as page_size
             )
         except Exception as err:
             handle_error(err, operation="find_project_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("playlist_find_recent")
+    @server.tool("find_recent_playlists")
     def find_recent_playlists(
         days: int = 7,
         project_id: Optional[int] = None,
@@ -304,14 +271,12 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 order,
                 None,
                 limit,
-                page=1,  # Default to page 1
-                page_size=limit,  # Use limit as page_size
             )
         except Exception as err:
             handle_error(err, operation="find_recent_playlists")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("playlist_create")
+    @server.tool("create_playlist")
     def create_playlist(
         code: str,
         project_id: int,
@@ -372,7 +337,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="create_playlist")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("playlist_update")
+    @server.tool("update_playlist")
     def update_playlist(
         playlist_id: int,
         code: Optional[str] = None,
@@ -417,7 +382,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             handle_error(err, operation="update_playlist")
             raise  # This is needed to satisfy the type checker
 
-    @server.tool("playlist_add_versions")
+    @server.tool("add_versions_to_playlist")
     def add_versions_to_playlist(
         playlist_id: int,
         version_ids: List[int],
@@ -461,3 +426,11 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         except Exception as err:
             handle_error(err, operation="add_versions_to_playlist")
             raise  # This is needed to satisfy the type checker
+
+    # Expose playlist tool implementations at module level for tests and internal use
+    globals()["find_playlists"] = find_playlists
+    globals()["find_project_playlists"] = find_project_playlists
+    globals()["find_recent_playlists"] = find_recent_playlists
+    globals()["create_playlist"] = create_playlist
+    globals()["update_playlist"] = update_playlist
+    globals()["add_versions_to_playlist"] = add_versions_to_playlist

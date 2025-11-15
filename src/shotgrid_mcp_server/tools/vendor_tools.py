@@ -295,7 +295,6 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
                 fields=fields,
                 order=order,
                 limit=limit,
-                page=1,  # Set page parameter to avoid "page parameter must be a positive integer" error
             )
 
             # Serialize and return results

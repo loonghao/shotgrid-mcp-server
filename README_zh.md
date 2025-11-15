@@ -46,23 +46,10 @@ uv pip install shotgrid-mcp-server
 
 安装完成后，您可以直接使用以下命令启动服务器：
 ```bash
-uvx --python 3.10 shotgrid-mcp-server
-```
-
-**重要提示**：ShotGrid MCP服务器需要Python 3.10。使用`uvx`时，必须使用`--python 3.10`参数指定Python版本以确保兼容性，因为`uvx`可能默认使用最新的Python版本（例如3.13），而这与本包不兼容。
-
-您也可以通过环境变量设置Python版本：
-```bash
-# Windows
-set UV_PYTHON=3.10
-uvx shotgrid-mcp-server
-
-# Linux/macOS
-export UV_PYTHON=3.10
 uvx shotgrid-mcp-server
 ```
 
-请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
+这将使用默认设置启动ShotGrid MCP服务器。请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
 
 ### 开发环境设置
 
@@ -271,7 +258,6 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -293,7 +279,6 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -315,7 +300,6 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "command": "uvx",
       "args": [
-        "--python", "3.10",
         "shotgrid-mcp-server"
       ],
       "env": {
@@ -357,7 +341,7 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--python", "3.10", "shotgrid-mcp-server"],
+      "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "${input:shotgrid-script-name}",
         "SHOTGRID_SCRIPT_KEY": "${input:shotgrid-script-key}",
@@ -377,7 +361,7 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
     "shotgrid-server": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--python", "3.10", "shotgrid-mcp-server"],
+      "args": ["shotgrid-mcp-server"],
       "env": {
         "SHOTGRID_SCRIPT_NAME": "XXX",
         "SHOTGRID_SCRIPT_KEY": "XX",
