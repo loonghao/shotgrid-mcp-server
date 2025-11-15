@@ -88,6 +88,11 @@ class TestPlaylistTools:
         assert isinstance(response_dict["data"], list)
         assert len(response_dict["data"]) >= 2
 
+        # Verify URL fields exist on at least one playlist
+        first_playlist = response_dict["data"][0]
+        assert "sg_url" in first_playlist
+        assert "sg_urls" in first_playlist
+
     @pytest.mark.asyncio
     async def test_find_project_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
         """Test finding playlists in a project."""
@@ -292,9 +297,20 @@ class TestPlaylistTools:
 
         # Verify playlist URL format and top-level URL
         playlist_id = response_dict["data"]["id"]
-        expected_url = f"{mock_sg.base_url.rstrip('/')}/Playlist/detail/{playlist_id}"
+        expected_url = (
+            f"{mock_sg.base_url.rstrip('/')}/page/screening_room?"
+            f"entity_type=Playlist&entity_id={playlist_id}"
+        )
         assert response_dict["data"]["sg_url"] == expected_url
         assert response_dict.get("url") == expected_url
+
+        # Verify all URL variants are available
+        urls = response_dict["data"]["sg_urls"]
+        assert urls["screening_room"] == expected_url
+        detail_url = f"{mock_sg.base_url.rstrip('/')}/Playlist/detail/{playlist_id}"
+        assert urls["detail"] == detail_url
+        media_center_prefix = f"{mock_sg.base_url.rstrip('/')}/page/media_center?type=Playlist&id={playlist_id}&project_id="
+        assert urls["media_center"].startswith(media_center_prefix)
 
     @pytest.mark.asyncio
     async def test_update_playlist(self, playlist_server: FastMCP, mock_sg: Shotgun):
