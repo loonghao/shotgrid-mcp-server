@@ -31,7 +31,6 @@ from shotgrid_mcp_server.models import (
 )
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
-from shotgrid_mcp_server.types import EntityType
 
 # Configure logging
 logger = logging.getLogger(__name__)

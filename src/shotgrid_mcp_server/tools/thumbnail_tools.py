@@ -3,7 +3,10 @@
 This module contains tools for working with thumbnails in ShotGrid.
 """
 
-from typing import Dict, Optional
+import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List, Optional
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
@@ -699,39 +702,25 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
     entity_types = get_entity_types_from_schema(sg)
     logger.info(f"Registering thumbnail tools with {len(entity_types)} entity types from schema")
 
-    @server.tool("get_thumbnail_url")
-    def get_thumbnail_url(
-        entity_type: EntityType,
-        entity_id: int,
-        field_name: str = "image",
-        size: Optional[str] = None,
-    ) -> str:
-        """Get thumbnail URL for an entity.
+    # Register all tools
+    _register_get_thumbnail_url_tool(server, sg, entity_types)
+    _register_download_thumbnail_tool(server, sg, entity_types)
+    _register_batch_download_thumbnails_tool(server, sg, entity_types)
+    _register_batch_download_entity_thumbnails_tool(server, sg, entity_types)
+    _register_download_recent_asset_thumbnails_tool(server, sg, entity_types)
 
 
-        Returns:
-            str: Thumbnail URL.
+def validate_thumbnail_batch_operations(operations: List[Dict[str, Any]]) -> None:
+    """Validate thumbnail batch operations.
 
-        Raises:
-            ToolError: If the URL retrieval fails.
-        """
-        try:
-            result = sg.get_thumbnail_url(entity_type, entity_id, field_name)
-            if not result:
-                raise ToolError("No thumbnail URL found")
-            return str(result)
-        except Exception as err:
-            handle_error(err, operation="get_thumbnail_url")
-            raise  # This is needed to satisfy the type checker
+    Args:
+        operations: List of operations to validate.
 
-    @server.tool("download_thumbnail")
-    def download_thumbnail(
-        entity_type: EntityType,
-        entity_id: int,
-        field_name: str = "image",
-        file_path: Optional[str] = None,
-    ) -> Dict[str, str]:
-        """Download a thumbnail for an entity.
+    Raises:
+        ToolError: If any operation is invalid.
+    """
+    if not operations:
+        raise ToolError("No operations provided for batch thumbnail download")
 
     # Validate each operation
     for i, op in enumerate(operations):
@@ -739,19 +728,24 @@ def register_thumbnail_tools(server: FastMCPType, sg: Shotgun) -> None:
         if "entity_type" not in op:
             raise ToolError(f"Missing entity_type in operation {i}")
 
-        Returns:
-            Dict[str, str]: Path to downloaded thumbnail.
+        if "entity_id" not in op:
+            raise ToolError(f"Missing entity_id in operation {i}")
 
         # Validate entity_id is an integer
         entity_id = op.get("entity_id")
         if not isinstance(entity_id, int):
             raise ToolError(f"Invalid entity_id in operation {i}: {entity_id}. Must be an integer.")
 
-            # Download thumbnail
-            result = sg.download_attachment({"url": url}, file_path)
-            if result is None:
-                raise ToolError("Failed to download thumbnail")
-            return {"file_path": str(result)}
-        except Exception as err:
-            handle_error(err, operation="download_thumbnail")
-            raise  # This is needed to satisfy the type checker
+        # Validate size format if provided
+        size = op.get("size")
+        if size and not (size in ["thumbnail", "large"] or "x" in size):
+            raise ToolError(
+                f"Invalid size in operation {i}: {size}. Must be 'thumbnail', 'large', or dimensions like '800x600'."
+            )
+
+        # Validate image_format if provided
+        image_format = op.get("image_format")
+        if image_format and image_format not in ["jpg", "jpeg", "png", "gif"]:
+            raise ToolError(
+                f"Invalid image_format in operation {i}: {image_format}. Must be 'jpg', 'jpeg', 'png', or 'gif'."
+            )
