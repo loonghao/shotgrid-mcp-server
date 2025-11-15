@@ -62,3 +62,48 @@ def test_build_status_payload_for_entity_uses_schema(mock_sg: Shotgun) -> None:
     assert "sg_status_list" in payload
     status_info = payload["sg_status_list"]
     assert status_info["data_type"] == "status_list"
+
+
+
+def test_build_all_status_payload_aggregates_entity_types(mock_sg: Shotgun) -> None:
+    """_build_all_status_payload groups status fields by entity type."""
+
+    payload = sr._build_all_status_payload(mock_sg)
+
+    # The test schema defines status_list fields on Asset and other entities.
+    assert "Asset" in payload
+    asset_status = payload["Asset"]["sg_status_list"]
+    assert asset_status["data_type"] == "status_list"
+
+
+def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun) -> None:
+    """register_schema_resources wires up resources that read from schema."""
+
+    class DummyServer:
+        def __init__(self) -> None:
+            self.resources: Dict[str, Any] = {}
+
+        def resource(self, uri: str):
+            def decorator(func):
+                self.resources[uri] = func
+                return func
+
+            return decorator
+
+    server = DummyServer()
+    sr.register_schema_resources(server, mock_sg)
+
+    # All expected resource URIs should be registered.
+    assert "shotgrid://schema/entities" in server.resources
+    assert "shotgrid://schema/statuses" in server.resources
+    assert "shotgrid://schema/statuses/{entity_type}" in server.resources
+
+    # Calling the resources should return sensible data.
+    entities = server.resources["shotgrid://schema/entities"]()
+    assert "Asset" in entities
+
+    all_statuses = server.resources["shotgrid://schema/statuses"]()
+    assert "Asset" in all_statuses
+
+    per_entity = server.resources["shotgrid://schema/statuses/{entity_type}"](entity_type="Asset")
+    assert "sg_status_list" in per_entity

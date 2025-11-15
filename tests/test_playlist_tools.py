@@ -412,3 +412,41 @@ class TestPlaylistTools:
         version_ids = [v["id"] for v in updated_playlist["versions"]]
         assert version1["id"] in version_ids
         assert version2["id"] in version_ids
+
+
+
+    @pytest.mark.asyncio
+    async def test_find_playlists_handles_missing_project(self, playlist_server: FastMCP, mock_sg: Shotgun):
+        """Playlists without a project should still receive URL variants.
+
+        In this case we expect sg_urls to omit the media_center URL because
+        there is no project_id to include in the query string.
+        """
+
+        # Create a playlist without a project field
+        playlist = mock_sg.create(
+            "Playlist",
+            {
+                "code": "No Project Playlist",
+                "description": "Playlist without project",
+            },
+        )
+
+        result = await playlist_server._mcp_call_tool("find_playlists", {})
+
+        # Parse JSON payload
+        response_text = result[0].text
+        response_dict = json.loads(response_text)
+        playlists = response_dict["data"]
+
+        # Find the playlist we just created
+        target = next(p for p in playlists if p["code"] == "No Project Playlist")
+
+        assert "sg_url" in target
+        assert "sg_urls" in target
+
+        urls = target["sg_urls"]
+        assert "screening_room" in urls
+        assert "detail" in urls
+        # No project_id means we should not expose a media_center URL
+        assert "media_center" not in urls
