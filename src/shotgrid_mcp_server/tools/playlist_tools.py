@@ -16,7 +16,6 @@ from shotgrid_mcp_server.models import (
 )
 from shotgrid_mcp_server.response_models import (
     create_playlist_response,
-    generate_playlist_url,
     generate_playlist_url_variants,
     serialize_response,
 )
