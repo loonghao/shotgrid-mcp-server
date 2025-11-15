@@ -14,7 +14,12 @@ from shotgrid_mcp_server.models import (
     create_in_project_filter,
     process_filters,
 )
-from shotgrid_mcp_server.response_models import create_playlist_response, generate_playlist_url, serialize_response
+from shotgrid_mcp_server.response_models import (
+    create_playlist_response,
+    generate_playlist_url,
+    generate_playlist_url_variants,
+    serialize_response,
+)
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -115,11 +120,21 @@ def _find_playlists_impl(
             limit=limit,
         )
 
-    # Add ShotGrid URL to each playlist
+    # Add ShotGrid URLs to each playlist
     for playlist in result:
         if "id" in playlist:
-            # Generate ShotGrid URL for the playlist
-            playlist["sg_url"] = generate_playlist_url(sg.base_url, playlist["id"])
+            playlist_id = playlist["id"]
+            project_id = None
+            project = playlist.get("project")
+            if isinstance(project, dict):
+                project_id = project.get("id")
+
+            urls = generate_playlist_url_variants(sg.base_url, playlist_id, project_id)
+
+            # Primary URL used by existing clients
+            playlist["sg_url"] = urls["screening_room"]
+            # Full set of URL variants for AI/clients to choose from
+            playlist["sg_urls"] = urls
 
     # Serialize and return results
     return _serialize_playlists_response(result)
@@ -317,9 +332,17 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             if result is None:
                 raise ValueError("Failed to create playlist")
 
-            # Generate playlist URL
-            playlist_url = generate_playlist_url(sg.base_url, result["id"])
+            # Generate playlist URLs
+            playlist_id = result["id"]
+            project_id = None
+            project = result.get("project")
+            if isinstance(project, dict):
+                project_id = project.get("id")
+
+            urls = generate_playlist_url_variants(sg.base_url, playlist_id, project_id)
+            playlist_url = urls["screening_room"]
             result["sg_url"] = playlist_url
+            result["sg_urls"] = urls
 
             # Serialize the entity
             serialized_entity = serialize_entity(result)

@@ -81,6 +81,15 @@ def handle_tool_error(err: Exception, operation: str) -> None:
             raise ConnectionError(error_msg) from err
         elif "permission" in error_msg_lower or "access" in error_msg_lower or "not allowed" in error_msg_lower:
             raise PermissionError(error_msg) from err
+        elif _is_invalid_status_value_error(str(err)):
+            hint = (
+                f"{error_msg}. "
+                "Hint: this looks like an invalid status value for a status_list field. "
+                "Use the MCP resources 'shotgrid://schema/statuses' or "
+                "'shotgrid://schema/statuses/{entity_type}' to discover the allowed "
+                "status codes before calling update tools."
+            )
+            raise ToolError(hint) from err
     # Handle other specific error types
     elif "filter" in error_msg.lower() or "invalid filter" in error_msg.lower():
         raise FilterError(error_msg) from err
@@ -167,3 +176,33 @@ def is_permission_error(error: Exception) -> bool:
         error_msg = str(error).lower()
         return "permission" in error_msg or "access" in error_msg or "not allowed" in error_msg
     return False
+
+
+def _is_invalid_status_value_error(raw_message: str) -> bool:
+    """Heuristically detect invalid status-field value errors.
+
+    This relies on patterns commonly seen in ShotGrid error messages
+    when a status_list field receives an unsupported value. It is
+    deliberately conservative: if the message does not clearly look like
+    a status validation error, we return False so that the generic
+    ToolError path is used instead.
+    """
+
+    msg = raw_message.lower()
+
+    # Fast path: only consider messages that mention status fields.
+    if "sg_status_list" not in msg and "status_list" not in msg and "status" not in msg:
+        return False
+
+    markers = [
+        "invalid value",
+        "invalid status",
+        "must be one of",
+        "valid values are",
+        "valid values:",
+        "not in",
+        "is not a valid choice",
+        "is not a valid value",
+    ]
+
+    return any(marker in msg for marker in markers)

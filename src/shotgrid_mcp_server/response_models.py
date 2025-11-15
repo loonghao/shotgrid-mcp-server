@@ -175,23 +175,37 @@ def create_playlist_response(
     )
 
 
-def generate_playlist_url(base_url: str, playlist_id: int) -> str:
-    """Generate ShotGrid URL for a playlist.
+def generate_playlist_url_variants(
+    base_url: str, playlist_id: int, project_id: Optional[int] = None
+) -> Dict[str, str]:
+    """Generate multiple ShotGrid URLs for a playlist.
 
-    Args:
-        base_url: ShotGrid base URL.
-        playlist_id: ID of the playlist.
-
-    Returns:
-        str: URL to access the playlist in ShotGrid web interface.
+    This returns several commonly used entrypoints so that clients or
+    AI assistants can choose the most appropriate one for the context.
     """
-    # Remove trailing slash if present
-    if base_url.endswith("/"):
-        base_url = base_url[:-1]
+    base = base_url.rstrip("/")
 
-    # Construct the playlist URL
-    # Format: https://<shotgrid-domain>/Playlist/detail/<playlist_id>
-    return f"{base_url}/Playlist/detail/{playlist_id}"
+    urls: Dict[str, str] = {
+        "screening_room": f"{base}/page/screening_room?entity_type=Playlist&entity_id={playlist_id}",
+        "detail": f"{base}/Playlist/detail/{playlist_id}",
+    }
+
+    if project_id is not None:
+        urls["media_center"] = (
+            f"{base}/page/media_center?type=Playlist&id={playlist_id}&project_id={project_id}"
+        )
+
+    return urls
+
+
+def generate_playlist_url(base_url: str, playlist_id: int) -> str:
+    """Generate default ShotGrid URL for a playlist.
+
+    Currently this returns the Screening Room URL, which is the
+    recommended entrypoint for review.
+    """
+    urls = generate_playlist_url_variants(base_url, playlist_id)
+    return urls["screening_room"]
 
 
 def serialize_response(response: Dict[str, Any]) -> Dict[str, Any]:

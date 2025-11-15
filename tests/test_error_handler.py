@@ -129,6 +129,25 @@ class TestHandleToolError:
         assert "Error executing tool generic_operation: Unknown error" in str(excinfo.value)
         mock_logger.error.assert_called_once()
 
+    @patch("shotgrid_mcp_server.error_handler.logger")
+    def test_invalid_status_value_error_has_resource_hint(self, mock_logger):
+        """Status validation errors should point to schema resources.
+
+        This simulates a typical ShotGrid message when a status_list field
+        receives an unsupported value.
+        """
+
+        error = ShotgunError(
+            "Field sg_status_list has invalid value 'foo'; valid values are: wtg, ip, fin"
+        )
+        with pytest.raises(ToolError) as excinfo:
+            handle_tool_error(error, "update_entity")
+
+        msg = str(excinfo.value)
+        assert "invalid status value for a status_list field" in msg
+        assert "shotgrid://schema/statuses" in msg
+        mock_logger.error.assert_called_once()
+
 
 class TestCreateErrorResponse:
     """Tests for create_error_response function."""
