@@ -34,12 +34,17 @@ def build_exe(session: nox.Session) -> None:
 
 
 def build_wheel(session: nox.Session) -> None:
-    """Build Python wheel package."""
+    """Build Python wheel package.
+
+    Uses `python -m build` with the default isolated build environment.
+    This avoids any interference from the current environment that could
+    produce non-standard ZIP archives rejected by PyPI.
+    """
     # Install uv if not already installed
     session.run("python", "-m", "pip", "install", "uv", silent=True)
 
-    # Install build dependencies using uv
+    # Install build dependencies using uv inside the session environment
     session.run("uv", "pip", "install", "build", external=True)
 
-    # Build wheel
-    session.run("python", "-m", "build", "--wheel", "--no-isolation")
+    # Build wheel using an isolated PEP 517 environment
+    session.run("python", "-m", "build", "--wheel")

@@ -59,28 +59,39 @@ class ShotGridAPIClient:
         try:
             # Check if the connection is MockgunExt (used in tests)
             if hasattr(self.connection, "__class__") and self.connection.__class__.__name__ == "MockgunExt":
-                # MockgunExt doesn't support all parameters, so use only the ones it supports
+                # MockgunExt doesn't support all parameters, so build kwargs explicitly
+                kwargs: Dict[str, Any] = {
+                    "fields": request.fields,
+                    "order": request.order,
+                    "filter_operator": request.filter_operator,
+                }
+                if request.limit is not None:
+                    kwargs["limit"] = request.limit
+
                 result = self.connection.find(
                     request.entity_type,
                     request.filters,
-                    fields=request.fields,
-                    order=request.order,
-                    filter_operator=request.filter_operator,
-                    limit=request.limit,
+                    **kwargs,
                 )
             else:
-                # Use all parameters for real ShotGrid API
+                # Use all parameters for real ShotGrid API, but only pass limit when set
+                kwargs: Dict[str, Any] = {
+                    "fields": request.fields,
+                    "order": request.order,
+                    "filter_operator": request.filter_operator,
+                    "retired_only": request.retired_only,
+                    "page": request.page,
+                    "include_archived_projects": request.include_archived_projects,
+                }
+                if request.limit is not None:
+                    kwargs["limit"] = request.limit
+                if request.additional_filter_presets is not None:
+                    kwargs["additional_filter_presets"] = request.additional_filter_presets
+
                 result = self.connection.find(
                     request.entity_type,
                     request.filters,
-                    fields=request.fields,
-                    order=request.order,
-                    filter_operator=request.filter_operator,
-                    limit=request.limit,
-                    retired_only=request.retired_only,
-                    page=request.page,
-                    include_archived_projects=request.include_archived_projects,
-                    additional_filter_presets=request.additional_filter_presets,
+                    **kwargs,
                 )
             return result
         except Exception as err:

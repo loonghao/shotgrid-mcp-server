@@ -8,12 +8,12 @@ dependencies = [
     "fastmcp>=2.13.0",
     "mcp>=1.6.0",
     "uvicorn>=0.22.0",
-    "pydantic>=2.0.0",
+    "pydantic[email]>=2.0.0",
     "python-dotenv>=1.0.0",
     "platformdirs>=4.1.0",
     "aiohttp>=3.9.0",
     "requests>=2.31.0",
-    "shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",
+    "shotgun-api3>=3.8.2",
     "python-slugify (>=8.0.4,<9.0.0)",
     "pendulum (>=3.1.0,<4.0.0)",
     "tenacity (>=9.1.2,<10.0.0)",
@@ -178,11 +178,6 @@ asyncio_mode = "strict"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=shotgrid_mcp_server --cov-report=term-missing"
-
-[tool.uvx]
-dependencies = [
-    "git+https://github.com/shotgunsoftware/python-api.git#egg=shotgun-api3"
-]
 
 [tool.uvx.python]
 version = "3.10"

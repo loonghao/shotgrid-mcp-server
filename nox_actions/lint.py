@@ -11,11 +11,8 @@ def get_default_commands() -> list[str]:
 
 def lint(session: nox.Session, commands: list[str] | None = None) -> None:
     """Run linters."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Install linting tools using uv
-    session.run("uv", "pip", "install", "ruff", "black", "mypy", external=True)
+    # Install linting tools into the nox virtualenv using pip
+    session.install("ruff", "black", "mypy")
 
     if commands is None:
         # Run default linting commands
@@ -29,11 +26,8 @@ def lint(session: nox.Session, commands: list[str] | None = None) -> None:
 
 def lint_fix(session: nox.Session) -> None:
     """Run linters and fix issues."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Install linting tools using uv
-    session.run("uv", "pip", "install", "ruff", "black", "mypy", external=True)
+    # Install linting tools into the nox virtualenv using pip
+    session.install("ruff", "black", "mypy")
 
     # Run ruff format
     session.run("ruff", "format", "src")
