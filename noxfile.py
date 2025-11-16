@@ -71,17 +71,8 @@ def lint_fix(session: nox.Session) -> None:
 @nox.session(name="build-wheel")
 def build_wheel(session: nox.Session) -> None:
     """Build Python wheel package."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Use uv to install dependencies
-    session.run("uv", "pip", "install", "-e", ".[build]", external=True)
-
-    # Install build and hatchling
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-    session.run("uv", "pip", "install", "build", "hatchling", external=True)
-
-    # Build wheel
+    # Delegate to the shared release helper, which uses ``python -m build``
+    # with an isolated PEP 517 environment.
     release.build_wheel(session)
 
 
