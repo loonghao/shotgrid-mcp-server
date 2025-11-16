@@ -19,16 +19,15 @@ from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 @nox.session(name="tests")
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
 
-    # Use uv to install dependencies
-    session.run("uv", "pip", "install", ".", external=True)
-    session.run("uv", "pip", "install", "-r", "requirements-test.txt", external=True)
+    # Install test + runtime dependencies into the nox virtualenv using pip
+    # We deliberately avoid `uv pip` here to sidestep Windows permission issues
+    # when uv tries to manage its own wheel cache.
+    session.install("-r", "requirements-test.txt")
 
     # Run tests
     test_root = os.path.join(ROOT, "tests")
-    
+
     # Get any additional arguments passed after --
     pytest_args = session.posargs if session.posargs else []
 
@@ -40,24 +39,22 @@ def tests(session: nox.Session) -> None:
         f"--rootdir={test_root}",
     ]
 
+    # Ensure src/ is on PYTHONPATH so we can import the package without installing it
+    src_root = os.path.join(ROOT, "src")
+    env = {"PYTHONPATH": os.pathsep.join([src_root, THIS_ROOT.as_posix()])}
+
     # Run pytest with all arguments
-    session.run("pytest", *default_args, *pytest_args, env={"PYTHONPATH": THIS_ROOT.as_posix()})
+    session.run("pytest", *default_args, *pytest_args, env=env)
 
 
 @nox.session(name="lint")
 def lint_check(session: nox.Session) -> None:
     """Run the linter."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Use uv to install dependencies
-    session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
-
-    # Run linter
+    # Run ruff and mypy via the shared lint helpers
     commands = ["ruff check src", "ruff format --check src"]
     lint.lint(session, commands)
 
-    # Run mypy but ignore errors
+    # Run mypy but ignore errors for now
     try:
         session.run("mypy", "src")
     except Exception:
@@ -67,12 +64,7 @@ def lint_check(session: nox.Session) -> None:
 @nox.session(name="lint-fix")
 def lint_fix(session: nox.Session) -> None:
     """Run the linter and fix issues."""
-    # Install uv if not already installed
-    session.run("python", "-m", "pip", "install", "uv", silent=True)
-
-    # Use uv to install dependencies
-    session.run("uv", "pip", "install", "-e", ".[lint]", external=True)
-    # Run linter
+    # Run ruff format and ruff check --fix via the shared lint helpers
     lint.lint_fix(session)
 
 

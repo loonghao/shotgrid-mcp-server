@@ -1336,7 +1336,7 @@ wheels = [
 
 [[package]]
 name = "shotgrid-mcp-server"
-version = "0.8.1"
+version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -1344,7 +1344,7 @@ dependencies = [
     { name = "mcp" },
     { name = "pendulum" },
     { name = "platformdirs" },
-    { name = "pydantic" },
+    { name = "pydantic", extra = ["email"] },
     { name = "python-dotenv" },
     { name = "python-slugify" },
     { name = "requests" },
@@ -1395,7 +1395,7 @@ requires-dist = [
     { name = "nox", marker = "extra == 'dev'", specifier = ">=2023.4.22" },
     { name = "pendulum", specifier = ">=3.1.0,<4.0.0" },
     { name = "platformdirs", specifier = ">=4.1.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.4" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.21.0" },
@@ -1408,7 +1408,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.11" },
     { name = "ruff", marker = "extra == 'lint'" },
-    { name = "shotgun-api3", git = "https://github.com/shotgunsoftware/python-api.git?rev=v3.8.2" },
+    { name = "shotgun-api3", specifier = ">=3.8.2" },
     { name = "tenacity", specifier = ">=9.1.2,<10.0.0" },
     { name = "types-requests", marker = "extra == 'lint'" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.1.12" },
@@ -1418,7 +1418,11 @@ requires-dist = [
 [[package]]
 name = "shotgun-api3"
 version = "3.8.2"
-source = { git = "https://github.com/shotgunsoftware/python-api.git?rev=v3.8.2#4508d1cd937caee631ad3041447978aeb7a012ac" }
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/70/98f45f42a3c18002af06067321ea7356219e7a0c2da509c15c925c7886a9/shotgun_api3-3.8.2.tar.gz", hash = "sha256:7c7545854db53bdd2ea11a1aa80a068f2071f1f7c32b9911c8deedfa0f60b16a", size = 601886 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/23/6e953895921ea090a3c3eb147d66ed5922138bf9d9d54711397b7be8ba83/shotgun_api3-3.8.2-py2.py3-none-any.whl", hash = "sha256:a81fdab53fafab139fc9fa5fda5a07e872760d9f0302e21f84b4c8eee6d8ebc2", size = 578911 },
+]
 
 [[package]]
 name = "six"

@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from shotgrid_mcp_server.custom_types import EntityType
+from shotgrid_mcp_server.models import TimeFilter
 
 
 class BaseAPIRequest(BaseModel):
@@ -311,5 +312,104 @@ class FindOneEntityRequest(BaseAPIRequest):
 
             if "value" not in filter_dict:
                 raise ValueError(f"Filter {i} must have a 'value' key")
+
+        return v
+
+
+class AdvancedSearchRequest(BaseAPIRequest):
+    """Model for sg.search.advanced API requests.
+
+    This model extends the basic search request with time-based filters and
+    related_fields support so it can drive more complex queries while
+    remaining compatible with the existing ShotGrid find API.
+    """
+
+    entity_type: EntityType
+    filters: List[Dict[str, Any]] = Field(default_factory=list)
+    time_filters: List[TimeFilter] = Field(
+        default_factory=list,
+        description="Optional list of time-based filters such as in_last/in_next.",
+    )
+    fields: Optional[List[str]] = None
+    related_fields: Optional[Dict[str, List[str]]] = None
+    order: Optional[List[Dict[str, str]]] = None
+    filter_operator: Optional[str] = Field(
+        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+    )
+    limit: Optional[int] = Field(None, gt=0)
+
+    @field_validator("filter_operator")
+    @classmethod
+    def validate_filter_operator(cls, v):
+        """Validate filter_operator parameter."""
+        if v is not None and v not in ["and", "or"]:
+            raise ValueError("filter_operator must be 'and' or 'or'")
+        return v
+
+    @field_validator("filters")
+    @classmethod
+    def validate_filters(cls, v):
+        """Validate and normalize filters parameter.
+
+        Supports two input styles:
+        - {"field", "operator", "value"}: internal/Python API style
+        - {"path", "relation", "values"}: ShotGrid REST API _search style
+        """
+        # Allow empty filters list - ShotGrid API allows this to return all entities
+        if not v:
+            return v
+
+        normalized_filters: List[Dict[str, Any]] = []
+
+        for i, filter_dict in enumerate(v):
+            if not isinstance(filter_dict, dict):
+                raise ValueError(f"Filter {i} must be a dictionary")
+
+            # Already in internal style
+            if all(key in filter_dict for key in ("field", "operator", "value")):
+                normalized_filters.append(filter_dict)
+                continue
+
+            # ShotGrid REST style: path/relation/values
+            if all(key in filter_dict for key in ("path", "relation", "values")):
+                path = filter_dict["path"]
+                relation = filter_dict["relation"]
+                values = filter_dict["values"]
+
+                # Normalize REST 'values' (always list) to our 'value'
+                value = values
+                if isinstance(values, list) and len(values) == 1 and relation in ("is", "is_not"):
+                    value = values[0]
+
+                normalized_filters.append({"field": path, "operator": relation, "value": value})
+                continue
+
+            raise ValueError(
+                "Filter {i} must have either ('field', 'operator', 'value') or ('path', 'relation', 'values') keys".format(
+                    i=i
+                )
+            )
+
+        return normalized_filters
+
+    @field_validator("related_fields")
+    @classmethod
+    def validate_related_fields(cls, v):
+        """Validate related_fields parameter."""
+        if v is not None:
+            for field, related_field_list in v.items():
+                if not isinstance(field, str):
+                    raise ValueError(f"Related field key must be a string, got {type(field).__name__}")
+
+                if not isinstance(related_field_list, list):
+                    raise ValueError(
+                        f"Related field value for '{field}' must be a list, got {type(related_field_list).__name__}"
+                    )
+
+                for related_field in related_field_list:
+                    if not isinstance(related_field, str):
+                        raise ValueError(
+                            f"Related field item for '{field}' must be a string, got {type(related_field).__name__}"
+                        )
 
         return v

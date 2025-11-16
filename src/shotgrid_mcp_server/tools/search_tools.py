@@ -10,6 +10,7 @@ from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.api_client import ShotGridAPIClient
 from shotgrid_mcp_server.api_models import (
+    AdvancedSearchRequest,
     FindOneEntityRequest,
     FindOneRequest,
     FindRequest,
@@ -49,6 +50,7 @@ def register_search_tools(server: FastMCPType, sg: Shotgun) -> None:
     # Register advanced search tools
     register_search_with_related(server, sg)
     register_find_one_entity(server, sg)
+    register_advanced_search_tool(server, sg)
 
     # Register helper functions
     register_helper_functions(server, sg)
@@ -72,7 +74,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
         order: Optional[List[Dict[str, str]]] = None,
         filter_operator: Optional[str] = None,
         limit: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> EntitiesResponse:
         """Find entities in ShotGrid.
 
         Args:
@@ -184,7 +186,7 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
         order: Optional[List[Dict[str, str]]] = None,
         filter_operator: Optional[str] = None,
         limit: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> EntitiesResponse:
         """Find entities in ShotGrid with related entity fields.
 
         This method uses field hopping to efficiently retrieve data from related entities
@@ -353,8 +355,115 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
 
-    # Expose find_one_entity implementation at module level for tests and internal use
-    globals()["find_one_entity"] = find_one_entity
+
+def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
+    """Register sg.search.advanced tool.
+
+    This tool provides a more flexible search entry point that combines
+    standard filters with time-based filters and related_fields support.
+    """
+
+    api_client = ShotGridAPIClient(sg)
+
+    @server.tool("sg.search.advanced")
+    def sg_search_advanced(
+        entity_type: EntityType,
+        filters: Optional[List[Dict[str, Any]]] = None,
+        time_filters: Optional[List[Dict[str, Any]]] = None,
+        fields: Optional[List[str]] = None,
+        related_fields: Optional[Dict[str, List[str]]] = None,
+        order: Optional[List[Dict[str, str]]] = None,
+        filter_operator: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> EntitiesResponse:
+        """Advanced search for entities in ShotGrid.
+
+        Args:
+            entity_type: Type of entity to find.
+            filters: List of standard filters to apply.
+            time_filters: Optional list of time-based filters, such as
+                ``in_last`` or ``in_next`` filters.
+            fields: Optional list of fields to return from the main entity.
+            related_fields: Optional dictionary mapping entity fields to lists
+                of fields to return from related entities.
+            order: Optional list of fields to order by.
+            filter_operator: Optional logical operator for combining filters.
+            limit: Optional limit on number of entities to return.
+
+        Returns:
+            List of entities found.
+        """
+        try:
+            request = AdvancedSearchRequest(
+                entity_type=entity_type,
+                filters=filters or [],
+                time_filters=time_filters or [],
+                fields=fields,
+                related_fields=related_fields,
+                order=order,
+                filter_operator=filter_operator,
+                limit=limit,
+            )
+
+            filter_objects: List[Any] = []
+
+            # Standard filters are passed through to process_filters as
+            # dictionaries to reuse existing normalization logic.
+            filter_objects.extend(request.filters)
+
+            # Convert any time_filters into Filter instances so they can be
+            # processed in the same way as other filters.
+            for time_filter in request.time_filters:
+                try:
+                    filter_objects.append(time_filter.to_filter())
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.warning("Failed to convert time filter %s: %s", time_filter, exc)
+
+            processed_filters = process_filters(filter_objects)
+
+            all_fields = prepare_fields_with_related(
+                sg,
+                request.entity_type,
+                request.fields,
+                request.related_fields,
+            )
+
+            find_request = FindRequest(
+                entity_type=request.entity_type,
+                filters=processed_filters,
+                fields=all_fields,
+                order=request.order,
+                filter_operator=request.filter_operator,
+                limit=request.limit,
+                page=1,
+            )
+
+            result = api_client.find(find_request)
+
+            if result is None:
+                return EntitiesResponse(entities=[])
+
+            entity_dicts: List[EntityDict] = []
+            for entity in result:
+                serialized_entity = serialize_entity(entity)
+
+                if "id" not in serialized_entity and entity.get("id"):
+                    serialized_entity["id"] = entity["id"]
+
+                try:
+                    entity_dicts.append(EntityDict(**serialized_entity))
+                except Exception as exc:
+                    logger.warning("Failed to convert entity to EntityDict: %s", exc)
+                    if "id" in serialized_entity and "type" in serialized_entity:
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+
+            return EntitiesResponse(entities=entity_dicts)
+        except Exception as err:  # pragma: no cover - error path
+            handle_error(err, operation="sg.search.advanced")
+            raise
+
+    # Expose implementation at module level for tests and internal use
+    globals()["sg_search_advanced"] = sg_search_advanced
 
 
 def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str, str]]:

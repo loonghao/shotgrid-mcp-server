@@ -252,6 +252,107 @@ class TestSearchTools:
         # Verify result structure
         assert result[0].text is not None
 
+
+        @pytest.mark.asyncio
+        async def test_sg_search_advanced_basic(self, search_server: FastMCP, mock_sg: Shotgun):
+            """Test sg.search.advanced tool with basic filters (internal format)."""
+            # Create test project
+            project = mock_sg.create(
+                "Project",
+                {
+                    "name": "Advanced Search Project",
+                    "code": "advanced_search",
+                    "sg_status": "Active",
+                },
+            )
+
+            # Create test shot
+            mock_sg.create(
+                "Shot",
+                {
+                    "code": "ADV_SEARCH_SHOT_001",
+                    "project": {"type": "Project", "id": project["id"]},
+                },
+            )
+
+            # Create test filters using internal field/operator/value style
+            filters = [
+                {
+                    "field": "project",
+                    "operator": "is",
+                    "value": {"type": "Project", "id": project["id"]},
+                }
+            ]
+
+            # Call the tool
+            result = await search_server._mcp_call_tool(
+                "sg.search.advanced",
+                {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                },
+            )
+
+            # Verify result
+            assert result
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            # Verify result structure
+            assert result[0].text is not None
+
+        @pytest.mark.asyncio
+        async def test_sg_search_advanced_rest_style_filters(self, search_server: FastMCP, mock_sg: Shotgun):
+            """Test sg.search.advanced tool with ShotGrid REST-style filters (path/relation/values)."""
+            # Create test project
+            project = mock_sg.create(
+                "Project",
+                {
+                    "name": "Advanced Search REST Project",
+                    "code": "advanced_search_rest",
+                    "sg_status": "Active",
+                },
+            )
+
+            # Create test shot
+            mock_sg.create(
+                "Shot",
+                {
+                    "code": "ADV_REST_SHOT_001",
+                    "project": {"type": "Project", "id": project["id"]},
+                },
+            )
+
+            # Create test filters using REST-style path/relation/values
+            filters = [
+                {
+                    "path": "project",
+                    "relation": "is",
+                    "values": [
+                        {"type": "Project", "id": project["id"]},
+                    ],
+                }
+            ]
+
+            # Call the tool
+            result = await search_server._mcp_call_tool(
+                "sg.search.advanced",
+                {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                },
+            )
+
+            # Verify result
+            assert result
+            assert isinstance(result, list)
+            assert len(result) == 1
+
+            # Verify result structure
+            assert result[0].text is not None
+
     @pytest.mark.asyncio
     async def test_find_one_entity(self, search_server: FastMCP, mock_sg: Shotgun):
         """Test find_one_entity tool."""
