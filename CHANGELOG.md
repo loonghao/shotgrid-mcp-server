@@ -1,3 +1,9 @@
+## v0.10.0 (2025-11-16)
+
+### Feat
+
+- improve advanced search filters and local tooling
+
 ## v0.9.0 (2025-11-15)
 
 ### Feat
