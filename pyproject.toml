@@ -86,10 +86,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/shotgrid_mcp_server"]
 
-[tool.hatch.build.force-include]
-"tests/data/schema.bin" = "src/shotgrid_mcp_server/data/schema.bin"
-"tests/data/entity_schema.bin" = "src/shotgrid_mcp_server/data/entity_schema.bin"
-
 [tool.hatch.metadata]
 allow-direct-references = true
 
