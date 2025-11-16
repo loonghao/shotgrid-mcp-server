@@ -49,6 +49,7 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
         "find_recently_active_projects": getattr(search_tools, "find_recently_active_projects", None),
         "find_active_users": getattr(search_tools, "find_active_users", None),
         "find_entities_by_date_range": getattr(search_tools, "find_entities_by_date_range", None),
+        "sg.search.advanced": getattr(search_tools, "sg_search_advanced", None),
         # Optimized / batch operations
         "batch_operations": getattr(create_tools, "batch_operations", None),
         "batch_create_entities": getattr(create_tools, "batch_create_entities", None),
