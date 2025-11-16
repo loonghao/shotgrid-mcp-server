@@ -1,3 +1,9 @@
+## v0.10.1 (2025-11-16)
+
+### Fix
+
+- ensure PyPI wheel is valid for upload
+
 ## v0.10.0 (2025-11-16)
 
 ### Feat
