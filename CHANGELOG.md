@@ -1,3 +1,14 @@
+## v0.11.0 (2025-11-19)
+
+### Feat
+
+- refactor CLI to use subcommands and implement per-request credentials
+- add stdio and streamable HTTP transport support with click CLI
+
+### Fix
+
+- resolve lint and test failures
+
 ## v0.10.2 (2025-11-19)
 
 ### Fix
