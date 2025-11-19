@@ -307,7 +307,7 @@ class TestPlaylistTools:
         # Verify all URL variants are available
         urls = response_dict["data"]["sg_urls"]
         assert urls["screening_room"] == expected_url
-        detail_url = f"{mock_sg.base_url.rstrip('/')}/Playlist/detail/{playlist_id}"
+        detail_url = f"{mock_sg.base_url.rstrip('/')}/detail/Playlist/{playlist_id}"
         assert urls["detail"] == detail_url
         media_center_prefix = f"{mock_sg.base_url.rstrip('/')}/page/media_center?type=Playlist&id={playlist_id}&project_id="
         assert urls["media_center"].startswith(media_center_prefix)

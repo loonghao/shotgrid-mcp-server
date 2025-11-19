@@ -117,7 +117,7 @@ def test_generate_playlist_url_variants_without_project() -> None:
     assert urls["screening_room"] == (
         "https://mcp-site.shotgrid.autodesk.com/page/screening_room?entity_type=Playlist&entity_id=6"
     )
-    assert urls["detail"] == "https://mcp-site.shotgrid.autodesk.com/Playlist/detail/6"
+    assert urls["detail"] == "https://mcp-site.shotgrid.autodesk.com/detail/Playlist/6"
     assert "media_center" not in urls
 
 
