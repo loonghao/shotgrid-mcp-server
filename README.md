@@ -132,7 +132,9 @@ This allows you to configure multiple ShotGrid site instances in the same MCP cl
 
 #### ASGI Deployment
 
-For production deployments, you can use the standalone ASGI application with any ASGI server:
+For production deployments, you can use the standalone ASGI application with any ASGI server.
+
+> **Note**: The ASGI application uses **lazy initialization** - the ShotGrid connection is only created when the first request arrives, not during module import. This prevents connection errors during Docker builds or application startup.
 
 ```bash
 # Development mode with Uvicorn

@@ -34,21 +34,55 @@ from starlette.middleware.cors import CORSMiddleware
 # Import local modules
 from shotgrid_mcp_server.asgi import create_asgi_app
 
-# Configure CORS middleware
-# Customize these settings based on your deployment requirements
-cors_middleware = Middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Lazy initialization to avoid connection errors during module import
+_app_instance = None
 
-# Create ASGI application with middleware
-app = create_asgi_app(
-    middleware=[cors_middleware],
-    path="/mcp",  # API endpoint path
-)
+
+def get_app():
+    """Get or create the ASGI application with middleware.
+
+    This function implements lazy initialization to avoid creating
+    ShotGrid connections during module import or Docker build time.
+
+    Returns:
+        Starlette application instance with configured middleware.
+    """
+    global _app_instance
+    if _app_instance is None:
+        # Configure CORS middleware
+        # Customize these settings based on your deployment requirements
+        cors_middleware = Middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # In production, specify exact origins
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        # Create ASGI application with middleware
+        _app_instance = create_asgi_app(
+            middleware=[cors_middleware],
+            path="/mcp",  # API endpoint path
+        )
+
+    return _app_instance
+
+
+# ASGI application entry point
+def app(scope, receive, send):
+    """ASGI application entry point with lazy initialization.
+
+    Args:
+        scope: ASGI scope dict
+        receive: ASGI receive callable
+        send: ASGI send callable
+
+    Returns:
+        Coroutine for the ASGI application
+    """
+    application = get_app()
+    return application(scope, receive, send)
+
 
 # Note: For production deployments, consider:
 # 1. Restricting CORS origins to specific domains

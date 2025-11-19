@@ -8,10 +8,17 @@
 - provide deployment examples for Docker, Kubernetes, and cloud platforms
 - create comprehensive deployment documentation in English and Chinese
 
+### Fix
+
+- implement lazy initialization for ASGI app to prevent connection errors during Docker build
+- resolve module import issues by deferring ShotGrid connection until first request
+- prevent ProtocolError during module import with placeholder credentials
+
 ### Refactor
 
 - enhance server architecture for better transport mode separation
 - export `create_asgi_app` in package `__all__` for easier imports
+- add `get_app()` function for controlled ASGI application initialization
 
 ## v0.11.0 (2025-11-19)
 

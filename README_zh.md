@@ -131,7 +131,9 @@ uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
 
 #### ASGI 部署
 
-对于生产环境部署，您可以使用独立的 ASGI 应用配合任何 ASGI 服务器：
+对于生产环境部署，您可以使用独立的 ASGI 应用配合任何 ASGI 服务器。
+
+> **注意**：ASGI 应用使用**延迟初始化** - ShotGrid 连接只在第一个请求到达时创建，而不是在模块导入时。这可以防止 Docker 构建或应用启动时的连接错误。
 
 ```bash
 # 使用 Uvicorn 开发模式
