@@ -61,10 +61,8 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
 
     Args:
         server: FastMCP server instance.
-        sg: ShotGrid connection.
+        sg: ShotGrid connection (may be a mock in lazy mode).
     """
-    # Create API client
-    api_client = ShotGridAPIClient(sg)
 
     @server.tool("search_entities")
     def search_entities(
@@ -92,6 +90,13 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             ToolError: If the find operation fails.
         """
         try:
+            # Get current ShotGrid connection (from HTTP headers or fallback)
+            from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
+            current_sg = get_current_shotgrid_connection(fallback_sg=sg)
+
+            # Create API client with current connection
+            api_client = ShotGridAPIClient(current_sg)
+
             # Create request model with validation
             request = SearchEntitiesRequest(
                 entity_type=entity_type,
@@ -365,7 +370,7 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
 
     api_client = ShotGridAPIClient(sg)
 
-    @server.tool("sg.search.advanced")
+    @server.tool("sg_search_advanced")
     def sg_search_advanced(
         entity_type: EntityType,
         filters: Optional[List[Dict[str, Any]]] = None,

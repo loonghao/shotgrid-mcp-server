@@ -60,18 +60,71 @@ uvx shotgrid-mcp-server
 用于基于 Web 的部署或远程访问：
 ```bash
 # 使用默认端口（8000）启动 HTTP 传输模式
-uvx shotgrid-mcp-server --transport http
+uvx shotgrid-mcp-server http
 
 # 使用自定义主机和端口启动
-uvx shotgrid-mcp-server --transport http --host 0.0.0.0 --port 8080
+uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8080
 
 # 使用自定义路径启动
-uvx shotgrid-mcp-server --transport http --path /api/mcp
+uvx shotgrid-mcp-server http --path /api/mcp
 ```
 
-HTTP 传输模式使用 Streamable HTTP 协议，推荐用于 Web 部署，允许远程客户端连接到您的服务器。
+HTTP 传输模式使用 Streamable HTTP 协议,推荐用于 Web 部署,允许远程客户端连接到您的服务器。
 
-**注意：** 请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
+##### 多站点支持(HTTP 传输)
+
+HTTP 传输模式支持通过 HTTP 请求头配置 ShotGrid 凭证,这使得一个服务器实例可以服务多个 ShotGrid 站点:
+
+**服务器端配置:**
+```bash
+# 设置默认环境变量(用于服务器启动)
+export SHOTGRID_URL="https://default.shotgunstudio.com"
+export SHOTGRID_SCRIPT_NAME="default_script"
+export SHOTGRID_SCRIPT_KEY="default_key"
+
+# 启动 HTTP 服务器
+uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
+```
+
+**客户端配置:**
+
+在您的 MCP 客户端配置中,为每个 ShotGrid 站点添加自定义 HTTP 头:
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-site-1": {
+      "url": "http://your-server:8000/mcp",
+      "transport": {
+        "type": "http",
+        "headers": {
+          "X-ShotGrid-URL": "https://site1.shotgunstudio.com",
+          "X-ShotGrid-Script-Name": "my_script",
+          "X-ShotGrid-Script-Key": "abc123..."
+        }
+      }
+    },
+    "shotgrid-site-2": {
+      "url": "http://your-server:8000/mcp",
+      "transport": {
+        "type": "http",
+        "headers": {
+          "X-ShotGrid-URL": "https://site2.shotgunstudio.com",
+          "X-ShotGrid-Script-Name": "another_script",
+          "X-ShotGrid-Script-Key": "xyz789..."
+        }
+      }
+    }
+  }
+}
+```
+
+这样,您可以在同一个 MCP 客户端中配置多个 ShotGrid 站点实例,每个实例使用不同的凭证。
+
+**注意:**
+- 对于 stdio 传输模式,仍然需要设置环境变量(SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY)
+- 对于 HTTP 传输模式,可以通过 HTTP 头传递凭证,也可以使用环境变量作为默认值
+- 建议在生产环境中使用 HTTPS 以保护 API 密钥的安全
 
 ### 开发环境设置
 

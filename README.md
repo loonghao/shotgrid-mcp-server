@@ -61,18 +61,71 @@ This will start the ShotGrid MCP server with stdio transport, which is the defau
 For web-based deployments or remote access:
 ```bash
 # Start with HTTP transport on default port (8000)
-uvx shotgrid-mcp-server --transport http
+uvx shotgrid-mcp-server http
 
 # Start with custom host and port
-uvx shotgrid-mcp-server --transport http --host 0.0.0.0 --port 8080
+uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8080
 
 # Start with custom path
-uvx shotgrid-mcp-server --transport http --path /api/mcp
+uvx shotgrid-mcp-server http --path /api/mcp
 ```
 
 The HTTP transport uses the Streamable HTTP protocol, which is recommended for web deployments and allows remote clients to connect to your server.
 
-**Note:** Make sure you have set the required environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) before starting the server.
+##### Multi-Site Support (HTTP Transport)
+
+HTTP transport mode supports configuring ShotGrid credentials via HTTP request headers, enabling a single server instance to serve multiple ShotGrid sites:
+
+**Server Configuration:**
+```bash
+# Set default environment variables (required for server startup)
+export SHOTGRID_URL="https://default.shotgunstudio.com"
+export SHOTGRID_SCRIPT_NAME="default_script"
+export SHOTGRID_SCRIPT_KEY="default_key"
+
+# Start HTTP server
+uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
+```
+
+**Client Configuration:**
+
+In your MCP client configuration, add custom HTTP headers for each ShotGrid site:
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-site-1": {
+      "url": "http://your-server:8000/mcp",
+      "transport": {
+        "type": "http",
+        "headers": {
+          "X-ShotGrid-URL": "https://site1.shotgunstudio.com",
+          "X-ShotGrid-Script-Name": "my_script",
+          "X-ShotGrid-Script-Key": "abc123..."
+        }
+      }
+    },
+    "shotgrid-site-2": {
+      "url": "http://your-server:8000/mcp",
+      "transport": {
+        "type": "http",
+        "headers": {
+          "X-ShotGrid-URL": "https://site2.shotgunstudio.com",
+          "X-ShotGrid-Script-Name": "another_script",
+          "X-ShotGrid-Script-Key": "xyz789..."
+        }
+      }
+    }
+  }
+}
+```
+
+This allows you to configure multiple ShotGrid site instances in the same MCP client, each with different credentials.
+
+**Notes:**
+- For stdio transport mode, environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) are still required
+- For HTTP transport mode, credentials can be passed via HTTP headers or use environment variables as defaults
+- It's recommended to use HTTPS in production to protect API keys
 
 ### Development Setup
 
