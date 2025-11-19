@@ -431,25 +431,59 @@ class ShotgunClient:
 
 
 class ShotGridConnectionContext:
-    """Context manager for safely handling ShotGrid connections."""
+    """Context manager for safely handling ShotGrid connections.
+
+    This context manager supports two modes:
+    1. Direct connection: Use a provided Shotgun instance (for testing)
+    2. Credential-based: Create connection from provided credentials or environment variables
+
+    When credentials are explicitly provided (url, script_name, api_key), a direct connection
+    is created without using the connection pool. This is useful for HTTP transport where
+    each request may have different credentials.
+
+    When credentials are not provided, the connection pool is used with environment variables.
+    """
 
     def __init__(
         self,
         factory_or_connection: Optional[shotgun_api3.Shotgun] = None,
+        url: Optional[str] = None,
+        script_name: Optional[str] = None,
+        api_key: Optional[str] = None,
     ) -> None:
         """Initialize the context manager.
 
         Args:
             factory_or_connection: Direct Shotgun connection or None.
+            url: ShotGrid server URL. If provided, creates a direct connection.
+            script_name: ShotGrid script name. If provided, creates a direct connection.
+            api_key: ShotGrid API key. If provided, creates a direct connection.
         """
         # If a direct connection is provided, use it
         if isinstance(factory_or_connection, shotgun_api3.Shotgun):
             self.connection: Optional[shotgun_api3.Shotgun] = factory_or_connection
             self.sg_client: Optional[ShotgunClient] = None
-        else:
-            # Create a ShotgunClient with default pool size and environment variables
-            self.sg_client = ShotgunClient(poolSize=-1)  # Use unlimited pool size by default
+            self.use_pool = False
+            self.direct_credentials: Optional[Tuple[str, str, str]] = None
+        # If credentials are explicitly provided, create a direct connection (no pool)
+        elif url is not None and script_name is not None and api_key is not None:
             self.connection = None
+            self.sg_client = None
+            self.use_pool = False
+            self.direct_credentials = (url, script_name, api_key)
+            logger.debug("Using direct connection with provided credentials (no pool)")
+        else:
+            # Use connection pool with environment variables
+            self.sg_client = ShotgunClient(
+                poolSize=-1,  # Use unlimited pool size by default
+                url=url,
+                script_name=script_name,
+                api_key=api_key,
+            )
+            self.connection = None
+            self.use_pool = True
+            self.direct_credentials = None
+            logger.debug("Using connection pool with environment variables")
 
     def __enter__(self) -> shotgun_api3.Shotgun:
         """Create a new ShotGrid connection.
@@ -464,8 +498,22 @@ class ShotGridConnectionContext:
             if self.connection:
                 # Direct connection was provided
                 return self.connection
+            elif self.direct_credentials:
+                # Create a direct connection without using the pool
+                url, script_name, api_key = self.direct_credentials
+                logger.info(
+                    "Creating direct ShotGrid connection - URL: %s, Script: %s",
+                    url,
+                    script_name,
+                )
+                self.connection = create_shotgun_connection(
+                    url=url,
+                    script_name=script_name,
+                    api_key=api_key,
+                )
+                return self.connection
             else:
-                # Use ShotgunClient instance
+                # Use ShotgunClient instance from pool
                 assert self.sg_client is not None, "ShotgunClient is None"
                 self.connection = self.sg_client.instance
                 return self.connection
@@ -476,11 +524,67 @@ class ShotGridConnectionContext:
     def __exit__(self, *_) -> None:
         """Clean up the connection."""
         # Release the connection back to the pool if using ShotgunClient
-        if self.sg_client is not None and self.connection is not None:
+        if self.use_pool and self.sg_client is not None and self.connection is not None:
             # We know sg_client is not None here
             sg_client = self.sg_client
             if self.connection in sg_client.instancePool.inUse:
                 sg_client.instancePool.release(self.connection)
+        # For direct connections (non-pool), we don't need to do anything special
+        # The connection will be garbage collected when it goes out of scope
 
         # Set connection to None
         self.connection = None
+
+
+def get_current_shotgrid_connection(fallback_sg: Optional[shotgun_api3.Shotgun] = None) -> shotgun_api3.Shotgun:
+    """Get the current ShotGrid connection for the current request.
+
+    This function attempts to get credentials from HTTP headers first (for HTTP transport),
+    then falls back to environment variables or the provided fallback connection.
+
+    Args:
+        fallback_sg: Optional fallback ShotGrid connection to use if no credentials are found.
+
+    Returns:
+        shotgun_api3.Shotgun: Active ShotGrid connection.
+
+    Raises:
+        ValueError: If no credentials are available and no fallback is provided.
+    """
+    from shotgrid_mcp_server.http_context import get_shotgrid_credentials_from_headers
+
+    # Try to get credentials from HTTP headers first
+    url, script_name, api_key = get_shotgrid_credentials_from_headers()
+
+    if url and script_name and api_key:
+        # Create a new connection with HTTP header credentials
+        logger.info(
+            "Using ShotGrid credentials from HTTP headers - URL: %s, Script: %s",
+            url,
+            script_name,
+        )
+        return create_shotgun_connection(url=url, script_name=script_name, api_key=api_key)
+
+    # Fall back to environment variables or provided connection
+    if fallback_sg is not None:
+        logger.debug("Using fallback ShotGrid connection")
+        return fallback_sg
+
+    # Try environment variables
+    url = os.getenv("SHOTGRID_URL")
+    script_name = os.getenv("SHOTGRID_SCRIPT_NAME")
+    api_key = os.getenv("SHOTGRID_SCRIPT_KEY")
+
+    if url and script_name and api_key:
+        logger.info(
+            "Using ShotGrid credentials from environment variables - URL: %s, Script: %s",
+            url,
+            script_name,
+        )
+        return create_shotgun_connection(url=url, script_name=script_name, api_key=api_key)
+
+    raise ValueError(
+        "No ShotGrid credentials available. "
+        "Please provide credentials via HTTP headers (X-ShotGrid-URL, X-ShotGrid-Script-Name, X-ShotGrid-Script-Key) "
+        "or environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY)"
+    )
