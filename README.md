@@ -30,6 +30,9 @@ Here's a simple example of querying entities using the ShotGrid MCP server:
 - 🔄 Efficient connection pool management
 - 🔌 Direct ShotGrid API access through MCP tools
 - 📝 Enhanced note and playlist management
+- 🌐 Multiple transport modes: stdio, HTTP, and ASGI
+- ☁️ Cloud-ready ASGI application for easy deployment
+- 🔧 Customizable middleware support (CORS, authentication, etc.)
 - ✅ Comprehensive test coverage with pytest
 - 📦 Dependency management with UV
 - 🌐 Cross-platform support (Windows, macOS, Linux)
@@ -126,6 +129,70 @@ This allows you to configure multiple ShotGrid site instances in the same MCP cl
 - For stdio transport mode, environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) are still required
 - For HTTP transport mode, credentials can be passed via HTTP headers or use environment variables as defaults
 - It's recommended to use HTTPS in production to protect API keys
+
+#### ASGI Deployment
+
+For production deployments, you can use the standalone ASGI application with any ASGI server:
+
+```bash
+# Development mode with Uvicorn
+uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --reload
+
+# Production mode with multiple workers
+uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --workers 4
+
+# Using Gunicorn with Uvicorn workers (recommended for production)
+gunicorn shotgrid_mcp_server.asgi:app \
+    -k uvicorn.workers.UvicornWorker \
+    --bind 0.0.0.0:8000 \
+    --workers 4
+
+# Using Hypercorn
+hypercorn shotgrid_mcp_server.asgi:app --bind 0.0.0.0:8000
+```
+
+**Custom ASGI App with Middleware:**
+
+Create a custom `app.py` file:
+
+```python
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from shotgrid_mcp_server.asgi import create_asgi_app
+
+# Configure CORS for your domain
+cors_middleware = Middleware(
+    CORSMiddleware,
+    allow_origins=["https://yourdomain.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+# Create app with middleware
+app = create_asgi_app(
+    middleware=[cors_middleware],
+    path="/mcp"
+)
+```
+
+Then deploy it:
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**Cloud Platform Deployment:**
+
+The ASGI application can be easily deployed to cloud platforms like:
+- [FastMCP Cloud](https://gofastmcp.com/deployment/fastmcp-cloud)
+- AWS Lambda (with Mangum)
+- Google Cloud Run
+- Azure Container Apps
+- Heroku
+- Railway
+- Render
+
+See the [Deployment Guide](docs/deployment.md) for detailed instructions.
 
 ### Development Setup
 

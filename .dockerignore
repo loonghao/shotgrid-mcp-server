@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+htmlcov/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Project specific
+*.log
+*.md
+LICENSE
+CHANGELOG.md
+README*.md
+.noxfile
+noxfile.py
+tests/
+examples/
+scripts/
+images/
+.dockerignore
+Dockerfile
+docker-compose.yml
+.env
+.env.*
+requirements-dev.txt
+requirements-test.txt
+mypy.ini
+codecov.yml
+renovate.json
+poetry.lock
+run_pycharm.bat
+copy_schema.py
+test_http_request.py
+nox_actions/
