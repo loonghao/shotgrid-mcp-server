@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  shotgrid-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Default ShotGrid credentials
+      # These can be overridden via HTTP headers for multi-site support
+      - SHOTGRID_URL=${SHOTGRID_URL:-https://your-site.shotgunstudio.com}
+      - SHOTGRID_SCRIPT_NAME=${SHOTGRID_SCRIPT_NAME:-your_script_name}
+      - SHOTGRID_SCRIPT_KEY=${SHOTGRID_SCRIPT_KEY:-your_api_key}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Optional: Nginx reverse proxy for SSL/TLS termination
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - shotgrid-mcp
+    restart: unless-stopped
+    # Uncomment to enable nginx
+    # profiles:
+    #   - with-nginx

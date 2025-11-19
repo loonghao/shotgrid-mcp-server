@@ -23,6 +23,9 @@
 - 🔄 高效的连接池管理
 - 🔌 通过MCP工具直接访问ShotGrid API
 - 📝 增强的备注和播放列表管理
+- 🌐 多种传输模式：stdio、HTTP 和 ASGI
+- ☁️ 云就绪的 ASGI 应用，便于部署
+- 🔧 可自定义中间件支持（CORS、认证等）
 - ✅ 使用pytest的全面测试覆盖
 - 📦 使用UV进行依赖管理
 - 🌐 跨平台支持 (Windows, macOS, Linux)
@@ -125,6 +128,70 @@ uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
 - 对于 stdio 传输模式,仍然需要设置环境变量(SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY)
 - 对于 HTTP 传输模式,可以通过 HTTP 头传递凭证,也可以使用环境变量作为默认值
 - 建议在生产环境中使用 HTTPS 以保护 API 密钥的安全
+
+#### ASGI 部署
+
+对于生产环境部署，您可以使用独立的 ASGI 应用配合任何 ASGI 服务器：
+
+```bash
+# 使用 Uvicorn 开发模式
+uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --reload
+
+# 生产模式（多进程）
+uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --workers 4
+
+# 使用 Gunicorn 与 Uvicorn workers（生产环境推荐）
+gunicorn shotgrid_mcp_server.asgi:app \
+    -k uvicorn.workers.UvicornWorker \
+    --bind 0.0.0.0:8000 \
+    --workers 4
+
+# 使用 Hypercorn
+hypercorn shotgrid_mcp_server.asgi:app --bind 0.0.0.0:8000
+```
+
+**自定义 ASGI 应用（带中间件）：**
+
+创建自定义 `app.py` 文件：
+
+```python
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from shotgrid_mcp_server.asgi import create_asgi_app
+
+# 为您的域名配置 CORS
+cors_middleware = Middleware(
+    CORSMiddleware,
+    allow_origins=["https://yourdomain.com"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+# 创建带中间件的应用
+app = create_asgi_app(
+    middleware=[cors_middleware],
+    path="/mcp"
+)
+```
+
+然后部署：
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**云平台部署：**
+
+ASGI 应用可以轻松部署到各种云平台：
+- [FastMCP Cloud](https://gofastmcp.com/deployment/fastmcp-cloud)
+- AWS Lambda（使用 Mangum）
+- Google Cloud Run
+- Azure Container Apps
+- Heroku
+- Railway
+- Render
+
+详细部署说明请参阅 [部署指南](docs/deployment_zh.md)。
 
 ### 开发环境设置
 

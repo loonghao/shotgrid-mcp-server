@@ -1,3 +1,18 @@
+## Unreleased
+
+### Feat
+
+- add standalone ASGI application support for cloud deployment
+- implement decoupled stdio and HTTP transport modes
+- add customizable middleware support (CORS, authentication, etc.)
+- provide deployment examples for Docker, Kubernetes, and cloud platforms
+- create comprehensive deployment documentation in English and Chinese
+
+### Refactor
+
+- enhance server architecture for better transport mode separation
+- export `create_asgi_app` in package `__all__` for easier imports
+
 ## v0.11.0 (2025-11-19)
 
 ### Feat
