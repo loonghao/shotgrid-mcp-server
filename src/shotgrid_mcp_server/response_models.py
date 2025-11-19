@@ -185,7 +185,7 @@ def generate_playlist_url_variants(base_url: str, playlist_id: int, project_id: 
 
     urls: Dict[str, str] = {
         "screening_room": f"{base}/page/screening_room?entity_type=Playlist&entity_id={playlist_id}",
-        "detail": f"{base}/Playlist/detail/{playlist_id}",
+        "detail": f"{base}/detail/Playlist/{playlist_id}",
     }
 
     if project_id is not None:

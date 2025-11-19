@@ -246,7 +246,7 @@ async def call_tool(
                     "type": "Playlist",
                     "code": "Vendor Versions - Default",
                     "description": "Automatically generated playlist of vendor versions",
-                    "sg_url": "https://example.shotgunstudio.com/Playlist/detail/1",
+                    "sg_url": "https://example.shotgunstudio.com/detail/Playlist/1",
                     "versions": [
                         {"id": 1, "code": "VENDOR1_VERSION_0"},
                         {"id": 2, "code": "VENDOR1_VERSION_1"},
@@ -264,7 +264,7 @@ async def call_tool(
                     "type": "Playlist",
                     "code": "Test Vendor Playlist",
                     "description": "Test playlist with vendor versions",
-                    "sg_url": "https://example.shotgunstudio.com/Playlist/detail/1",
+                    "sg_url": "https://example.shotgunstudio.com/detail/Playlist/1",
                     "versions": [
                         {"id": 1, "code": "VENDOR_VERSION_0"},
                         {"id": 2, "code": "VENDOR_VERSION_1"},
