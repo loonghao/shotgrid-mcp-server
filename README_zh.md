@@ -45,11 +45,33 @@ uv pip install shotgrid-mcp-server
 ### 快速使用
 
 安装完成后，您可以直接使用以下命令启动服务器：
+
+#### STDIO 传输模式（默认）
+
+用于本地 MCP 客户端（如 Claude Desktop、Cursor 等）：
 ```bash
 uvx shotgrid-mcp-server
 ```
 
-这将使用默认设置启动ShotGrid MCP服务器。请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
+这将使用 stdio 传输模式启动 ShotGrid MCP 服务器，这是本地 MCP 客户端的默认模式。
+
+#### HTTP 传输模式
+
+用于基于 Web 的部署或远程访问：
+```bash
+# 使用默认端口（8000）启动 HTTP 传输模式
+uvx shotgrid-mcp-server --transport http
+
+# 使用自定义主机和端口启动
+uvx shotgrid-mcp-server --transport http --host 0.0.0.0 --port 8080
+
+# 使用自定义路径启动
+uvx shotgrid-mcp-server --transport http --path /api/mcp
+```
+
+HTTP 传输模式使用 Streamable HTTP 协议，推荐用于 Web 部署，允许远程客户端连接到您的服务器。
+
+**注意：** 请确保在启动服务器之前已设置必要的环境变量（SHOTGRID_URL，SHOTGRID_SCRIPT_NAME，SHOTGRID_SCRIPT_KEY）。
 
 ### 开发环境设置
 
