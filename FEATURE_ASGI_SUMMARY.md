@@ -15,7 +15,9 @@ The ShotGrid MCP Server has been enhanced to provide better separation between s
 **Key Features**:
 - `create_asgi_app()` factory function for creating customizable ASGI apps
 - Support for custom middleware injection (CORS, authentication, logging, etc.)
-- Default `app` instance for simple deployment
+- **Lazy initialization** to prevent connection errors during Docker build or module import
+- `get_app()` function for controlled application initialization
+- Default `app` callable for simple deployment (with lazy initialization)
 - Comprehensive documentation and examples
 
 **Usage**:

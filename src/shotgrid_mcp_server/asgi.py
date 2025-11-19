@@ -95,12 +95,50 @@ def create_asgi_app(middleware: Optional[List[Middleware]] = None, path: str = "
         raise
 
 
-# Default ASGI application instance for deployment
-# This can be used directly with ASGI servers:
-#   uvicorn shotgrid_mcp_server.asgi:app
-#   gunicorn shotgrid_mcp_server.asgi:app -k uvicorn.workers.UvicornWorker
-app = create_asgi_app()
+# Lazy initialization of default ASGI application
+# The app is created on first access, not on module import
+# This prevents connection errors during Docker build or import time
+_app_instance = None
 
-# Log startup message
-logger.info("ShotGrid MCP ASGI application initialized")
-logger.info("Deploy with: uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000")
+
+def get_app():
+    """Get or create the default ASGI application instance.
+
+    This function implements lazy initialization to avoid creating
+    ShotGrid connections during module import or Docker build time.
+
+    Returns:
+        Starlette application instance.
+    """
+    global _app_instance
+    if _app_instance is None:
+        logger.info("Initializing default ASGI application (lazy mode)")
+        try:
+            _app_instance = create_asgi_app()
+            logger.info("ASGI application initialized successfully")
+            logger.info("Deploy with: uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000")
+        except Exception as e:
+            logger.error("Failed to initialize ASGI application: %s", str(e))
+            # Re-raise to let the ASGI server handle the error
+            raise
+    return _app_instance
+
+
+# For ASGI servers, we need a module-level callable
+# Import this as: uvicorn shotgrid_mcp_server.asgi:app
+def app(scope, receive, send):
+    """ASGI application entry point with lazy initialization.
+
+    This is a module-level callable that ASGI servers can import.
+    The actual application is created on first request.
+
+    Args:
+        scope: ASGI scope dict
+        receive: ASGI receive callable
+        send: ASGI send callable
+
+    Returns:
+        Coroutine for the ASGI application
+    """
+    application = get_app()
+    return application(scope, receive, send)

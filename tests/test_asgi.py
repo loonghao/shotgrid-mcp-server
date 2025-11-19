@@ -69,9 +69,18 @@ def test_create_asgi_app_with_multiple_middleware(mock_env_vars):
     assert app is not None
 
 
-def test_create_asgi_app_imports():
-    """Test that the default app is created on module import."""
-    # Import here to test module-level initialization
+def test_create_asgi_app_lazy_initialization(mock_env_vars):
+    """Test that the module-level app uses lazy initialization."""
+    # Import the module
     from shotgrid_mcp_server import asgi
 
-    assert asgi.app is not None
+    # The app should be a function (lazy init), not an instance
+    assert callable(asgi.app)
+
+    # Calling get_app() should create the instance
+    app_instance = asgi.get_app()
+    assert app_instance is not None
+
+    # Calling again should return the same instance (singleton)
+    app_instance2 = asgi.get_app()
+    assert app_instance is app_instance2
