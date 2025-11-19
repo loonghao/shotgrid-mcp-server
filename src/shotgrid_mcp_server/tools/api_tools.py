@@ -23,6 +23,7 @@ def _get_sg(fallback: Shotgun) -> Shotgun:
         Active ShotGrid connection.
     """
     from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
+
     return get_current_shotgrid_connection(fallback_sg=fallback)
 
 

@@ -81,8 +81,10 @@ def get_shotgrid_credentials_from_headers() -> Tuple[Optional[str], Optional[str
             debug_parts = [
                 f"ShotGrid URL: {url}" if url else None,
                 f"Script Name: {script_name}" if script_name else None,
-                f"Client: {request_info.get('forwarded_for', 'unknown')}" if request_info.get('forwarded_for') else None,
-                f"User-Agent: {request_info.get('user_agent', 'unknown')}" if request_info.get('user_agent') else None,
+                f"Client: {request_info.get('forwarded_for', 'unknown')}"
+                if request_info.get("forwarded_for")
+                else None,
+                f"User-Agent: {request_info.get('user_agent', 'unknown')}" if request_info.get("user_agent") else None,
             ]
             debug_msg = " | ".join(filter(None, debug_parts))
 
@@ -95,8 +97,8 @@ def get_shotgrid_credentials_from_headers() -> Tuple[Optional[str], Optional[str
             if request_info:
                 logger.debug(
                     "HTTP Request without ShotGrid credentials - Client: %s, User-Agent: %s",
-                    request_info.get('forwarded_for', 'unknown'),
-                    request_info.get('user_agent', 'unknown'),
+                    request_info.get("forwarded_for", "unknown"),
+                    request_info.get("user_agent", "unknown"),
                 )
 
         return url, script_name, api_key
@@ -109,4 +111,3 @@ def get_shotgrid_credentials_from_headers() -> Tuple[Optional[str], Optional[str
         # Any other error (e.g., not in request context)
         logger.debug("Failed to extract credentials from HTTP headers: %s", str(e))
         return None, None, None
-
