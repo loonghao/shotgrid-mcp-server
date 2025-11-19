@@ -192,8 +192,42 @@ In HTTP mode via CLI, the connection can still be created eagerly or lazily depe
 def http(host: str, port: int, path: str) -> None:
     # Use lazy connection mode for HTTP
     app = create_server(lazy_connection=True)
-    app.run(transport="http", host=host, port=port, path=path)
+    app.run(transport=\"http\", host=host, port=port, path=path)
 ```
+
+### Server Module Fix
+
+**Important Fix**: The `server.py` module previously had module-level code that would create a server instance during import:
+
+```python
+# ❌ BEFORE - Caused HTTP mode startup errors
+if __name__ == "__main__":
+    main()
+else:
+    # When imported, create a server for testing
+    try:
+        app = create_server()  # ❌ Immediate connection attempt!
+    except Exception as e:
+        logger.error(f"Failed to initialize server: {e}")
+```
+
+This caused the same issue: when starting HTTP mode, importing `server.py` would trigger a ShotGrid connection attempt with placeholder/environment credentials, resulting in errors like:
+
+```
+ProtocolError: <ProtocolError for example.shotgunstudio.com: 404 Not Found>
+Failed to initialize server
+```
+
+**The fix** was to remove this module-level initialization entirely:
+
+```python
+# ✅ AFTER - Safe module import
+if __name__ == "__main__":
+    main()
+# No else block - no automatic initialization!
+```
+
+Now, importing `server.py` is safe and doesn't trigger any connection attempts. The server is only created when explicitly requested via CLI commands or ASGI entry points.
 
 ### ASGI Mode
 

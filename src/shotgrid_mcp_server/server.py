@@ -110,10 +110,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-else:
-    # When imported, create a server for testing
-    try:
-        app = create_server()
-    except Exception as e:
-        logger.error(f"Failed to initialize server: {e}")
-        # Don't raise here, as this is not the main entry point
