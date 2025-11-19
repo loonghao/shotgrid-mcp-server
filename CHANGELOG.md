@@ -1,3 +1,10 @@
+## v0.10.2 (2025-11-19)
+
+### Fix
+
+- remove test code and add trailing newline in logger.py
+- correct playlist detail URL format from /Playlist/detail/ to /detail/Playlist/
+
 ## v0.10.1 (2025-11-16)
 
 ### Fix
