@@ -5,7 +5,9 @@ This module contains unit tests for the ShotGrid MCP server tools.
 
 # Import built-in modules
 import json
+import os
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 # Import third-party modules
 import pytest
@@ -13,6 +15,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
 from tests.helpers import call_tool
 
 
@@ -413,3 +416,75 @@ class TestGetThumbnailUrl:
         # In the test environment, we don't actually get the thumbnail URL
         # but we can verify the response format
         assert response is None
+
+
+@pytest.mark.asyncio
+class TestGetCurrentShotGridConnection:
+    """Test suite for get_current_shotgrid_connection function."""
+
+    def test_get_connection_from_http_headers(self, mock_sg: Shotgun):
+        """Test getting connection from HTTP headers."""
+        mock_headers_data = (
+            "https://test.shotgunstudio.com",
+            "test_script",
+            "test_key_12345",
+        )
+        with patch(
+            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            return_value=mock_headers_data,
+        ):
+            with patch("shotgrid_mcp_server.connection_pool.create_shotgun_connection") as mock_create:
+                mock_create.return_value = mock_sg
+                result = get_current_shotgrid_connection()
+                assert result == mock_sg
+                mock_create.assert_called_once_with(
+                    url="https://test.shotgunstudio.com",
+                    script_name="test_script",
+                    api_key="test_key_12345",
+                )
+
+    def test_get_connection_from_fallback(self, mock_sg: Shotgun):
+        """Test getting connection from fallback."""
+        mock_headers_data = (None, None, None)
+        with patch(
+            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            return_value=mock_headers_data,
+        ):
+            result = get_current_shotgrid_connection(fallback_sg=mock_sg)
+            assert result == mock_sg
+
+    def test_get_connection_from_env_vars(self, mock_sg: Shotgun):
+        """Test getting connection from environment variables."""
+        mock_headers_data = (None, None, None)
+        with patch(
+            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            return_value=mock_headers_data,
+        ):
+            with patch.dict(
+                os.environ,
+                {
+                    "SHOTGRID_URL": "https://env.shotgunstudio.com",
+                    "SHOTGRID_SCRIPT_NAME": "env_script",
+                    "SHOTGRID_SCRIPT_KEY": "env_key",
+                },
+            ):
+                with patch("shotgrid_mcp_server.connection_pool.create_shotgun_connection") as mock_create:
+                    mock_create.return_value = mock_sg
+                    result = get_current_shotgrid_connection()
+                    assert result == mock_sg
+                    mock_create.assert_called_once_with(
+                        url="https://env.shotgunstudio.com",
+                        script_name="env_script",
+                        api_key="env_key",
+                    )
+
+    def test_get_connection_no_credentials_raises_error(self):
+        """Test that ValueError is raised when no credentials are available."""
+        mock_headers_data = (None, None, None)
+        with patch(
+            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            return_value=mock_headers_data,
+        ):
+            with patch.dict(os.environ, {}, clear=True):
+                with pytest.raises(ValueError, match="No ShotGrid credentials available"):
+                    get_current_shotgrid_connection()

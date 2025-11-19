@@ -62,14 +62,13 @@ def stdio() -> None:
             click.echo(str(e), err=True)
             click.echo(f"{'=' * 80}\n", err=True)
             sys.exit(1)
-        else:
-            raise
+        raise
     except KeyboardInterrupt:
         click.echo("\n\nShutting down server...")
     except Exception as e:
         logger.error("Failed to start server: %s", str(e), exc_info=True)
         click.echo(f"\n❌ Error: {e}", err=True)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @cli.command()
@@ -133,7 +132,7 @@ def http(host: str, port: int, path: str) -> None:
     except Exception as e:
         logger.error("Failed to start server: %s", str(e), exc_info=True)
         click.echo(f"\n❌ Error: {e}", err=True)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def main() -> None:
