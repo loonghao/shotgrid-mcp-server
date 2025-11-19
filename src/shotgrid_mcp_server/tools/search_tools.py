@@ -92,6 +92,7 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
         try:
             # Get current ShotGrid connection (from HTTP headers or fallback)
             from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
+
             current_sg = get_current_shotgrid_connection(fallback_sg=sg)
 
             # Create API client with current connection

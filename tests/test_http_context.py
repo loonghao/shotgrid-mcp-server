@@ -83,8 +83,8 @@ class TestGetRequestInfo:
     def test_all_request_info_present(self):
         """Test when all request info headers are present."""
         mock_headers = {
-            "X-Forwarded-For": "192.168.1.100",
-            "User-Agent": "TestClient/1.0",
+            "x-forwarded-for": "192.168.1.100",
+            "user-agent": "TestClient/1.0",
         }
         with patch("fastmcp.server.dependencies.get_http_headers", return_value=mock_headers):
             info = get_request_info()
@@ -94,7 +94,7 @@ class TestGetRequestInfo:
     def test_partial_request_info(self):
         """Test when only some request info headers are present."""
         mock_headers = {
-            "User-Agent": "TestClient/1.0",
+            "user-agent": "TestClient/1.0",
             # Missing X-Forwarded-For
         }
         with patch("fastmcp.server.dependencies.get_http_headers", return_value=mock_headers):

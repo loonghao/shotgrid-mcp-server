@@ -430,7 +430,7 @@ class TestGetCurrentShotGridConnection:
             "test_key_12345",
         )
         with patch(
-            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            "shotgrid_mcp_server.http_context.get_shotgrid_credentials_from_headers",
             return_value=mock_headers_data,
         ):
             with patch("shotgrid_mcp_server.connection_pool.create_shotgun_connection") as mock_create:
@@ -447,7 +447,7 @@ class TestGetCurrentShotGridConnection:
         """Test getting connection from fallback."""
         mock_headers_data = (None, None, None)
         with patch(
-            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            "shotgrid_mcp_server.http_context.get_shotgrid_credentials_from_headers",
             return_value=mock_headers_data,
         ):
             result = get_current_shotgrid_connection(fallback_sg=mock_sg)
@@ -457,7 +457,7 @@ class TestGetCurrentShotGridConnection:
         """Test getting connection from environment variables."""
         mock_headers_data = (None, None, None)
         with patch(
-            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            "shotgrid_mcp_server.http_context.get_shotgrid_credentials_from_headers",
             return_value=mock_headers_data,
         ):
             with patch.dict(
@@ -482,7 +482,7 @@ class TestGetCurrentShotGridConnection:
         """Test that ValueError is raised when no credentials are available."""
         mock_headers_data = (None, None, None)
         with patch(
-            "shotgrid_mcp_server.connection_pool.get_shotgrid_credentials_from_headers",
+            "shotgrid_mcp_server.http_context.get_shotgrid_credentials_from_headers",
             return_value=mock_headers_data,
         ):
             with patch.dict(os.environ, {}, clear=True):
