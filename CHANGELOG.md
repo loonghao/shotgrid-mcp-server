@@ -13,6 +13,8 @@
 - implement lazy initialization for ASGI app to prevent connection errors during Docker build
 - resolve module import issues by deferring ShotGrid connection until first request
 - prevent ProtocolError during module import with placeholder credentials
+- remove module-level server initialization in server.py to fix HTTP mode startup errors
+- eliminate immediate ShotGrid connection attempts during module import
 
 ### Refactor
 
