@@ -46,11 +46,33 @@ uv pip install shotgrid-mcp-server
 ### Quick Usage
 
 Once installed, you can start the server directly with:
+
+#### STDIO Transport (Default)
+
+For local MCP clients (like Claude Desktop, Cursor, etc.):
 ```bash
 uvx shotgrid-mcp-server
 ```
 
-This will start the ShotGrid MCP server with default settings. Make sure you have set the required environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) before starting the server.
+This will start the ShotGrid MCP server with stdio transport, which is the default mode for local MCP clients.
+
+#### HTTP Transport
+
+For web-based deployments or remote access:
+```bash
+# Start with HTTP transport on default port (8000)
+uvx shotgrid-mcp-server --transport http
+
+# Start with custom host and port
+uvx shotgrid-mcp-server --transport http --host 0.0.0.0 --port 8080
+
+# Start with custom path
+uvx shotgrid-mcp-server --transport http --path /api/mcp
+```
+
+The HTTP transport uses the Streamable HTTP protocol, which is recommended for web deployments and allows remote clients to connect to your server.
+
+**Note:** Make sure you have set the required environment variables (SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY) before starting the server.
 
 ### Development Setup
 

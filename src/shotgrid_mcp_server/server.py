@@ -43,26 +43,15 @@ def create_server(connection=None) -> FastMCP:  # type: ignore[type-arg]
 
 
 def main() -> None:
-    """Entry point for the ShotGrid MCP server."""
-    try:
-        app = create_server()
-        app.run()
-    except ValueError as e:
-        # Handle missing environment variables error
-        if "Missing required environment variables for ShotGrid connection" in str(e):
-            # Print the error message in a more user-friendly way
-            print("\n" + "=" * 80)
-            print("ERROR: ShotGrid MCP Server Configuration Issue")
-            print("=" * 80)
-            print(str(e))
-            print("=" * 80 + "\n")
-            # Exit with error code
-            import sys
+    """Entry point for the ShotGrid MCP server.
 
-            sys.exit(1)
-        else:
-            # Re-raise other ValueError exceptions
-            raise
+    This function is kept for backward compatibility.
+    The actual CLI implementation is in cli.py.
+    """
+    # Import here to avoid circular imports
+    from shotgrid_mcp_server.cli import main as cli_main
+
+    cli_main()
 
 
 if __name__ == "__main__":
