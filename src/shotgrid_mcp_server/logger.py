@@ -89,7 +89,3 @@ def setup_logging(log_dir: Optional[str] = None) -> None:
     # Create logger for this application
     logger = logging.getLogger("mcp_shotgrid_server")
     logger.info("Logging system initialized. Log file: %s", log_file)
-
-import shutil
-
-shutil.ignore_patterns("unins000.*")
