@@ -97,6 +97,71 @@ uv run pytest tests/test_filters.py
 uv run pytest --cov=src/shotgrid_mcp_server
 ```
 
+## Keeping Local and CI in Sync
+
+To ensure your local development environment matches the CI environment:
+
+### Ruff Version Consistency
+
+The project uses a specific version of Ruff defined in two places:
+- `.pre-commit-config.yaml` - for pre-commit hooks
+- `nox_actions/lint.py` - for CI linting
+
+**Important**: These versions must match to avoid inconsistent linting results.
+
+Current version: **0.8.6**
+
+### Running the Same Checks as CI
+
+Before pushing, run the same checks that CI will run:
+
+```bash
+# Run linting (same as CI)
+uv run nox -s lint
+
+# Run tests (same as CI)
+uv run nox -s tests
+
+# Or run both
+uv run nox -s lint tests
+```
+
+### Line Ending Consistency
+
+The project uses LF (Unix-style) line endings for all text files, enforced by `.gitattributes`.
+
+If you're on Windows, configure Git:
+
+```bash
+# Set Git to convert CRLF to LF on commit
+git config core.autocrlf input
+```
+
+This ensures that:
+- Files are committed with LF endings
+- `ruff format --check` passes on all platforms (Windows, macOS, Linux)
+
+### Updating Ruff Version
+
+When updating Ruff, update both files:
+
+1. `.pre-commit-config.yaml`:
+   ```yaml
+   - repo: https://github.com/astral-sh/ruff-pre-commit
+     rev: v0.8.6  # Update this version
+   ```
+
+2. `nox_actions/lint.py`:
+   ```python
+   RUFF_VERSION = "0.8.6"  # Update this version
+   ```
+
+Then update pre-commit hooks:
+```bash
+pre-commit autoupdate
+pre-commit install
+```
+
 ## Building Documentation
 
 ```bash
