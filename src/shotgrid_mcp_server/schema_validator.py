@@ -7,6 +7,7 @@ using cached schema data.
 import logging
 from typing import Any, Dict, List, Optional, Set
 
+
 from shotgrid_mcp_server.schema_cache import get_schema_cache
 
 logger = logging.getLogger(__name__)
