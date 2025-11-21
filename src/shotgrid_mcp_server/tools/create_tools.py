@@ -21,9 +21,7 @@ from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
 logger = logging.getLogger(__name__)
 
 
-def _validate_and_create_entity(
-    sg: Shotgun, entity_type: EntityType, data: Dict[str, Any]
-) -> Dict[str, Any]:
+def _validate_and_create_entity(sg: Shotgun, entity_type: EntityType, data: Dict[str, Any]) -> Dict[str, Any]:
     """Validate fields and create entity.
 
     Args:
