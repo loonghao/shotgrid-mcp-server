@@ -64,24 +64,29 @@ from shotgrid_mcp_server.exceptions import (
     SerializationError,
     ShotGridMCPError,
 )
-from shotgrid_mcp_server.filters import (
+
+# Import filter utilities from shotgrid-query
+from shotgrid_query import (
+    FilterBuilder,
+    FilterModel as Filter,
+    FilterOperatorEnum as FilterOperator,
+    TimeFilter,
+    TimeUnitEnum as TimeUnit,
     build_date_filter,
     combine_filters,
     create_date_filter,
     process_filters,
 )
+
+# Import MCP-specific models from local models module
 from shotgrid_mcp_server.models import (
     DateRangeFilter,
     EntitiesResponse,
     EntityDict,
-    Filter,
     FilterList,
-    FilterOperator,
     ProjectDict,
     ProjectsResponse,
     ShotGridDataType,
-    TimeFilter,
-    TimeUnit,
     UserDict,
     UsersResponse,
     create_assigned_to_filter,

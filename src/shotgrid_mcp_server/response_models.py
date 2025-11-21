@@ -6,8 +6,26 @@ This module contains Pydantic models for standardizing responses from ShotGrid M
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
+from shotgrid_mcp_server.custom_types import EntityType
+from shotgrid_mcp_server.models import EntityDict
+
 
 T = TypeVar("T")
+
+
+def get_default_schema_resources() -> Dict[str, str]:
+    """Get default schema resource URIs.
+
+    Returns a dictionary of schema resource URIs that can be included in responses
+    to provide AI clients with contextual schema information.
+
+    Returns:
+        Dict[str, str]: Dictionary mapping resource names to their URIs.
+    """
+    return {
+        "entities": "shotgrid://schema/entities",
+        "statuses": "shotgrid://schema/statuses",
+    }
 
 
 class ResponseMetadata(BaseModel):
@@ -35,9 +53,110 @@ class EntityResponse(BaseResponse[Dict[str, Any]]):
 class EntitiesResponse(BaseResponse[List[Dict[str, Any]]]):
     """Response model for multiple entities."""
 
+
+
+class SearchEntitiesResult(BaseModel):
+    """Structured payload for entity search results.
+
+    This model is designed to be AI-friendly while still mapping cleanly to
+    the underlying ShotGrid Python API results.
+    """
+
+    items: List[EntityDict]
+    entity_type: EntityType
+    fields: Optional[List[str]] = None
+    filter_fields: Optional[List[str]] = None
     total_count: Optional[int] = None
     page: Optional[int] = None
     page_size: Optional[int] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class SingleEntityResult(BaseModel):
+    """Structured payload for a single-entity lookup.
+
+    Used by tools such as entity_find_one so that responses remain
+    consistent with the BaseResponse[T] pattern.
+    """
+
+    entity: Optional[EntityDict] = None
+    entity_type: Optional[EntityType] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+    total_count: Optional[int] = None
+    page: Optional[int] = None
+    page_size: Optional[int] = None
+
+
+class EntityCreateResult(BaseModel):
+    """Structured payload for entity creation results."""
+
+    entity: EntityDict
+    entity_type: EntityType
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class EntityUpdateResult(BaseModel):
+    """Structured payload for entity update results."""
+
+    entity: EntityDict
+    entity_type: EntityType
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class EntityDeleteResult(BaseModel):
+    """Structured payload for entity deletion results."""
+
+    success: bool
+    entity_type: EntityType
+    entity_id: int
+    message: Optional[str] = None
+
+
+class SchemaResult(BaseModel):
+    """Structured payload for schema query results."""
+
+    entity_type: EntityType
+    fields: Dict[str, Any]
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class VendorUsersResult(BaseModel):
+    """Structured payload for vendor users query results."""
+
+    users: List[EntityDict]
+    total_count: int
+    message: Optional[str] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class VendorVersionsResult(BaseModel):
+    """Structured payload for vendor versions query results."""
+
+    versions: List[EntityDict]
+    total_count: int
+    message: Optional[str] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class PlaylistsResult(BaseModel):
+    """Structured payload for playlists query results."""
+
+    playlists: List[EntityDict]
+    total_count: int
+    message: Optional[str] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class BatchOperationsResult(BaseModel):
+    """Structured payload for batch operations results."""
+
+    results: List[EntityDict]
+    total_count: int
+    success_count: int
+    failure_count: int
+    message: Optional[str] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
 
 
 class PlaylistResponse(EntityResponse):

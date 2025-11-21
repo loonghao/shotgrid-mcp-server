@@ -9,17 +9,18 @@ from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+# Import MCP-specific models
 from shotgrid_mcp_server.models import (
     create_in_last_filter,
 )
 from shotgrid_mcp_server.response_models import (
-    create_playlist_response,
-    create_success_response,
+    VendorUsersResult,
+    VendorVersionsResult,
+    PlaylistsResult,
     generate_playlist_url,
-    serialize_response,
 )
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
-from shotgrid_mcp_server.tools.types import FastMCPType
+from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -57,49 +58,47 @@ def _get_default_version_fields() -> List[str]:
 
 
 def _serialize_users_response(users: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Serialize users to JSON response.
+    """Serialize users to JSON response using Pydantic model.
 
     Args:
         users: List of users to serialize.
 
     Returns:
-        List[Dict[str, str]]: Serialized users response.
+        Dict[str, Any]: Serialized users response with schema resources.
     """
+    from typing import cast
+
     # Serialize each user
-    serialized_users = [serialize_entity(user) for user in users]
+    serialized_users = [cast(EntityDict, serialize_entity(user)) for user in users]
 
-    # Create standardized response
-    response = create_success_response(
-        data=serialized_users,
-        message=f"Found {len(serialized_users)} vendor users",
+    # Return structured result
+    return VendorUsersResult(
+        users=serialized_users,
         total_count=len(serialized_users),
-    )
-
-    # Return serialized response for FastMCP
-    return serialize_response(response)
+        message=f"Found {len(serialized_users)} vendor users",
+    ).model_dump()
 
 
 def _serialize_versions_response(versions: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Serialize versions to JSON response.
+    """Serialize versions to JSON response using Pydantic model.
 
     Args:
         versions: List of versions to serialize.
 
     Returns:
-        List[Dict[str, str]]: Serialized versions response.
+        Dict[str, Any]: Serialized versions response with schema resources.
     """
+    from typing import cast
+
     # Serialize each version
-    serialized_versions = [serialize_entity(version) for version in versions]
+    serialized_versions = [cast(EntityDict, serialize_entity(version)) for version in versions]
 
-    # Create standardized response
-    response = create_success_response(
-        data=serialized_versions,
-        message=f"Found {len(serialized_versions)} vendor versions",
+    # Return structured result
+    return VendorVersionsResult(
+        versions=serialized_versions,
         total_count=len(serialized_versions),
-    )
-
-    # Return serialized response for FastMCP
-    return serialize_response(response)
+        message=f"Found {len(serialized_versions)} vendor versions",
+    ).model_dump()
 
 
 def _is_vendor_user(user: Dict[str, Any]) -> bool:
@@ -372,22 +371,21 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
             if result is None:
                 raise ValueError("Failed to create playlist")
 
+            from typing import cast
+
             # Generate playlist URL
             playlist_url = generate_playlist_url(sg.base_url, result["id"])
             result["sg_url"] = playlist_url
 
             # Serialize the entity
-            serialized_entity = serialize_entity(result)
+            serialized_entity = cast(EntityDict, serialize_entity(result))
 
-            # Create standardized response
-            response = create_playlist_response(
-                data=serialized_entity,
-                url=playlist_url,
+            # Return structured result
+            return PlaylistsResult(
+                playlists=[serialized_entity],
+                total_count=1,
                 message="Vendor playlist created successfully",
-            )
-
-            # Return serialized response for FastMCP
-            return serialize_response(response)
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="create_vendor_playlist")
             raise  # This is needed to satisfy the type checker

@@ -3,14 +3,22 @@
 This module contains tools for creating entities in ShotGrid.
 """
 
+import logging
 from typing import Any, Dict, List, cast
 
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.custom_types import EntityType
+from shotgrid_mcp_server.response_models import (
+    EntityCreateResult,
+    BatchOperationsResult,
+)
+from shotgrid_mcp_server.schema_validator import get_schema_validator
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
+
+logger = logging.getLogger(__name__)
 
 
 def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
@@ -22,33 +30,151 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     @server.tool("entity_create")
-    def create_entity(entity_type: EntityType, data: Dict[str, Any]) -> EntityDict:
-        """Create an entity in ShotGrid.
+    def create_entity(entity_type: EntityType, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a single entity in ShotGrid.
+
+        Use this tool to create one entity at a time. For creating multiple entities
+        efficiently in a single operation, use `batch_create_entities` instead.
+
+        Common use cases:
+        - Create a new Shot in a Sequence
+        - Create a new Task assigned to an artist
+        - Create a new Version linked to a Shot
+        - Create a new Note with attachments
+        - Create a new Asset in a project
+
+        ShotGrid Entity Types:
+        - Shot: Individual shots in sequences
+        - Asset: Reusable elements (characters, props, environments)
+        - Task: Work assignments for artists
+        - Version: Iterations of work (e.g., animation v003)
+        - PublishedFile: Finalized files ready for use
+        - Note: Comments and feedback
+        - Playlist: Collections of versions for review
+        - Project, Sequence, Episode, CustomEntity01, etc.
+
+        Field Naming Conventions:
+        - Standard fields: code, description, created_at, updated_at
+        - Status fields: sg_status_list
+        - Custom fields: sg_custom_field_name (always prefixed with sg_)
+        - Entity references: {"type": "EntityType", "id": 123}
+        - Multi-entity fields: [{"type": "User", "id": 1}, {"type": "User", "id": 2}]
 
         Args:
-            entity_type: Type of entity to create.
-            data: Entity data.
+            entity_type: The type of entity to create (e.g., "Shot", "Asset", "Task").
+                        Must be a valid ShotGrid entity type.
+
+            data: Dictionary of field values for the new entity.
+                  Required fields depend on the entity type.
+
+                  Shot example:
+                  {
+                      "code": "SH001",
+                      "project": {"type": "Project", "id": 123},
+                      "sg_sequence": {"type": "Sequence", "id": 456},
+                      "description": "Opening shot of the sequence",
+                      "sg_status_list": "ip"
+                  }
+
+                  Task example:
+                  {
+                      "content": "Animation",
+                      "entity": {"type": "Shot", "id": 789},
+                      "task_assignees": [{"type": "HumanUser", "id": 42}],
+                      "sg_status_list": "wtg",
+                      "due_date": "2025-12-31"
+                  }
+
+                  Version example:
+                  {
+                      "code": "animation_v003",
+                      "project": {"type": "Project", "id": 123},
+                      "entity": {"type": "Shot", "id": 789},
+                      "sg_status_list": "rev",
+                      "description": "Latest animation pass"
+                  }
 
         Returns:
-            Dict[str, Any]: Created entity.
+            Dictionary containing:
+            - entity: The created entity with all fields populated
+            - entity_type: The type of entity created
+            - schema_resources: Links to schema information
+
+            Example:
+            {
+                "entity": {
+                    "type": "Shot",
+                    "id": 1234,
+                    "code": "SH001",
+                    "project": {"type": "Project", "id": 123, "name": "Demo Project"},
+                    "sg_sequence": {"type": "Sequence", "id": 456, "code": "SEQ01"},
+                    "sg_status_list": "ip",
+                    "created_at": "2025-01-15T10:30:00Z",
+                    ...
+                },
+                "entity_type": "Shot",
+                "schema_resources": {
+                    "entities": "shotgrid://schema/entities",
+                    "statuses": "shotgrid://schema/statuses"
+                }
+            }
+
+        Common Status Codes:
+            - wtg: Waiting to Start
+            - rdy: Ready to Start
+            - ip: In Progress
+            - rev: Pending Review
+            - fin: Final
+            - omt: Omitted
 
         Raises:
-            ToolError: If the create operation fails.
+            ToolError: If required fields are missing, field validation fails,
+                      or the ShotGrid API returns an error.
+
+        Note:
+            - Fields are validated against the ShotGrid schema before creation
+            - Invalid or non-editable fields will raise an error
+            - Entity references must include both "type" and "id"
+            - Required fields vary by entity type (e.g., Shot requires "code" and "project")
+            - Date fields use ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)
         """
         try:
+            # Validate fields against schema
+            validator = get_schema_validator()
+            validation_result = validator.validate_fields(
+                entity_type=entity_type,
+                data=data,
+                sg_connection=sg,
+                check_required=True,
+            )
+
+            # Log validation warnings
+            if validation_result["warnings"]:
+                for warning in validation_result["warnings"]:
+                    logger.warning(f"Field validation: {warning}")
+
+            # Raise error if there are invalid fields
+            if validation_result["invalid"]:
+                raise ToolError(
+                    f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}"
+                )
+
             # Create entity
             result = sg.create(entity_type, data)
             if result is None:
                 raise ToolError(f"Failed to create {entity_type}")
 
-            # Return serialized entity
-            return cast(EntityDict, serialize_entity(result))
+            # Return structured result
+            return EntityCreateResult(
+                entity=cast(EntityDict, serialize_entity(result)),
+                entity_type=entity_type,
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="create_entity")
             raise  # This is needed to satisfy the type checker
 
     @server.tool("batch_entity_create")
-    def batch_create_entities(entity_type: EntityType, data_list: List[Dict[str, Any]]) -> List[EntityDict]:
+    def batch_create_entities(entity_type: EntityType, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Create multiple entities in ShotGrid.
 
         Args:
@@ -56,7 +182,7 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             data_list: List of entity data.
 
         Returns:
-            List[Dict[str, Any]]: List of created entities.
+            Dict[str, Any]: Batch operation results with statistics.
 
         Raises:
             ToolError: If any create operation fails.
@@ -72,8 +198,17 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             if not results:
                 raise ToolError("Failed to create entities in batch")
 
-            # Return serialized entities
-            return [cast(EntityDict, serialize_entity(result)) for result in results]
+            # Serialize results
+            serialized_results = [cast(EntityDict, serialize_entity(result)) for result in results]
+
+            # Return structured result
+            return BatchOperationsResult(
+                results=serialized_results,
+                total_count=len(serialized_results),
+                success_count=len(serialized_results),
+                failure_count=0,
+                message=f"Successfully created {len(serialized_results)} {entity_type} entities",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="batch_create_entities")
             raise  # This is needed to satisfy the type checker
@@ -96,27 +231,210 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("batch_operations")
     def batch_operations(operations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Execute multiple operations in a single batch request.
+        """Execute multiple operations in a single batch request to ShotGrid.
 
-        This method allows for efficient execution of multiple operations
-        (create, update, delete, download_thumbnail) in a single API call.
+        Use this tool when you need to perform multiple operations efficiently in one API call.
+        This is significantly faster than executing operations one by one.
+
+        Common use cases:
+        - Create multiple entities at once (e.g., 50 shots in a sequence)
+        - Update multiple entities with different values
+        - Mix different operation types (create some, update others, delete some)
+        - Perform bulk data migrations or cleanup
+        - Initialize project structure (create sequences, shots, tasks)
+
+        For creating multiple entities of the same type, you can also use `batch_entity_create`.
+        For single operations, use the individual tools (entity_create, entity_update, entity_delete).
+
+        Supported Operations:
+            - create: Create new entities
+            - update: Update existing entities
+            - delete: Delete (retire) entities
+            - download_thumbnail: Download entity thumbnails (special handling)
 
         Args:
-            operations: List of operation dictionaries. Each operation should have:
-                - request_type: "create", "update", "delete", or "download_thumbnail"
-                - entity_type: Type of entity
-                - data: Data for create/update (not needed for delete or download_thumbnail)
-                - entity_id: Entity ID for update/delete/download_thumbnail (not needed for create)
-                - field_name: (Optional) Field name for download_thumbnail, defaults to "image"
-                - file_path: (Optional) Path to save thumbnail to for download_thumbnail
-                - size: (Optional) Size of thumbnail (e.g. "thumbnail", "large", or dimensions like "800x600")
-                - image_format: (Optional) Format of the image (e.g. "jpg", "png")
+            operations: List of operation dictionaries. Each operation must have:
+
+                request_type: Type of operation to perform.
+                    Values: "create", "update", "delete", "download_thumbnail"
+
+                entity_type: Type of entity to operate on.
+                    Examples: "Shot", "Asset", "Task", "Version"
+
+                For CREATE operations:
+                    data: Dictionary of field values for the new entity.
+
+                    Example:
+                    {
+                        "request_type": "create",
+                        "entity_type": "Shot",
+                        "data": {
+                            "code": "SH001",
+                            "project": {"type": "Project", "id": 123},
+                            "sg_sequence": {"type": "Sequence", "id": 456}
+                        }
+                    }
+
+                For UPDATE operations:
+                    entity_id: ID of the entity to update.
+                    data: Dictionary of fields to update.
+
+                    Example:
+                    {
+                        "request_type": "update",
+                        "entity_type": "Shot",
+                        "entity_id": 1234,
+                        "data": {
+                            "sg_status_list": "ip",
+                            "description": "Updated description"
+                        }
+                    }
+
+                For DELETE operations:
+                    entity_id: ID of the entity to delete.
+
+                    Example:
+                    {
+                        "request_type": "delete",
+                        "entity_type": "Shot",
+                        "entity_id": 1234
+                    }
+
+                For DOWNLOAD_THUMBNAIL operations:
+                    entity_id: ID of the entity.
+                    field_name: (Optional) Thumbnail field name, defaults to "image".
+                    file_path: (Optional) Path to save thumbnail.
+                    size: (Optional) Thumbnail size ("thumbnail", "large", "800x600").
+                    image_format: (Optional) Image format ("jpg", "png").
+
+                    Example:
+                    {
+                        "request_type": "download_thumbnail",
+                        "entity_type": "Asset",
+                        "entity_id": 456,
+                        "field_name": "image",
+                        "file_path": "/path/to/save/thumbnail.jpg",
+                        "size": "large",
+                        "image_format": "jpg"
+                    }
 
         Returns:
-            List[Dict[str, Any]]: Results of the batch operations.
+            List of operation results. Each result corresponds to an operation in the input list.
+
+            For successful operations:
+            - CREATE: Returns the created entity with all fields
+            - UPDATE: Returns the updated entity with all fields
+            - DELETE: Returns True
+            - DOWNLOAD_THUMBNAIL: Returns download result
+
+            For failed operations:
+            - Returns error information
+
+            Example:
+            [
+                {
+                    "type": "Shot",
+                    "id": 1234,
+                    "code": "SH001",
+                    ...
+                },
+                {
+                    "type": "Shot",
+                    "id": 1235,
+                    "code": "SH002",
+                    ...
+                },
+                True  # Delete result
+            ]
 
         Raises:
-            ToolError: If the batch operation fails.
+            ToolError: If operations list is empty, contains invalid operations,
+                      or the batch request fails.
+
+        Examples:
+            Create multiple shots:
+            [
+                {
+                    "request_type": "create",
+                    "entity_type": "Shot",
+                    "data": {
+                        "code": "SH001",
+                        "project": {"type": "Project", "id": 123},
+                        "sg_sequence": {"type": "Sequence", "id": 456}
+                    }
+                },
+                {
+                    "request_type": "create",
+                    "entity_type": "Shot",
+                    "data": {
+                        "code": "SH002",
+                        "project": {"type": "Project", "id": 123},
+                        "sg_sequence": {"type": "Sequence", "id": 456}
+                    }
+                }
+            ]
+
+            Mixed operations (create, update, delete):
+            [
+                {
+                    "request_type": "create",
+                    "entity_type": "Task",
+                    "data": {
+                        "content": "Animation",
+                        "entity": {"type": "Shot", "id": 1234},
+                        "project": {"type": "Project", "id": 123}
+                    }
+                },
+                {
+                    "request_type": "update",
+                    "entity_type": "Shot",
+                    "entity_id": 1234,
+                    "data": {
+                        "sg_status_list": "ip"
+                    }
+                },
+                {
+                    "request_type": "delete",
+                    "entity_type": "Shot",
+                    "entity_id": 5678
+                }
+            ]
+
+            Bulk status update:
+            [
+                {
+                    "request_type": "update",
+                    "entity_type": "Task",
+                    "entity_id": 100,
+                    "data": {"sg_status_list": "fin"}
+                },
+                {
+                    "request_type": "update",
+                    "entity_type": "Task",
+                    "entity_id": 101,
+                    "data": {"sg_status_list": "fin"}
+                },
+                {
+                    "request_type": "update",
+                    "entity_type": "Task",
+                    "entity_id": 102,
+                    "data": {"sg_status_list": "fin"}
+                }
+            ]
+
+        Performance Benefits:
+            - Single API call instead of N separate calls
+            - Reduced network latency
+            - Faster execution (up to 10x for large batches)
+            - Atomic operation (all succeed or all fail)
+
+        Note:
+            - Operations are executed in the order provided
+            - If one operation fails, subsequent operations may not execute
+            - Maximum batch size is typically 500 operations (ShotGrid limit)
+            - Thumbnail downloads are handled separately from standard operations
+            - All operations must be valid before execution begins
+            - Use schema validation to ensure field names are correct
         """
         try:
             # Validate operations

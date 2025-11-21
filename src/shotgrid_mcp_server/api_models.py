@@ -2,9 +2,12 @@
 
 This module provides Pydantic models for validating and standardizing ShotGrid API requests.
 These models ensure that all parameters passed to the ShotGrid API are valid and properly formatted.
+
+All models follow the official ShotGrid Python API conventions:
+https://developers.shotgridsoftware.com/python-api/reference.html
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -13,29 +16,73 @@ from shotgrid_mcp_server.models import TimeFilter
 
 
 class BaseAPIRequest(BaseModel):
-    """Base model for all ShotGrid API requests."""
+    """Base model for all ShotGrid API requests.
+
+    All API request models inherit from this base class to ensure consistent
+    validation and configuration across all ShotGrid API operations.
+    """
 
     class Config:
         """Pydantic configuration."""
 
-        extra = "forbid"  # Prevent extra fields
+        extra = "forbid"  # Prevent extra fields to catch typos early
 
 
 class FindRequest(BaseAPIRequest):
-    """Model for ShotGrid find API requests."""
+    """Model for ShotGrid find() API requests.
 
-    entity_type: EntityType
-    filters: List[Any]
-    fields: Optional[List[str]] = None
-    order: Optional[List[Dict[str, str]]] = None
-    filter_operator: Optional[str] = None
-    limit: Optional[int] = None
-    retired_only: bool = False
-    page: Optional[int] = Field(
-        None, gt=0, description="Page number for pagination. Must be a positive integer if provided."
+    Find entities matching the given filters.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.find
+
+    Example:
+        >>> request = FindRequest(
+        ...     entity_type="Shot",
+        ...     filters=[["sg_status_list", "is", "ip"]],
+        ...     fields=["code", "sg_status_list"],
+        ...     order=[{"field_name": "code", "direction": "asc"}]
+        ... )
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to find")
+    filters: List[Any] = Field(
+        ...,
+        description="List of filter conditions. Each filter is [field, operator, value]"
     )
-    include_archived_projects: bool = True
-    additional_filter_presets: Optional[List[Dict[str, Any]]] = None
+    fields: Optional[List[str]] = Field(
+        None,
+        description="List of field names to return. Defaults to ['id'] if not specified"
+    )
+    order: Optional[List[Dict[str, str]]] = Field(
+        None,
+        description="List of dicts with 'field_name' and 'direction' keys for sorting results"
+    )
+    filter_operator: Optional[Literal["all", "any"]] = Field(
+        None,
+        description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
+    )
+    limit: Optional[int] = Field(
+        None,
+        description="Maximum number of entities to return. 0 or None returns all matches"
+    )
+    retired_only: bool = Field(
+        False,
+        description="If True, return only retired (deleted) entities"
+    )
+    page: Optional[int] = Field(
+        None,
+        gt=0,
+        description="Page number for pagination (1-based). Use with limit parameter"
+    )
+    include_archived_projects: bool = Field(
+        True,
+        description="If True, include entities from archived projects"
+    )
+    additional_filter_presets: Optional[List[Dict[str, Any]]] = Field(
+        None,
+        description="Additional filter presets to apply (e.g., LATEST, CUT_SHOT_VERSIONS)"
+    )
 
     @field_validator("limit")
     @classmethod
@@ -45,74 +92,274 @@ class FindRequest(BaseAPIRequest):
             raise ValueError("limit must be a positive integer")
         return v
 
+    @field_validator("order")
+    @classmethod
+    def validate_order(cls, v):
+        """Validate order parameter follows official API format.
+
+        Official API expects: [{"field_name": "foo", "direction": "asc"}]
+        """
+        if v is None:
+            return v
+
+        for i, order_dict in enumerate(v):
+            if not isinstance(order_dict, dict):
+                raise ValueError(f"Order item {i} must be a dictionary")
+
+            if "field_name" not in order_dict:
+                raise ValueError(
+                    f"Order item {i} must have 'field_name' key. "
+                    f"Available keys: {list(order_dict.keys())}"
+                )
+
+            if "direction" not in order_dict:
+                raise ValueError(
+                    f"Order item {i} must have 'direction' key. "
+                    f"Available keys: {list(order_dict.keys())}"
+                )
+
+            direction = order_dict["direction"]
+            if direction not in ["asc", "desc"]:
+                raise ValueError(
+                    f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'"
+                )
+
+        return v
+
 
 class FindOneRequest(BaseAPIRequest):
-    """Model for ShotGrid find_one API requests."""
+    """Model for ShotGrid find_one() API requests.
 
-    entity_type: EntityType
-    filters: List[Any]
-    fields: Optional[List[str]] = None
-    order: Optional[List[Dict[str, str]]] = None
-    filter_operator: Optional[str] = None
-    retired_only: bool = False
-    include_archived_projects: bool = True
+    Shortcut for find() with limit=1 that returns a single result.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.find_one
+
+    Example:
+        >>> request = FindOneRequest(
+        ...     entity_type="Asset",
+        ...     filters=[["id", "is", 32]],
+        ...     fields=["code", "sg_status_list"]
+        ... )
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to find")
+    filters: List[Any] = Field(
+        ...,
+        description="List of filter conditions. Each filter is [field, operator, value]"
+    )
+    fields: Optional[List[str]] = Field(
+        None,
+        description="List of field names to return. Defaults to ['id'] if not specified"
+    )
+    order: Optional[List[Dict[str, str]]] = Field(
+        None,
+        description="List of dicts with 'field_name' and 'direction' keys for sorting results"
+    )
+    filter_operator: Optional[Literal["all", "any"]] = Field(
+        None,
+        description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
+    )
+    retired_only: bool = Field(
+        False,
+        description="If True, return only retired (deleted) entities"
+    )
+    include_archived_projects: bool = Field(
+        True,
+        description="If True, include entities from archived projects"
+    )
+
+    @field_validator("order")
+    @classmethod
+    def validate_order(cls, v):
+        """Validate order parameter follows official API format."""
+        if v is None:
+            return v
+
+        for i, order_dict in enumerate(v):
+            if not isinstance(order_dict, dict):
+                raise ValueError(f"Order item {i} must be a dictionary")
+
+            if "field_name" not in order_dict:
+                raise ValueError(
+                    f"Order item {i} must have 'field_name' key. "
+                    f"Available keys: {list(order_dict.keys())}"
+                )
+
+            if "direction" not in order_dict:
+                raise ValueError(
+                    f"Order item {i} must have 'direction' key. "
+                    f"Available keys: {list(order_dict.keys())}"
+                )
+
+            direction = order_dict["direction"]
+            if direction not in ["asc", "desc"]:
+                raise ValueError(
+                    f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'"
+                )
+
+        return v
 
 
 class CreateRequest(BaseAPIRequest):
-    """Model for ShotGrid create API requests."""
+    """Model for ShotGrid create() API requests.
 
-    entity_type: EntityType
-    data: Dict[str, Any]
-    return_fields: Optional[List[str]] = None
+    Create a new entity of the specified entity_type.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.create
+
+    Example:
+        >>> request = CreateRequest(
+        ...     entity_type="Shot",
+        ...     data={
+        ...         "project": {"type": "Project", "id": 161},
+        ...         "code": "001_100",
+        ...         "sg_status_list": "ip"
+        ...     },
+        ...     return_fields=["code", "sg_status_list", "created_at"]
+        ... )
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to create")
+    data: Dict[str, Any] = Field(
+        ...,
+        description="Dictionary of field names and values to set on the new entity"
+    )
+    return_fields: Optional[List[str]] = Field(
+        None,
+        description="Additional fields to return. Always includes 'type', 'id', and fields from 'data'"
+    )
 
 
 class UpdateRequest(BaseAPIRequest):
-    """Model for ShotGrid update API requests."""
+    """Model for ShotGrid update() API requests.
 
-    entity_type: EntityType
-    entity_id: int = Field(..., gt=0)
-    data: Dict[str, Any]
-    multi_entity_update_mode: Optional[str] = None
+    Update the specified entity with the supplied data.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.update
+
+    Example:
+        >>> request = UpdateRequest(
+        ...     entity_type="Asset",
+        ...     entity_id=55,
+        ...     data={"sg_status_list": "rev"},
+        ...     multi_entity_update_modes={"shots": "add"}
+        ... )
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to update")
+    entity_id: int = Field(..., gt=0, description="ID of the entity to update")
+    data: Dict[str, Any] = Field(
+        ...,
+        description="Dictionary of field names and values to update"
+    )
+    multi_entity_update_modes: Optional[Dict[str, Literal["set", "add", "remove"]]] = Field(
+        None,
+        description="Update mode for multi-entity fields: 'set' (replace), 'add', or 'remove'"
+    )
 
 
 class DeleteRequest(BaseAPIRequest):
-    """Model for ShotGrid delete API requests."""
+    """Model for ShotGrid delete() API requests.
 
-    entity_type: EntityType
-    entity_id: int = Field(..., gt=0)
+    Retire (soft delete) the specified entity.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.delete
+
+    Note:
+        Entities are "retired" (soft deleted), not permanently deleted.
+        They can be restored using revive().
+
+    Example:
+        >>> request = DeleteRequest(entity_type="Shot", entity_id=2557)
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to delete")
+    entity_id: int = Field(..., gt=0, description="ID of the entity to delete")
 
 
 class ReviveRequest(BaseAPIRequest):
-    """Model for ShotGrid revive API requests."""
+    """Model for ShotGrid revive() API requests.
 
-    entity_type: EntityType
-    entity_id: int = Field(..., gt=0)
+    Revive an entity that has previously been deleted (retired).
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.revive
+
+    Example:
+        >>> request = ReviveRequest(entity_type="Shot", entity_id=860)
+    """
+
+    entity_type: EntityType = Field(..., description="ShotGrid entity type to revive")
+    entity_id: int = Field(..., gt=0, description="ID of the entity to revive")
 
 
 class BatchRequest(BaseAPIRequest):
-    """Model for ShotGrid batch API requests."""
+    """Model for ShotGrid batch() API requests.
 
-    requests: List[Dict[str, Any]]
+    Make a batch request of several create(), update(), and delete() calls.
+    All requests are performed within a transaction - either all complete or none do.
+
+    Official API Reference:
+    https://developers.shotgridsoftware.com/python-api/reference.html#shotgun.Shotgun.batch
+
+    Example:
+        >>> request = BatchRequest(
+        ...     requests=[
+        ...         {
+        ...             "request_type": "create",
+        ...             "entity_type": "Shot",
+        ...             "data": {"code": "New Shot 1", "project": {"type": "Project", "id": 4}}
+        ...         },
+        ...         {
+        ...             "request_type": "update",
+        ...             "entity_type": "Shot",
+        ...             "entity_id": 3624,
+        ...             "data": {"code": "Changed 1"}
+        ...         },
+        ...         {
+        ...             "request_type": "delete",
+        ...             "entity_type": "Shot",
+        ...             "entity_id": 3625
+        ...         }
+        ...     ]
+        ... )
+    """
+
+    requests: List[Dict[str, Any]] = Field(
+        ...,
+        description="List of create/update/delete operations to perform atomically"
+    )
 
     @model_validator(mode="after")
     def validate_batch_requests(self):
-        """Validate batch requests."""
-        for request in self.requests:
+        """Validate batch requests follow official API format."""
+        for i, request in enumerate(self.requests):
             if "request_type" not in request:
-                raise ValueError("Each batch request must have a 'request_type'")
+                raise ValueError(f"Batch request {i} must have a 'request_type'")
 
             request_type = request["request_type"]
             if request_type not in ["create", "update", "delete"]:
-                raise ValueError(f"Invalid request_type: {request_type}. Must be one of: create, update, delete")
+                raise ValueError(
+                    f"Batch request {i} has invalid request_type: {request_type}. "
+                    f"Must be one of: create, update, delete"
+                )
 
             if "entity_type" not in request:
-                raise ValueError("Each batch request must have an 'entity_type'")
+                raise ValueError(f"Batch request {i} must have an 'entity_type'")
 
             if request_type in ["update", "delete"] and "entity_id" not in request:
-                raise ValueError(f"Batch request of type '{request_type}' must have an 'entity_id'")
+                raise ValueError(
+                    f"Batch request {i} of type '{request_type}' must have an 'entity_id'"
+                )
 
             if request_type in ["create", "update"] and "data" not in request:
-                raise ValueError(f"Batch request of type '{request_type}' must have 'data'")
+                raise ValueError(
+                    f"Batch request {i} of type '{request_type}' must have 'data'"
+                )
 
         return self
 
@@ -123,9 +370,19 @@ class SummarizeRequest(BaseAPIRequest):
     entity_type: EntityType
     filters: List[Any]
     summary_fields: List[Dict[str, Any]]
-    filter_operator: Optional[str] = None
+    filter_operator: Optional[str] = Field(
+        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
+    )
     grouping: Optional[List[Dict[str, Any]]] = None
     include_archived_projects: bool = True
+
+    @field_validator("filter_operator")
+    @classmethod
+    def validate_filter_operator(cls, v):
+        """Validate filter_operator parameter."""
+        if v is not None and v not in ["all", "any"]:
+            raise ValueError("filter_operator must be 'all' or 'any'")
+        return v
 
 
 class TextSearchRequest(BaseAPIRequest):
@@ -204,11 +461,11 @@ class SearchEntitiesRequest(BaseAPIRequest):
     """Model for search_entities API requests."""
 
     entity_type: EntityType
-    filters: List[Dict[str, Any]] = Field(default_factory=list)
+    filters: List[Any] = Field(default_factory=list)
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
     )
     limit: Optional[int] = Field(None, gt=0)
 
@@ -216,31 +473,36 @@ class SearchEntitiesRequest(BaseAPIRequest):
     @classmethod
     def validate_filter_operator(cls, v):
         """Validate filter_operator parameter."""
-        if v is not None and v not in ["and", "or"]:
-            raise ValueError("filter_operator must be 'and' or 'or'")
+        if v is not None and v not in ["all", "any"]:
+            raise ValueError("filter_operator must be 'all' or 'any'")
         return v
 
     @field_validator("filters")
     @classmethod
     def validate_filters(cls, v):
-        """Validate filters parameter."""
+        """Validate filters parameter.
+
+        Accepts list/tuple format: ["field", "operator", value]
+
+        Note: Detailed validation and normalization is handled by shotgrid-query's process_filters().
+        This validator only performs basic structure checks.
+        """
         # Allow empty filters list - ShotGrid API allows this to return all entities
         if not v:
             return v
 
-        for i, filter_dict in enumerate(v):
-            if not isinstance(filter_dict, dict):
-                raise ValueError(f"Filter {i} must be a dictionary")
+        # Basic structure validation - just ensure it's a list of lists/tuples
+        for i, filter_item in enumerate(v):
+            if not isinstance(filter_item, (list, tuple)):
+                raise ValueError(
+                    f"Filter {i} must be a list/tuple [field, operator, value], got {type(filter_item).__name__}"
+                )
+            if len(filter_item) < 3:
+                raise ValueError(
+                    f"Filter {i} must have at least 3 elements [field, operator, value], got {len(filter_item)}"
+                )
 
-            if "field" not in filter_dict:
-                raise ValueError(f"Filter {i} must have a 'field' key")
-
-            if "operator" not in filter_dict:
-                raise ValueError(f"Filter {i} must have an 'operator' key")
-
-            if "value" not in filter_dict:
-                raise ValueError(f"Filter {i} must have a 'value' key")
-
+        # Return filters as-is for processing by shotgrid-query
         return v
 
 
@@ -276,44 +538,87 @@ class FindOneEntityRequest(BaseAPIRequest):
     """Model for find_one_entity API requests."""
 
     entity_type: EntityType
-    filters: List[Dict[str, Any]] = Field(default_factory=list)
+    filters: List[Any] = Field(default_factory=list)
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
     )
 
     @field_validator("filter_operator")
     @classmethod
     def validate_filter_operator(cls, v):
         """Validate filter_operator parameter."""
-        if v is not None and v not in ["and", "or"]:
-            raise ValueError("filter_operator must be 'and' or 'or'")
+        if v is not None and v not in ["all", "any"]:
+            raise ValueError("filter_operator must be 'all' or 'any'")
         return v
 
     @field_validator("filters")
     @classmethod
     def validate_filters(cls, v):
-        """Validate filters parameter."""
+        """Validate and normalize filters parameter.
+
+        Accepts both list format and dict format:
+        - List format: ["field", "operator", value]
+        - Dict format: {"field": "...", "operator": "...", "value": ...}
+        """
         # For find_one, we should have at least one filter to identify the entity
         # But ShotGrid API technically allows empty filters to return the first entity
         if not v:
             return v
 
-        for i, filter_dict in enumerate(v):
-            if not isinstance(filter_dict, dict):
-                raise ValueError(f"Filter {i} must be a dictionary")
+        normalized_filters = []
+        for i, filter_item in enumerate(v):
+            # Handle list/tuple format: ["field", "operator", value]
+            if isinstance(filter_item, (list, tuple)):
+                if len(filter_item) < 3:
+                    raise ValueError(
+                        f"Filter {i} in list format must have at least 3 elements [field, operator, value], got {len(filter_item)}"
+                    )
+                normalized_filters.append({
+                    "field": filter_item[0],
+                    "operator": filter_item[1],
+                    "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:]
+                })
+                continue
 
-            if "field" not in filter_dict:
-                raise ValueError(f"Filter {i} must have a 'field' key")
+            # Handle dict format
+            if not isinstance(filter_item, dict):
+                raise ValueError(
+                    f"Filter {i} must be a list [field, operator, value] or dict {{field, operator, value}}, got {type(filter_item).__name__}"
+                )
 
-            if "operator" not in filter_dict:
-                raise ValueError(f"Filter {i} must have an 'operator' key")
+            # Create a copy to avoid modifying the original
+            normalized_filter = dict(filter_item)
 
-            if "value" not in filter_dict:
-                raise ValueError(f"Filter {i} must have a 'value' key")
+            # Auto-correct common mistakes: field_name -> field
+            if "field_name" in normalized_filter and "field" not in normalized_filter:
+                normalized_filter["field"] = normalized_filter.pop("field_name")
 
-        return v
+            # Validate required keys
+            if "field" not in normalized_filter:
+                available_keys = list(filter_item.keys())
+                raise ValueError(
+                    f"Filter {i} must have a 'field' key. "
+                    f"Available keys: {available_keys}. "
+                    f"Did you mean to use 'field' instead of 'field_name'?"
+                )
+
+            if "operator" not in normalized_filter:
+                available_keys = list(filter_item.keys())
+                raise ValueError(
+                    f"Filter {i} must have an 'operator' key. Available keys: {available_keys}"
+                )
+
+            if "value" not in normalized_filter:
+                available_keys = list(filter_item.keys())
+                raise ValueError(
+                    f"Filter {i} must have a 'value' key. Available keys: {available_keys}"
+                )
+
+            normalized_filters.append(normalized_filter)
+
+        return normalized_filters
 
 
 class AdvancedSearchRequest(BaseAPIRequest):
@@ -325,7 +630,7 @@ class AdvancedSearchRequest(BaseAPIRequest):
     """
 
     entity_type: EntityType
-    filters: List[Dict[str, Any]] = Field(default_factory=list)
+    filters: List[Any] = Field(default_factory=list)
     time_filters: List[TimeFilter] = Field(
         default_factory=list,
         description="Optional list of time-based filters such as in_last/in_next.",
@@ -334,7 +639,7 @@ class AdvancedSearchRequest(BaseAPIRequest):
     related_fields: Optional[Dict[str, List[str]]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        "and", description="Logical operator for combining filters. Must be 'and' or 'or'."
+        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
     )
     limit: Optional[int] = Field(None, gt=0)
 
@@ -342,8 +647,8 @@ class AdvancedSearchRequest(BaseAPIRequest):
     @classmethod
     def validate_filter_operator(cls, v):
         """Validate filter_operator parameter."""
-        if v is not None and v not in ["and", "or"]:
-            raise ValueError("filter_operator must be 'and' or 'or'")
+        if v is not None and v not in ["all", "any"]:
+            raise ValueError("filter_operator must be 'all' or 'any'")
         return v
 
     @field_validator("filters")
@@ -351,9 +656,11 @@ class AdvancedSearchRequest(BaseAPIRequest):
     def validate_filters(cls, v):
         """Validate and normalize filters parameter.
 
-        Supports two input styles:
-        - {"field", "operator", "value"}: internal/Python API style
-        - {"path", "relation", "values"}: ShotGrid REST API _search style
+        Supports four input styles:
+        - List format: ["field", "operator", value]
+        - Dict format: {"field", "operator", "value"}: internal/Python API style
+        - Dict format: {"field_name", "operator", "value"}: common mistake (auto-corrected)
+        - Dict format: {"path", "relation", "values"}: ShotGrid REST API _search style
         """
         # Allow empty filters list - ShotGrid API allows this to return all entities
         if not v:
@@ -361,20 +668,43 @@ class AdvancedSearchRequest(BaseAPIRequest):
 
         normalized_filters: List[Dict[str, Any]] = []
 
-        for i, filter_dict in enumerate(v):
-            if not isinstance(filter_dict, dict):
-                raise ValueError(f"Filter {i} must be a dictionary")
+        for i, filter_item in enumerate(v):
+            # Handle list/tuple format: ["field", "operator", value]
+            if isinstance(filter_item, (list, tuple)):
+                if len(filter_item) < 3:
+                    raise ValueError(
+                        f"Filter {i} in list format must have at least 3 elements [field, operator, value], got {len(filter_item)}"
+                    )
+                normalized_filters.append({
+                    "field": filter_item[0],
+                    "operator": filter_item[1],
+                    "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:]
+                })
+                continue
+
+            # Handle dict format
+            if not isinstance(filter_item, dict):
+                raise ValueError(
+                    f"Filter {i} must be a list [field, operator, value] or dict {{field, operator, value}}, got {type(filter_item).__name__}"
+                )
+
+            # Create a copy to avoid modifying the original
+            working_filter = dict(filter_item)
+
+            # Auto-correct common mistakes: field_name -> field
+            if "field_name" in working_filter and "field" not in working_filter:
+                working_filter["field"] = working_filter.pop("field_name")
 
             # Already in internal style
-            if all(key in filter_dict for key in ("field", "operator", "value")):
-                normalized_filters.append(filter_dict)
+            if all(key in working_filter for key in ("field", "operator", "value")):
+                normalized_filters.append(working_filter)
                 continue
 
             # ShotGrid REST style: path/relation/values
-            if all(key in filter_dict for key in ("path", "relation", "values")):
-                path = filter_dict["path"]
-                relation = filter_dict["relation"]
-                values = filter_dict["values"]
+            if all(key in working_filter for key in ("path", "relation", "values")):
+                path = working_filter["path"]
+                relation = working_filter["relation"]
+                values = working_filter["values"]
 
                 # Normalize REST 'values' (always list) to our 'value'
                 value = values
@@ -384,10 +714,12 @@ class AdvancedSearchRequest(BaseAPIRequest):
                 normalized_filters.append({"field": path, "operator": relation, "value": value})
                 continue
 
+            # Provide helpful error message
+            available_keys = list(filter_item.keys())
             raise ValueError(
-                "Filter {i} must have either ('field', 'operator', 'value') or ('path', 'relation', 'values') keys".format(
-                    i=i
-                )
+                f"Filter {i} must have either ('field', 'operator', 'value') or ('path', 'relation', 'values') keys. "
+                f"Available keys: {available_keys}. "
+                f"Did you mean to use 'field' instead of 'field_name'?"
             )
 
         return normalized_filters
