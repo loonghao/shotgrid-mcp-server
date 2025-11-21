@@ -27,6 +27,32 @@ from shotgrid_query import (
     TimeUnitEnum as TimeUnit,
 )
 
+# Re-export for backward compatibility
+__all__ = [
+    "Filter",
+    "FilterOperator",
+    "TimeFilter",
+    "TimeUnit",
+    "ShotGridDataType",
+    "EntityRef",
+    "FilterRequest",
+    "FilterList",
+    "DateRangeFilter",
+    "create_in_last_filter",
+    "create_date_filter",
+    "ProjectDict",
+    "UserDict",
+    "EntityDict",
+    "EntitiesResponse",
+    "ProjectsResponse",
+    "UsersResponse",
+    "NoteCreateRequest",
+    "NoteCreateResponse",
+    "NoteReadResponse",
+    "NoteUpdateRequest",
+    "NoteUpdateResponse",
+]
+
 
 class ShotGridDataType(str, Enum):
     """ShotGrid data types."""
