@@ -21,6 +21,9 @@ from shotgrid_query import (
     FilterOperatorEnum as FilterOperator,
 )
 from shotgrid_query import (
+    TimeFilter,
+)
+from shotgrid_query import (
     TimeUnitEnum as TimeUnit,
 )
 

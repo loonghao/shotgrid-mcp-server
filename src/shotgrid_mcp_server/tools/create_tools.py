@@ -21,6 +21,52 @@ from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
 logger = logging.getLogger(__name__)
 
 
+def _validate_and_create_entity(
+    sg: Shotgun, entity_type: EntityType, data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Validate fields and create entity.
+
+    Args:
+        sg: ShotGrid connection.
+        entity_type: Type of entity to create.
+        data: Entity data.
+
+    Returns:
+        Created entity result.
+
+    Raises:
+        ToolError: If validation fails or creation fails.
+    """
+    # Validate fields against schema
+    validator = get_schema_validator()
+    validation_result = validator.validate_fields(
+        entity_type=entity_type,
+        data=data,
+        sg_connection=sg,
+        check_required=True,
+    )
+
+    # Log validation warnings
+    if validation_result["warnings"]:
+        for warning in validation_result["warnings"]:
+            logger.warning(f"Field validation: {warning}")
+
+    # Raise error if there are invalid fields
+    if validation_result["invalid"]:
+        raise ToolError(f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}")
+
+    # Create entity
+    result = sg.create(entity_type, data)
+    if result is None:
+        raise ToolError(f"Failed to create {entity_type}")
+
+    # Return structured result
+    return EntityCreateResult(
+        entity=cast(EntityDict, serialize_entity(result)),
+        entity_type=entity_type,
+    ).model_dump()
+
+
 def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register create tools with the server.
 
@@ -139,34 +185,7 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             - Date fields use ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)
         """
         try:
-            # Validate fields against schema
-            validator = get_schema_validator()
-            validation_result = validator.validate_fields(
-                entity_type=entity_type,
-                data=data,
-                sg_connection=sg,
-                check_required=True,
-            )
-
-            # Log validation warnings
-            if validation_result["warnings"]:
-                for warning in validation_result["warnings"]:
-                    logger.warning(f"Field validation: {warning}")
-
-            # Raise error if there are invalid fields
-            if validation_result["invalid"]:
-                raise ToolError(f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}")
-
-            # Create entity
-            result = sg.create(entity_type, data)
-            if result is None:
-                raise ToolError(f"Failed to create {entity_type}")
-
-            # Return structured result
-            return EntityCreateResult(
-                entity=cast(EntityDict, serialize_entity(result)),
-                entity_type=entity_type,
-            ).model_dump()
+            return _validate_and_create_entity(sg, entity_type, data)
         except Exception as err:
             handle_error(err, operation="create_entity")
             raise  # This is needed to satisfy the type checker
