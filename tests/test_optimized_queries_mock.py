@@ -71,7 +71,7 @@ class TestOptimizedQueriesMock:
             "Shot",
             [["project", "is", {"type": "Project", "id": project["id"]}]],
             ["code", "sg_status_list", "project", "sg_sequence"],
-            page=1
+            page=1,
         )
 
         # Verify the result
@@ -146,17 +146,10 @@ class TestOptimizedQueriesMock:
         )
 
         # Update the sequence directly
-        mock_sg.update(
-            "Sequence",
-            test_sequence["id"],
-            {"sg_status_list": "fin"}
-        )
+        mock_sg.update("Sequence", test_sequence["id"], {"sg_status_list": "fin"})
 
         # Delete the shot directly
-        mock_sg.delete(
-            "Shot",
-            test_shot["id"]
-        )
+        mock_sg.delete("Shot", test_shot["id"])
 
         # Verify sequence was updated
         updated_sequence = mock_sg.find_one("Sequence", [["id", "is", test_sequence["id"]]])

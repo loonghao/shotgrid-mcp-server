@@ -2,13 +2,10 @@
 
 import datetime
 import unittest
-from unittest.mock import MagicMock, patch
 
 # Import from shotgrid-query
 from shotgrid_query import (
     FilterBuilder,
-    FilterModel as Filter,
-    FilterOperatorEnum as FilterOperator,
     TimeUnit,
     create_date_filter,
     process_filters,

@@ -7,12 +7,11 @@ This module contains unit tests for the ShotGrid MCP server tools.
 import json
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Import third-party modules
 import pytest
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
@@ -141,8 +140,6 @@ class TestUpdateTools:
         response_text = result[0].text
         response_data = json.loads(response_text)
         assert response_data is None
-
-
 
 
 @pytest.mark.asyncio

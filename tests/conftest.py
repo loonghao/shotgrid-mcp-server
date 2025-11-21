@@ -1,19 +1,17 @@
 """Test fixtures for the ShotGrid MCP server."""
 
 # Import built-in modules
+import inspect
+import json
 import pickle
 from pathlib import Path
+from typing import Any
 
 # Import third-party modules
 import pytest
 import yaml
 from fastmcp import FastMCP
-import json
-import inspect
 from fastmcp.tools.tool import ToolResult
-
-
-from typing import Any
 
 
 async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None = None):
@@ -26,7 +24,7 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
     """
 
     # Local imports to avoid import cycles at collection time
-    from shotgrid_mcp_server.tools import playlist_tools, search_tools, create_tools
+    from shotgrid_mcp_server.tools import create_tools, playlist_tools, search_tools
 
     arguments: dict[str, Any] = params or {}
     payload: Any | None = None
@@ -82,7 +80,7 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
 
     def _to_jsonable(value: Any) -> Any:
         """Recursively convert pydantic models and containers into JSON-serializable data."""
-        if hasattr(value, "model_dump") and callable(getattr(value, "model_dump")):
+        if hasattr(value, "model_dump") and callable(value.model_dump):
             try:
                 return value.model_dump()
             except Exception:  # pragma: no cover - very defensive
@@ -103,7 +101,7 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
 
 
 # Attach the shim to FastMCP so tests using server._mcp_call_tool continue to work
-setattr(FastMCP, "_mcp_call_tool", _test_mcp_call_tool)
+FastMCP._mcp_call_tool = _test_mcp_call_tool
 
 
 # Import local modules

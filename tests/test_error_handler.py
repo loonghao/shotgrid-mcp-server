@@ -1,20 +1,18 @@
 """Tests for error_handler module."""
 
-import re
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastmcp.exceptions import ToolError
 from shotgun_api3 import ShotgunError
 
 from shotgrid_mcp_server.error_handler import (
+    _is_invalid_status_value_error,
     create_error_response,
     format_error_message,
     handle_tool_error,
     is_entity_not_found_error,
     is_permission_error,
-    _is_invalid_status_value_error,
 )
 from shotgrid_mcp_server.exceptions import (
     ConnectionError,
@@ -138,9 +136,7 @@ class TestHandleToolError:
         receives an unsupported value.
         """
 
-        error = ShotgunError(
-            "Field sg_status_list has invalid value 'foo'; valid values are: wtg, ip, fin"
-        )
+        error = ShotgunError("Field sg_status_list has invalid value 'foo'; valid values are: wtg, ip, fin")
         with pytest.raises(ToolError) as excinfo:
             handle_tool_error(error, "update_entity")
 
@@ -337,4 +333,3 @@ class TestInvalidStatusValueDetector:
 
         for msg in messages:
             assert _is_invalid_status_value_error(msg) is True
-

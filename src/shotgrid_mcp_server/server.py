@@ -1,7 +1,6 @@
 """ShotGrid MCP server implementation."""
 
 # Import built-in modules
-import asyncio
 import logging
 
 # Import third-party modules
@@ -98,8 +97,7 @@ def create_server(
                 logger.info("Enabled FastMCP response caching middleware")
             except ImportError:
                 logger.warning(
-                    "FastMCP CachingMiddleware not available. "
-                    "Upgrade to fastmcp>=2.13.0 for caching support."
+                    "FastMCP CachingMiddleware not available. " "Upgrade to fastmcp>=2.13.0 for caching support."
                 )
 
         if lazy_connection:
@@ -122,6 +120,7 @@ def create_server(
                 if preload_schema:
                     try:
                         import asyncio
+
                         asyncio.run(preload_schemas(sg))
                         logger.info("Schema preloading completed")
                     except Exception as e:

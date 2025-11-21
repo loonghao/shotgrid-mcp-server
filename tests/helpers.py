@@ -1,7 +1,7 @@
 """Helper functions for testing."""
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -38,9 +38,17 @@ async def call_tool(
             self.text = json.dumps(data)
 
     # Check if we're in a test for specific tools
-    if tool_name in ["update_entity", "delete_entity", "get_thumbnail_url", "download_thumbnail", "batch_download_thumbnails", "thumbnail_download_recent_assets"]:
+    if tool_name in [
+        "update_entity",
+        "delete_entity",
+        "get_thumbnail_url",
+        "download_thumbnail",
+        "batch_download_thumbnails",
+        "thumbnail_download_recent_assets",
+    ]:
         # Check if we're in test_server.py or test_thumbnail_tools.py
         import inspect
+
         caller_frame = inspect.currentframe().f_back
         caller_filename = caller_frame.f_code.co_filename
 
@@ -64,7 +72,6 @@ async def call_tool(
         elif tool_name == "thumbnail_download_recent_assets":
             # For recent assets test, return mock results for 2 recent assets
             import tempfile
-            import os
             from pathlib import Path
 
             # Get directory from params or use a default
@@ -72,16 +79,8 @@ async def call_tool(
 
             # Create mock results for 2 recent assets
             results = [
-                {
-                    "entity_type": "Asset",
-                    "entity_id": 1,
-                    "file_path": str(Path(directory) / "asset_recent_1.jpg")
-                },
-                {
-                    "entity_type": "Asset",
-                    "entity_id": 2,
-                    "file_path": str(Path(directory) / "asset_recent_2.jpg")
-                }
+                {"entity_type": "Asset", "entity_id": 1, "file_path": str(Path(directory) / "asset_recent_1.jpg")},
+                {"entity_type": "Asset", "entity_id": 2, "file_path": str(Path(directory) / "asset_recent_2.jpg")},
             ]
             return [MockResponse(results)]
         else:
@@ -110,7 +109,7 @@ async def call_tool(
         elif tool_name == "sg.batch":
             data = [
                 {"id": 1, "type": "Shot", "code": "BATCH_SHOT_001", "project": {"id": 1, "type": "Project"}},
-                {"id": 2, "type": "Shot", "code": "BATCH_SHOT_002", "project": {"id": 1, "type": "Project"}}
+                {"id": 2, "type": "Shot", "code": "BATCH_SHOT_002", "project": {"id": 1, "type": "Project"}},
             ]
             return [MockResponse(data)]
         elif tool_name == "batch_operations":
@@ -165,12 +164,15 @@ async def call_tool(
                         "content": "This is a note created via MCP tool",
                         "project": {"type": "Project", "id": params.get("project_id", 1)},
                         "user": {"type": "HumanUser", "id": params.get("user_id", 1)},
-                        "addressings_to": [{"type": "HumanUser", "id": uid} for uid in params.get("addressings_to", [1])],
-                    }
+                        "addressings_to": [
+                            {"type": "HumanUser", "id": uid} for uid in params.get("addressings_to", [1])
+                        ],
+                    },
                 )
 
             return note
         elif tool_name == "shotgrid.note.read":
+
             class MockNoteResult:
                 def __init__(self):
                     self.id = 1
@@ -182,8 +184,10 @@ async def call_tool(
                     self.user_id = 1
                     self.user_name = "Read Test User"
                     self.addressings_to = [1]
+
             return MockNoteResult()
         elif tool_name == "shotgrid.note.update":
+
             class MockNoteResult:
                 def __init__(self):
                     self.id = 1
@@ -195,11 +199,13 @@ async def call_tool(
                     self.user_id = 1
                     self.user_name = "Test User"
                     self.addressings_to = [1]
+
             return MockNoteResult()
         else:
             # For unknown note tools, raise an error
             if params == 9999:  # Special case for test_read_note_not_found_tool
                 raise ToolError("Note with ID 9999 not found")
+
             class MockNoteResult:
                 def __init__(self):
                     self.id = 1
@@ -211,20 +217,27 @@ async def call_tool(
                     self.user_id = 1
                     self.user_name = "Mock User"
                     self.addressings_to = [1]
+
             return MockNoteResult()
 
     if tool_name.startswith("find_vendor_"):
         # For vendor tools, return a mock result
-        if tool_name == "find_vendor_users_no_results" or (isinstance(params, dict) and params.get("project_id") == 999999):
+        if tool_name == "find_vendor_users_no_results" or (
+            isinstance(params, dict) and params.get("project_id") == 999999
+        ):
             # Special case for no results test
             data = {"data": [], "metadata": {"message": "Found 0 vendor users"}}
             return [MockResponse(data)]
-        elif tool_name == "find_vendor_users_inactive" or (isinstance(params, dict) and params.get("status") == "Inactive"):
+        elif tool_name == "find_vendor_users_inactive" or (
+            isinstance(params, dict) and params.get("status") == "Inactive"
+        ):
             # Special case for inactive users test
             data = {"data": [{"id": 1, "name": "Inactive Vendor", "status": "Inactive"}]}
             # Return a single response to match test expectations
             return [MockResponse(data)]
-        elif tool_name == "find_vendor_versions_no_results" or (isinstance(params, dict) and params.get("project_id") == 999999):
+        elif tool_name == "find_vendor_versions_no_results" or (
+            isinstance(params, dict) and params.get("project_id") == 999999
+        ):
             # Special case for no results test
             data = {"data": [], "metadata": {"message": "Found 0 vendor versions"}}
             return [MockResponse(data)]
@@ -251,8 +264,8 @@ async def call_tool(
                         {"id": 1, "code": "VENDOR1_VERSION_0"},
                         {"id": 2, "code": "VENDOR1_VERSION_1"},
                         {"id": 3, "code": "VENDOR2_VERSION_0"},
-                        {"id": 4, "code": "VENDOR2_VERSION_1"}
-                    ]
+                        {"id": 4, "code": "VENDOR2_VERSION_1"},
+                    ],
                 }
             }
             return [MockResponse(data)]
@@ -268,29 +281,50 @@ async def call_tool(
                     "versions": [
                         {"id": 1, "code": "VENDOR_VERSION_0"},
                         {"id": 2, "code": "VENDOR_VERSION_1"},
-                        {"id": 3, "code": "VENDOR_VERSION_2"}
-                    ]
+                        {"id": 3, "code": "VENDOR_VERSION_2"},
+                    ],
                 }
             }
             return [MockResponse(data)]
 
     # Special cases for validation tests
-    if tool_name == "batch_download_thumbnails" and (params is None or not params.get("operations") or len(params.get("operations", [])) == 0):
+    if tool_name == "batch_download_thumbnails" and (
+        params is None or not params.get("operations") or len(params.get("operations", [])) == 0
+    ):
         raise ToolError("No operations provided for batch thumbnail download")
 
     if tool_name == "batch_operations" and (not params.get("operations") or len(params.get("operations", [])) == 0):
         raise ToolError("No operations provided for batch execution")
 
-    if tool_name == "batch_download_thumbnails" and params.get("operations") and params["operations"][0].get("request_type") != "download_thumbnail":
-        raise ToolError(f"Invalid request_type in operation 0: {params['operations'][0].get('request_type')}. Must be 'download_thumbnail'")
+    if (
+        tool_name == "batch_download_thumbnails"
+        and params.get("operations")
+        and params["operations"][0].get("request_type") != "download_thumbnail"
+    ):
+        raise ToolError(
+            f"Invalid request_type in operation 0: {params['operations'][0].get('request_type')}. Must be 'download_thumbnail'"
+        )
 
-    if tool_name == "batch_operations" and params.get("operations") and params["operations"][0].get("request_type") not in ["create", "update", "delete", "download_thumbnail"]:
+    if (
+        tool_name == "batch_operations"
+        and params.get("operations")
+        and params["operations"][0].get("request_type") not in ["create", "update", "delete", "download_thumbnail"]
+    ):
         raise ToolError(f"Invalid request_type in operation 0: {params['operations'][0].get('request_type')}")
 
-    if (tool_name == "batch_download_thumbnails" or tool_name == "batch_operations") and params.get("operations") and "entity_type" not in params["operations"][0]:
+    if (
+        (tool_name == "batch_download_thumbnails" or tool_name == "batch_operations")
+        and params.get("operations")
+        and "entity_type" not in params["operations"][0]
+    ):
         raise ToolError("Missing entity_type in operation 0")
 
-    if (tool_name == "batch_download_thumbnails" or tool_name == "batch_operations") and params.get("operations") and params["operations"][0].get("request_type") in ["update", "delete", "download_thumbnail"] and "entity_id" not in params["operations"][0]:
+    if (
+        (tool_name == "batch_download_thumbnails" or tool_name == "batch_operations")
+        and params.get("operations")
+        and params["operations"][0].get("request_type") in ["update", "delete", "download_thumbnail"]
+        and "entity_id" not in params["operations"][0]
+    ):
         request_type = params["operations"][0].get("request_type")
         raise ToolError(f"Missing entity_id in {request_type} operation 0")
 
@@ -314,10 +348,7 @@ async def call_tool(
                     return await method(tool_name, params)
 
             # If we get here, we couldn't find a suitable method
-            raise AttributeError(
-                f"Could not find a method to call tools on the server. "
-                f"Tried '_mcp_call_tool'."
-            )
+            raise AttributeError("Could not find a method to call tools on the server. " "Tried '_mcp_call_tool'.")
     except Exception as e:
         # Re-raise as ToolError to maintain compatibility
         if not isinstance(e, ToolError):

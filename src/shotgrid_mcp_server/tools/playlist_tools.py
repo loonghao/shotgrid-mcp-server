@@ -6,11 +6,10 @@ This module contains tools for working with Playlists in ShotGrid.
 import logging
 from typing import Any, Dict, List, Optional
 
-from shotgun_api3.lib.mockgun import Shotgun
-
 # Import from shotgrid-query
 from shotgrid_query import TimeUnitEnum as TimeUnit
 from shotgrid_query import process_filters
+from shotgun_api3.lib.mockgun import Shotgun
 
 # Import MCP-specific models
 from shotgrid_mcp_server.models import (
@@ -663,6 +662,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         """
         try:
             from typing import cast
+
             from shotgrid_mcp_server.response_models import EntityUpdateResult
 
             # Build update data
@@ -714,6 +714,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         """
         try:
             from typing import cast
+
             from shotgrid_mcp_server.response_models import EntityUpdateResult
 
             # Get current versions in playlist

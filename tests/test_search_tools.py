@@ -1,27 +1,18 @@
 """Tests for search_tools module."""
 
-import json
 import datetime
+
 import pytest
 import pytest_asyncio
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.models import (
-    EntitiesResponse,
-    EntityDict,
-    Filter,
-    FilterOperator,
-    ProjectDict,
-    ProjectsResponse,
     TimeUnit,
-    UserDict,
-    UsersResponse,
 )
 from shotgrid_mcp_server.tools.search_tools import (
-    register_search_tools,
     prepare_fields_with_related,
+    register_search_tools,
 )
 
 
@@ -84,7 +75,7 @@ class TestSearchTools:
                 "entity_type": "Shot",
                 "filters": filters,
                 "fields": ["code", "project"],
-            }
+            },
         )
 
         # Verify result
@@ -125,7 +116,7 @@ class TestSearchTools:
             {
                 "entity_type": "Shot",
                 "filters": filters,
-            }
+            },
         )
 
         # Verify result
@@ -186,7 +177,7 @@ class TestSearchTools:
                 "filters": filters,
                 "fields": ["code", "created_at"],
                 "order": [{"field_name": "created_at", "direction": "asc"}],
-            }
+            },
         )
 
         # Verify result structure
@@ -200,7 +191,7 @@ class TestSearchTools:
                 "filters": filters,
                 "fields": ["code", "created_at"],
                 "order": [{"field_name": "created_at", "direction": "desc"}],
-            }
+            },
         )
 
         # Verify result structure
@@ -246,12 +237,11 @@ class TestSearchTools:
                 "filters": filters,
                 "fields": ["code"],
                 "limit": 3,
-            }
+            },
         )
 
         # Verify result structure
         assert result[0].text is not None
-
 
     @pytest.mark.asyncio
     async def test_sg_search_advanced_basic(self, search_server: FastMCP, mock_sg: Shotgun):
@@ -468,7 +458,7 @@ class TestSearchTools:
                 "entity_type": "Shot",
                 "filters": filters,
                 "fields": ["code", "project"],
-            }
+            },
         )
 
         # Verify result
@@ -497,7 +487,7 @@ class TestSearchTools:
             {
                 "entity_type": "Shot",
                 "filters": filters,
-            }
+            },
         )
 
         # Verify result
@@ -534,10 +524,7 @@ class TestSearchTools:
         )
 
         # Call the tool with default days (90)
-        result = await search_server._mcp_call_tool(
-            "find_recently_active_projects",
-            {}
-        )
+        result = await search_server._mcp_call_tool("find_recently_active_projects", {})
 
         # Verify result structure
         assert result[0].text is not None
@@ -585,10 +572,7 @@ class TestSearchTools:
         )
 
         # Call the tool with default days (30)
-        result = await search_server._mcp_call_tool(
-            "find_active_users",
-            {}
-        )
+        result = await search_server._mcp_call_tool("find_active_users", {})
 
         # Verify result structure
         assert result[0].text is not None
@@ -644,7 +628,7 @@ class TestSearchTools:
                 "start_date": "2023-01-01",
                 "end_date": "2023-03-01",
                 "fields": ["code", "created_at"],
-            }
+            },
         )
 
         # Verify result structure
@@ -701,11 +685,8 @@ class TestSearchTools:
                 "entity_type": "Shot",
                 "filters": filters,
                 "fields": ["code"],
-                "related_fields": {
-                    "project": ["name", "code"],
-                    "created_by": ["name", "email"]
-                },
-            }
+                "related_fields": {"project": ["name", "code"], "created_by": ["name", "email"]},
+            },
         )
 
         # Verify result structure
@@ -713,24 +694,13 @@ class TestSearchTools:
 
     def test_prepare_fields_with_related(self, mock_sg: Shotgun):
         """Test prepare_fields_with_related function."""
+
         # Mock the schema_field_read method to return field info
         def mock_schema_field_read(entity_type, field_name):
             if field_name == "project":
-                return {
-                    "properties": {
-                        "valid_types": {
-                            "value": ["Project"]
-                        }
-                    }
-                }
+                return {"properties": {"valid_types": {"value": ["Project"]}}}
             elif field_name == "created_by":
-                return {
-                    "properties": {
-                        "valid_types": {
-                            "value": ["HumanUser"]
-                        }
-                    }
-                }
+                return {"properties": {"valid_types": {"value": ["HumanUser"]}}}
             return None
 
         # Replace the schema_field_read method with our mock
@@ -744,10 +714,7 @@ class TestSearchTools:
             assert set(result) == set(basic_fields)
 
             # Test with related fields
-            related_fields = {
-                "project": ["name", "code"],
-                "created_by": ["name", "email"]
-            }
+            related_fields = {"project": ["name", "code"], "created_by": ["name", "email"]}
             result = prepare_fields_with_related(mock_sg, "Shot", basic_fields, related_fields)
 
             # Verify all fields are included

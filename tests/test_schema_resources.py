@@ -65,10 +65,7 @@ def test_build_status_payload_for_entity_uses_schema(mock_sg: Shotgun) -> None:
     assert status_info["data_type"] == "status_list"
 
 
-
-def test_build_all_status_payload_aggregates_entity_types(
-    mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_build_all_status_payload_aggregates_entity_types(mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch) -> None:
     """_build_all_status_payload groups status fields by entity type.
 
     We stub ``get_entity_types_from_schema`` so that this test focuses on how
@@ -89,9 +86,7 @@ def test_build_all_status_payload_aggregates_entity_types(
     assert asset_status["data_type"] == "status_list"
 
 
-def test_register_schema_resources_registers_and_resolves(
-    mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun, monkeypatch: pytest.MonkeyPatch) -> None:
     """register_schema_resources wires up resources that read from schema.
 
     We stub the schema loader to make the behaviour deterministic under

@@ -2,9 +2,7 @@
 
 import os
 import unittest
-from unittest.mock import patch, MagicMock
-
-import shotgun_api3
+from unittest.mock import MagicMock, patch
 
 from shotgrid_mcp_server.connection_pool import (
     create_shotgun_connection,
@@ -68,11 +66,14 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(sg.config.rpc_attempt_interval, 20000)
 
     @patch("shotgrid_mcp_server.connection_pool.create_shotgun_connection")
-    @patch.dict(os.environ, {
-        "SHOTGRID_URL": "https://test.shotgunstudio.com",
-        "SHOTGRID_SCRIPT_NAME": "script_name",
-        "SHOTGRID_SCRIPT_KEY": "api_key",
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "SHOTGRID_URL": "https://test.shotgunstudio.com",
+            "SHOTGRID_SCRIPT_NAME": "script_name",
+            "SHOTGRID_SCRIPT_KEY": "api_key",
+        },
+    )
     def test_create_shotgun_connection_from_env(self, mock_create_shotgun):
         """Test create_shotgun_connection_from_env function."""
         # Create a mock Shotgun instance

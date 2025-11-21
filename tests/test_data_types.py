@@ -2,7 +2,6 @@
 
 import datetime
 import unittest
-from unittest.mock import MagicMock
 
 from shotgrid_mcp_server.data_types import (
     ShotGridTypes,
@@ -231,10 +230,13 @@ class TestEntityFormatting(unittest.TestCase):
             {"invalid": "entity"},  # Should be filtered out
         ]
         result = format_multi_entity_value(entities)
-        self.assertEqual(result, [
-            {"type": "Shot", "id": 123},
-            {"type": "Shot", "id": 456},
-        ])
+        self.assertEqual(
+            result,
+            [
+                {"type": "Shot", "id": 123},
+                {"type": "Shot", "id": 456},
+            ],
+        )
 
         # Test with empty list
         result = format_multi_entity_value([])

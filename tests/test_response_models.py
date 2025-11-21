@@ -158,4 +158,3 @@ def test_serialize_response_with_plain_dict() -> None:
     result = serialize_response(payload)
 
     assert result == payload
-

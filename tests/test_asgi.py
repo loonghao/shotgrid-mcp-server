@@ -2,7 +2,7 @@
 
 # Import built-in modules
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Import third-party modules
 import pytest

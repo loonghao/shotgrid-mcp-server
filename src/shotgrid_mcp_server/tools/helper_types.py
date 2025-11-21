@@ -4,7 +4,7 @@ This module provides type definitions for helper functions in the ShotGrid MCP s
 All types are now Pydantic models for better validation and type safety.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -22,12 +22,11 @@ class ProjectDict(BaseModel):
     name: str = Field(..., description="Project name")
     sg_status: Optional[str] = Field(None, description="Project status")
     updated_at: Optional[str] = Field(None, description="Last update timestamp")
-    updated_by: Optional[Dict[str, Union[int, str]]] = Field(
-        None, description="User who last updated the project"
-    )
+    updated_by: Optional[Dict[str, Union[int, str]]] = Field(None, description="User who last updated the project")
 
     class Config:
         """Pydantic configuration."""
+
         extra = "allow"  # Allow additional fields from ShotGrid
 
 
@@ -47,6 +46,7 @@ class UserDict(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         extra = "allow"  # Allow additional fields from ShotGrid
 
 
@@ -66,6 +66,7 @@ class EntityDict(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         extra = "allow"  # Allow additional fields from ShotGrid
 
 
@@ -108,9 +109,7 @@ class DateRangeFilter(BaseModel):
     field: str = Field(..., description="Field name to filter on")
     start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
     end_date: str = Field(..., description="End date (YYYY-MM-DD)")
-    additional_filters: Optional[List[Filter]] = Field(
-        None, description="Additional filters to apply"
-    )
+    additional_filters: Optional[List[Filter]] = Field(None, description="Additional filters to apply")
 
 
 class ProjectsResponse(BaseModel):

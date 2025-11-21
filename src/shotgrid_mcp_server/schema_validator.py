@@ -27,13 +27,13 @@ class SchemaValidator:
         check_required: bool = False,
     ) -> Dict[str, List[str]]:
         """Validate entity fields against schema.
-        
+
         Args:
             entity_type: ShotGrid entity type (e.g., "Shot", "Asset")
             data: Dictionary of field names and values to validate
             sg_connection: ShotGrid connection to fetch schema if not cached
             check_required: Whether to check for required fields
-            
+
         Returns:
             Dictionary with validation results:
             {
@@ -55,7 +55,7 @@ class SchemaValidator:
                 return {
                     "valid": list(data.keys()),
                     "invalid": [],
-                    "warnings": [f"Could not validate fields: schema unavailable for {entity_type}"]
+                    "warnings": [f"Could not validate fields: schema unavailable for {entity_type}"],
                 }
 
         valid_fields: List[str] = []
@@ -70,20 +70,20 @@ class SchemaValidator:
             else:
                 valid_fields.append(field_name)
                 field_schema = schema[field_name]
-                
+
                 # Check if field is editable
                 if not field_schema.get("editable", True):
                     warnings.append(f"Field '{field_name}' is not editable")
-                
+
                 # Validate data type
-                data_type = field_schema.get("data_type", {}).get("value") if isinstance(
-                    field_schema.get("data_type"), dict
-                ) else field_schema.get("data_type")
-                
+                data_type = (
+                    field_schema.get("data_type", {}).get("value")
+                    if isinstance(field_schema.get("data_type"), dict)
+                    else field_schema.get("data_type")
+                )
+
                 if data_type and field_value is not None:
-                    type_warning = self._validate_field_type(
-                        field_name, field_value, data_type
-                    )
+                    type_warning = self._validate_field_type(field_name, field_value, data_type)
                     if type_warning:
                         warnings.append(type_warning)
 
@@ -92,9 +92,7 @@ class SchemaValidator:
             required_fields = self._get_required_fields(schema)
             missing_required = set(required_fields) - set(data.keys())
             if missing_required:
-                warnings.append(
-                    f"Missing required fields: {', '.join(missing_required)}"
-                )
+                warnings.append(f"Missing required fields: {', '.join(missing_required)}")
 
         return {
             "valid": valid_fields,
@@ -102,16 +100,14 @@ class SchemaValidator:
             "warnings": warnings,
         }
 
-    def _validate_field_type(
-        self, field_name: str, value: Any, data_type: str
-    ) -> Optional[str]:
+    def _validate_field_type(self, field_name: str, value: Any, data_type: str) -> Optional[str]:
         """Validate field value type.
-        
+
         Args:
             field_name: Field name
             value: Field value
             data_type: Expected data type from schema
-            
+
         Returns:
             Warning message if validation fails, None otherwise
         """
@@ -133,19 +129,16 @@ class SchemaValidator:
         if data_type in type_checks:
             expected_type, type_name = type_checks[data_type]
             if not isinstance(value, expected_type):
-                return (
-                    f"Field '{field_name}' expects {type_name}, "
-                    f"got {type(value).__name__}"
-                )
+                return f"Field '{field_name}' expects {type_name}, " f"got {type(value).__name__}"
 
         return None
 
     def _get_required_fields(self, schema: Dict[str, Any]) -> Set[str]:
         """Get list of required fields from schema.
-        
+
         Args:
             schema: Entity schema dictionary
-            
+
         Returns:
             Set of required field names
         """
@@ -163,7 +156,7 @@ _global_validator: Optional[SchemaValidator] = None
 
 def get_schema_validator() -> SchemaValidator:
     """Get the global schema validator instance.
-    
+
     Returns:
         Global SchemaValidator instance
     """
@@ -171,4 +164,3 @@ def get_schema_validator() -> SchemaValidator:
     if _global_validator is None:
         _global_validator = SchemaValidator()
     return _global_validator
-

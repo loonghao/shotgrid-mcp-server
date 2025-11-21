@@ -1,7 +1,6 @@
 """Tests for thumbnail_tools module."""
 
 import json
-import os
 import tempfile
 from pathlib import Path
 
@@ -109,12 +108,7 @@ class TestThumbnailTools:
             result = await call_tool(
                 thumbnail_server,
                 "download_thumbnail",
-                {
-                    "entity_type": "Shot",
-                    "entity_id": shot["id"],
-                    "field_name": "image",
-                    "file_path": str(file_path)
-                },
+                {"entity_type": "Shot", "entity_id": shot["id"], "field_name": "image", "file_path": str(file_path)},
             )
 
             # Verify result

@@ -1,10 +1,10 @@
 """Tests for api_tools module."""
 
 import json
+
 import pytest
 import pytest_asyncio
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.tools.api_tools import register_api_tools
@@ -62,7 +62,7 @@ class TestAPITools:
                 "entity_type": "Shot",
                 "filters": [["project", "is", {"type": "Project", "id": project["id"]}]],
                 "fields": ["code", "project"],
-            }
+            },
         )
 
         # Verify result
@@ -111,7 +111,7 @@ class TestAPITools:
                 "entity_type": "Shot",
                 "filters": [["id", "is", shot["id"]]],
                 "fields": ["code", "project"],
-            }
+            },
         )
 
         # Verify result
@@ -152,7 +152,7 @@ class TestAPITools:
                     "project": {"type": "Project", "id": project["id"]},
                 },
                 "return_fields": ["code", "project"],
-            }
+            },
         )
 
         # Verify result
@@ -204,7 +204,7 @@ class TestAPITools:
                 "data": {
                     "code": "API_UPDATED_SHOT",
                 },
-            }
+            },
         )
 
         # Verify result
@@ -250,7 +250,7 @@ class TestAPITools:
             {
                 "entity_type": "Shot",
                 "entity_id": shot["id"],
-            }
+            },
         )
 
         # Verify result
@@ -272,7 +272,7 @@ class TestAPITools:
             {
                 "entity_type": "Shot",
                 "entity_id": shot["id"],
-            }
+            },
         )
 
         # Verify result
@@ -323,7 +323,7 @@ class TestAPITools:
                         },
                     },
                 ]
-            }
+            },
         )
 
         # Verify result
@@ -345,11 +345,7 @@ class TestAPITools:
     async def test_sg_schema_entity_read(self, api_server: FastMCP):
         """Test sg.schema_entity_read tool."""
         # Call the tool
-        result = await call_tool(
-            api_server,
-            "sg.schema_entity_read",
-            {}
-        )
+        result = await call_tool(api_server, "sg.schema_entity_read", {})
 
         # Verify result
         assert result is not None
@@ -367,7 +363,7 @@ class TestAPITools:
             "sg.schema_field_read",
             {
                 "entity_type": "Shot",
-            }
+            },
         )
 
         # Verify result

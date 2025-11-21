@@ -2,10 +2,10 @@
 
 import datetime
 import json
+
 import pytest
 import pytest_asyncio
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.models import (
@@ -87,9 +87,7 @@ class TestNoteTools:
             note_data["user"] = {"type": "HumanUser", "id": request.user_id}
 
         if request.addressings_to:
-            note_data["addressings_to"] = [
-                {"type": "HumanUser", "id": user_id} for user_id in request.addressings_to
-            ]
+            note_data["addressings_to"] = [{"type": "HumanUser", "id": user_id} for user_id in request.addressings_to]
 
         # Create note
         note = mock_sg.create("Note", note_data)
@@ -263,7 +261,7 @@ class TestNoteTools:
             user_id=user_id,
             user_name=user_name,
             link_entity_type=None,  # Since we couldn't add note_links
-            link_entity_id=None,    # Since we couldn't add note_links
+            link_entity_id=None,  # Since we couldn't add note_links
             addressings_to=addressings_to,
             addressings_cc=[],
         )
@@ -453,11 +451,7 @@ class TestNoteTools:
         }
 
         # Call the tool
-        result = await call_tool(
-            note_server,
-            "shotgrid.note.create",
-            request
-        )
+        result = await call_tool(note_server, "shotgrid.note.create", request)
 
         # Verify result
         assert result is not None
@@ -511,11 +505,7 @@ class TestNoteTools:
         )
 
         # Call the tool with just the note_id parameter
-        result = await call_tool(
-            note_server,
-            "shotgrid.note.read",
-            note["id"]
-        )
+        result = await call_tool(note_server, "shotgrid.note.read", note["id"])
 
         # Verify result
         assert result is not None
@@ -557,11 +547,7 @@ class TestNoteTools:
         }
 
         # Call the tool
-        result = await call_tool(
-            note_server,
-            "shotgrid.note.update",
-            request
-        )
+        result = await call_tool(note_server, "shotgrid.note.update", request)
 
         # Verify result
         assert result is not None
@@ -572,20 +558,11 @@ class TestNoteTools:
 
         # Update the note in the mock database to match the expected values
         mock_sg.update(
-            "Note",
-            note["id"],
-            {
-                "subject": "Updated Subject via Tool",
-                "content": "Updated content via Tool"
-            }
+            "Note", note["id"], {"subject": "Updated Subject via Tool", "content": "Updated content via Tool"}
         )
 
         # Verify the note was updated in ShotGrid
-        updated_note = mock_sg.find_one(
-            "Note",
-            [["id", "is", note["id"]]],
-            ["subject", "content"]
-        )
+        updated_note = mock_sg.find_one("Note", [["id", "is", note["id"]]], ["subject", "content"])
         assert updated_note
         assert updated_note["subject"] == "Updated Subject via Tool"
         assert updated_note["content"] == "Updated content via Tool"
@@ -598,7 +575,7 @@ class TestNoteTools:
         result = await call_tool(
             note_server,
             "shotgrid.note.read",
-            9999  # Non-existent ID
+            9999,  # Non-existent ID
         )
 
         # Verify result

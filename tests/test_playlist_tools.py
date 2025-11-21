@@ -2,6 +2,7 @@
 
 import datetime
 import json
+
 import pytest
 import pytest_asyncio
 from fastmcp import FastMCP
@@ -69,10 +70,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
-            "find_playlists",
-            {}
-        )
+        result = await playlist_server._mcp_call_tool("find_playlists", {})
 
         # Verify result
         assert result is not None
@@ -150,10 +148,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
-            "find_project_playlists",
-            {"project_id": project1["id"]}
-        )
+        result = await playlist_server._mcp_call_tool("find_project_playlists", {"project_id": project1["id"]})
 
         # Verify result
         assert result is not None
@@ -223,10 +218,7 @@ class TestPlaylistTools:
         )
 
         # Call the tool
-        result = await playlist_server._mcp_call_tool(
-            "find_recent_playlists",
-            {"project_id": project["id"], "days": 1}
-        )
+        result = await playlist_server._mcp_call_tool("find_recent_playlists", {"project_id": project["id"], "days": 1})
 
         # Verify result
         assert result is not None
@@ -271,8 +263,8 @@ class TestPlaylistTools:
                 "code": "New Playlist",
                 "project_id": project["id"],
                 "description": "New playlist description",
-                "versions": [{"type": "Version", "id": version["id"]}]
-            }
+                "versions": [{"type": "Version", "id": version["id"]}],
+            },
         )
 
         # Verify result
@@ -298,8 +290,7 @@ class TestPlaylistTools:
         # Verify playlist URL format and top-level URL
         playlist_id = response_dict["data"]["id"]
         expected_url = (
-            f"{mock_sg.base_url.rstrip('/')}/page/screening_room?"
-            f"entity_type=Playlist&entity_id={playlist_id}"
+            f"{mock_sg.base_url.rstrip('/')}/page/screening_room?" f"entity_type=Playlist&entity_id={playlist_id}"
         )
         assert response_dict["data"]["sg_url"] == expected_url
         assert response_dict.get("url") == expected_url
@@ -309,7 +300,9 @@ class TestPlaylistTools:
         assert urls["screening_room"] == expected_url
         detail_url = f"{mock_sg.base_url.rstrip('/')}/detail/Playlist/{playlist_id}"
         assert urls["detail"] == detail_url
-        media_center_prefix = f"{mock_sg.base_url.rstrip('/')}/page/media_center?type=Playlist&id={playlist_id}&project_id="
+        media_center_prefix = (
+            f"{mock_sg.base_url.rstrip('/')}/page/media_center?type=Playlist&id={playlist_id}&project_id="
+        )
         assert urls["media_center"].startswith(media_center_prefix)
 
     @pytest.mark.asyncio
@@ -337,19 +330,11 @@ class TestPlaylistTools:
         # Call the tool
         result = await playlist_server._mcp_call_tool(
             "update_playlist",
-            {
-                "playlist_id": playlist["id"],
-                "code": "Updated Playlist",
-                "description": "Updated description"
-            }
+            {"playlist_id": playlist["id"], "code": "Updated Playlist", "description": "Updated description"},
         )
 
         # Verify the update
-        updated_playlist = mock_sg.find_one(
-            "Playlist",
-            [["id", "is", playlist["id"]]],
-            ["code", "description"]
-        )
+        updated_playlist = mock_sg.find_one("Playlist", [["id", "is", playlist["id"]]], ["code", "description"])
         assert updated_playlist["code"] == "Updated Playlist"
         assert updated_playlist["description"] == "Updated description"
 
@@ -395,25 +380,15 @@ class TestPlaylistTools:
 
         # Call the tool
         result = await playlist_server._mcp_call_tool(
-            "add_versions_to_playlist",
-            {
-                "playlist_id": playlist["id"],
-                "version_ids": [version2["id"]]
-            }
+            "add_versions_to_playlist", {"playlist_id": playlist["id"], "version_ids": [version2["id"]]}
         )
 
         # Verify the update
-        updated_playlist = mock_sg.find_one(
-            "Playlist",
-            [["id", "is", playlist["id"]]],
-            ["versions"]
-        )
+        updated_playlist = mock_sg.find_one("Playlist", [["id", "is", playlist["id"]]], ["versions"])
         assert len(updated_playlist["versions"]) == 2
         version_ids = [v["id"] for v in updated_playlist["versions"]]
         assert version1["id"] in version_ids
         assert version2["id"] in version_ids
-
-
 
     @pytest.mark.asyncio
     async def test_find_playlists_handles_missing_project(self, playlist_server: FastMCP, mock_sg: Shotgun):
