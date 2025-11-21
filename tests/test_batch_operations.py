@@ -1,6 +1,5 @@
 """Tests for batch operations."""
 
-import json
 import tempfile
 from pathlib import Path
 

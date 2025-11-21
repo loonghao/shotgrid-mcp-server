@@ -1,14 +1,14 @@
 """Tests for vendor tools."""
 
-import json
 import datetime
+import json
+
 import pytest
 import pytest_asyncio
-from fastmcp.exceptions import ToolError
 from fastmcp.server import FastMCP
 from shotgun_api3.lib.mockgun import Shotgun
 
-from shotgrid_mcp_server.tools.vendor_tools import register_vendor_tools, _is_vendor_user
+from shotgrid_mcp_server.tools.vendor_tools import _is_vendor_user, register_vendor_tools
 from tests.helpers import call_tool
 
 
@@ -25,48 +25,27 @@ class TestVendorTools:
     def test_is_vendor_user(self):
         """Test the _is_vendor_user function with different user types."""
         # Test with sg_vendor field
-        user_with_vendor_field = {
-            "id": 1,
-            "name": "Vendor User 1",
-            "sg_vendor": True
-        }
+        user_with_vendor_field = {"id": 1, "name": "Vendor User 1", "sg_vendor": True}
         assert _is_vendor_user(user_with_vendor_field) is True
 
         # Test with vendor group
         user_with_vendor_group = {
             "id": 2,
             "name": "Vendor User 2",
-            "groups": [
-                {"id": 101, "name": "Regular Group"},
-                {"id": 102, "name": "Vendor Group"}
-            ]
+            "groups": [{"id": 101, "name": "Regular Group"}, {"id": 102, "name": "Vendor Group"}],
         }
         assert _is_vendor_user(user_with_vendor_group) is True
 
         # Test with external group
-        user_with_external_group = {
-            "id": 3,
-            "name": "Vendor User 3",
-            "groups": [
-                {"id": 103, "name": "External Users"}
-            ]
-        }
+        user_with_external_group = {"id": 3, "name": "Vendor User 3", "groups": [{"id": 103, "name": "External Users"}]}
         assert _is_vendor_user(user_with_external_group) is True
 
         # Test with vendor email domain
-        user_with_vendor_email = {
-            "id": 4,
-            "name": "Vendor User 4",
-            "email": "user@vendor.company.com"
-        }
+        user_with_vendor_email = {"id": 4, "name": "Vendor User 4", "email": "user@vendor.company.com"}
         assert _is_vendor_user(user_with_vendor_email) is True
 
         # Test with external email domain
-        user_with_external_email = {
-            "id": 5,
-            "name": "Vendor User 5",
-            "email": "user@external.company.com"
-        }
+        user_with_external_email = {"id": 5, "name": "Vendor User 5", "email": "user@external.company.com"}
         assert _is_vendor_user(user_with_external_email) is True
 
         # Test with regular user (not a vendor)
@@ -74,9 +53,7 @@ class TestVendorTools:
             "id": 6,
             "name": "Regular User",
             "email": "user@internal-company.com",
-            "groups": [
-                {"id": 104, "name": "Internal Users"}
-            ]
+            "groups": [{"id": 104, "name": "Internal Users"}],
         }
         assert _is_vendor_user(regular_user) is False
 
@@ -152,11 +129,8 @@ class TestVendorTools:
                     "email": "vendor@external-company.com",
                 }
             ],
-            "metadata": {
-                "status": "success",
-                "message": "Found 1 vendor users"
-            },
-            "total_count": 1
+            "metadata": {"status": "success", "message": "Found 1 vendor users"},
+            "total_count": 1,
         }
 
         # Verify result
@@ -209,7 +183,7 @@ class TestVendorTools:
             "find_vendor_users",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # In the test environment, we expect an empty list
@@ -288,7 +262,7 @@ class TestVendorTools:
             "find_vendor_users",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # Verify only active vendor is returned
@@ -314,7 +288,7 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "active_only": False,
-            }
+            },
         )
 
         # Verify both vendors are returned
@@ -401,7 +375,7 @@ class TestVendorTools:
             "find_vendor_versions",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # Verify result
@@ -518,7 +492,7 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "vendor_user_ids": [vendor_user1["id"]],
-            }
+            },
         )
 
         # Verify only versions from vendor_user1 are returned
@@ -541,7 +515,7 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "status": "apr",  # approved
-            }
+            },
         )
 
         # Verify only approved versions are returned
@@ -565,7 +539,7 @@ class TestVendorTools:
                 "project_id": project["id"],
                 "entity_type": "Shot",
                 "entity_id": shot["id"],
-            }
+            },
         )
 
         # Verify all versions linked to the shot are returned
@@ -588,7 +562,7 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "days": 30,  # Last 30 days
-            }
+            },
         )
 
         # Verify only recent versions are returned
@@ -611,7 +585,7 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "limit": 1,
-            }
+            },
         )
 
         # Verify only one version is returned
@@ -646,7 +620,7 @@ class TestVendorTools:
             "find_vendor_versions",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # In the test environment, we expect an empty list
@@ -705,8 +679,8 @@ class TestVendorTools:
             {
                 "project_id": project["id"],
                 "name": "Test Vendor Playlist",
-                "description": "Test playlist with vendor versions"
-            }
+                "description": "Test playlist with vendor versions",
+            },
         )
 
         # Verify result
@@ -801,7 +775,7 @@ class TestVendorTools:
             "create_vendor_playlist",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # Verify result
@@ -844,7 +818,7 @@ class TestVendorTools:
             "create_vendor_playlist",
             {
                 "project_id": project["id"],
-            }
+            },
         )
 
         # Verify result

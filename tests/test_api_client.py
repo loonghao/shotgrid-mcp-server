@@ -102,4 +102,3 @@ def test_find_one_uses_full_kwargs_for_non_mockgun_connection() -> None:
     assert kwargs["filter_operator"] == "and"
     assert kwargs["retired_only"] is True
     assert kwargs["include_archived_projects"] is False
-

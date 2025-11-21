@@ -6,9 +6,9 @@ This module contains Pydantic models for standardizing responses from ShotGrid M
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
+
 from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.models import EntityDict
-
 
 T = TypeVar("T")
 
@@ -52,7 +52,6 @@ class EntityResponse(BaseResponse[Dict[str, Any]]):
 
 class EntitiesResponse(BaseResponse[List[Dict[str, Any]]]):
     """Response model for multiple entities."""
-
 
 
 class SearchEntitiesResult(BaseModel):

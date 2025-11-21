@@ -6,6 +6,10 @@ This module contains tools for searching entities in ShotGrid.
 import logging
 from typing import Any, Dict, List, Optional
 
+# Import from shotgrid-query
+from shotgrid_query import FilterModel as Filter
+from shotgrid_query import TimeUnitEnum as TimeUnit
+from shotgrid_query import process_filters
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.api_client import ShotGridAPIClient
@@ -18,11 +22,6 @@ from shotgrid_mcp_server.api_models import (
     SearchEntitiesWithRelatedRequest,
 )
 from shotgrid_mcp_server.custom_types import EntityType
-
-# Import from shotgrid-query
-from shotgrid_query import FilterModel as Filter
-from shotgrid_query import TimeUnitEnum as TimeUnit
-from shotgrid_query import process_filters
 
 # Import MCP-specific models
 from shotgrid_mcp_server.models import (
@@ -41,7 +40,6 @@ from shotgrid_mcp_server.response_models import (
     SingleEntityResult,
     serialize_response,
 )
-
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -284,17 +282,13 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
                 except Exception as exc:
                     logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(
-                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
-                        )
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
 
             search_result = SearchEntitiesResult(
                 items=entity_dicts,
                 entity_type=request.entity_type,
                 fields=request.fields,
-                filter_fields=[
-                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
-                ],
+                filter_fields=[f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f],
                 total_count=len(entity_dicts),
             )
 
@@ -522,17 +516,13 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
                 except Exception as exc:
                     logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(
-                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
-                        )
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
 
             search_result = SearchEntitiesResult(
                 items=entity_dicts,
                 entity_type=request.entity_type,
                 fields=all_fields,
-                filter_fields=[
-                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
-                ],
+                filter_fields=[f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f],
                 total_count=len(entity_dicts),
             )
 
@@ -992,17 +982,13 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
                 except Exception as exc:
                     logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(
-                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
-                        )
+                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
 
             search_result = SearchEntitiesResult(
                 items=entity_dicts,
                 entity_type=request.entity_type,
                 fields=all_fields,
-                filter_fields=[
-                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
-                ],
+                filter_fields=[f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f],
                 total_count=len(entity_dicts),
             )
 

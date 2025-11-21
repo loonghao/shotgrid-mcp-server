@@ -11,13 +11,16 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel
 
 # Import core models from shotgrid-query
 from shotgrid_query import (
     FilterModel as Filter,
+)
+from shotgrid_query import (
     FilterOperatorEnum as FilterOperator,
-    TimeFilter,
+)
+from shotgrid_query import (
     TimeUnitEnum as TimeUnit,
 )
 

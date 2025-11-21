@@ -55,6 +55,25 @@ __all__ = [
     "serialize_entity",
 ]
 
+# Import filter utilities from shotgrid-query
+from shotgrid_query import (
+    FilterBuilder,
+    TimeFilter,
+    build_date_filter,
+    combine_filters,
+    create_date_filter,
+    process_filters,
+)
+from shotgrid_query import (
+    FilterModel as Filter,
+)
+from shotgrid_query import (
+    FilterOperatorEnum as FilterOperator,
+)
+from shotgrid_query import (
+    TimeUnitEnum as TimeUnit,
+)
+
 from shotgrid_mcp_server.asgi import create_asgi_app
 from shotgrid_mcp_server.exceptions import (
     ConnectionError,
@@ -63,19 +82,6 @@ from shotgrid_mcp_server.exceptions import (
     PermissionError,
     SerializationError,
     ShotGridMCPError,
-)
-
-# Import filter utilities from shotgrid-query
-from shotgrid_query import (
-    FilterBuilder,
-    FilterModel as Filter,
-    FilterOperatorEnum as FilterOperator,
-    TimeFilter,
-    TimeUnitEnum as TimeUnit,
-    build_date_filter,
-    combine_filters,
-    create_date_filter,
-    process_filters,
 )
 
 # Import MCP-specific models from local models module

@@ -5,18 +5,8 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 from shotgrid_mcp_server.utils import (
-    chunk_data,
-    create_session,
-    download_file,
-    filter_essential_fields,
     generate_default_file_path,
-    get_entity_types,
-    handle_error,
-    serialize_entity,
-    truncate_long_strings,
 )
 
 

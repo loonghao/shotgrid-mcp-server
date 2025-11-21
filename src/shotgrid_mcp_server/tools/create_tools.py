@@ -11,8 +11,8 @@ from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.response_models import (
-    EntityCreateResult,
     BatchOperationsResult,
+    EntityCreateResult,
 )
 from shotgrid_mcp_server.schema_validator import get_schema_validator
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
@@ -155,9 +155,7 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             # Raise error if there are invalid fields
             if validation_result["invalid"]:
-                raise ToolError(
-                    f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}"
-                )
+                raise ToolError(f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}")
 
             # Create entity
             result = sg.create(entity_type, data)

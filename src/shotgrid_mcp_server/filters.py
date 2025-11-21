@@ -1,10 +1,10 @@
-﻿"""ShotGrid filter utilities - Compatibility Layer.
+"""ShotGrid filter utilities - Compatibility Layer.
 
 This module re-exports filter utilities from the shotgrid-query library for backward compatibility.
 
 Note: Core filter functionality has been migrated to the shotgrid-query library.
       Import FilterBuilder, TimeUnit, process_filters, etc. from shotgrid_query instead.
-      
+
       This module is kept for backward compatibility only.
 """
 

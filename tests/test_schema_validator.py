@@ -1,7 +1,8 @@
 """Tests for schema validation functionality."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from shotgrid_mcp_server.schema_validator import SchemaValidator, get_schema_validator
 
@@ -10,7 +11,7 @@ from shotgrid_mcp_server.schema_validator import SchemaValidator, get_schema_val
 def mock_sg():
     """Create a mock ShotGrid connection."""
     sg = MagicMock()
-    
+
     # Mock schema for Shot entity
     sg.schema_field_read.return_value = {
         "code": {
@@ -34,7 +35,7 @@ def mock_sg():
             "mandatory": {"value": False},
         },
     }
-    
+
     return sg
 
 
@@ -42,6 +43,7 @@ def mock_sg():
 def validator():
     """Create a schema validator instance."""
     from shotgrid_mcp_server.schema_cache import get_schema_cache
+
     # Clear cache before each test
     cache = get_schema_cache()
     cache.clear()
@@ -55,9 +57,9 @@ def test_validate_valid_fields(validator, mock_sg):
         "sg_status_list": "ip",
         "sg_cut_in": 1001,
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert result["valid"] == ["code", "sg_status_list", "sg_cut_in"]
     assert result["invalid"] == []
     assert len(result["warnings"]) == 0
@@ -69,9 +71,9 @@ def test_validate_invalid_fields(validator, mock_sg):
         "code": "SH001",
         "invalid_field": "value",
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert "code" in result["valid"]
     assert "invalid_field" in result["invalid"]
     assert any("Unknown field" in w for w in result["warnings"])
@@ -83,9 +85,9 @@ def test_validate_non_editable_field(validator, mock_sg):
         "code": "SH001",
         "created_at": "2025-01-20",
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert "created_at" in result["valid"]  # Field exists
     assert any("not editable" in w for w in result["warnings"])
 
@@ -96,9 +98,9 @@ def test_validate_field_type_mismatch(validator, mock_sg):
         "code": "SH001",
         "sg_cut_in": "not_a_number",  # Should be number
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert "sg_cut_in" in result["valid"]  # Field exists
     assert any("expects number" in w for w in result["warnings"])
 
@@ -109,9 +111,9 @@ def test_validate_required_fields(validator, mock_sg):
         "sg_status_list": "ip",
         # Missing required field "code"
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg, check_required=True)
-    
+
     assert any("Missing required fields" in w and "code" in w for w in result["warnings"])
 
 
@@ -119,11 +121,11 @@ def test_validate_schema_fetch_failure(validator):
     """Test validation handles schema fetch failures gracefully."""
     mock_sg = MagicMock()
     mock_sg.schema_field_read.side_effect = Exception("Connection error")
-    
+
     data = {"code": "SH001"}
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     # Should return all fields as valid when schema is unavailable
     assert result["valid"] == ["code"]
     assert result["invalid"] == []
@@ -134,7 +136,7 @@ def test_global_validator_instance():
     """Test getting the global validator instance."""
     validator1 = get_schema_validator()
     validator2 = get_schema_validator()
-    
+
     # Should return the same instance
     assert validator1 is validator2
 
@@ -147,14 +149,14 @@ def test_validate_entity_reference(validator, mock_sg):
         "editable": True,
         "mandatory": {"value": False},
     }
-    
+
     data = {
         "code": "SH001",
         "project": {"type": "Project", "id": 123},
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert "project" in result["valid"]
     assert len(result["invalid"]) == 0
 
@@ -167,7 +169,7 @@ def test_validate_multi_entity_field(validator, mock_sg):
         "editable": True,
         "mandatory": {"value": False},
     }
-    
+
     data = {
         "code": "SH001",
         "tasks": [
@@ -175,9 +177,8 @@ def test_validate_multi_entity_field(validator, mock_sg):
             {"type": "Task", "id": 2},
         ],
     }
-    
+
     result = validator.validate_fields("Shot", data, mock_sg)
-    
+
     assert "tasks" in result["valid"]
     assert len(result["invalid"]) == 0
-

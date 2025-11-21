@@ -40,6 +40,7 @@ async def server(mock_sg: Shotgun) -> FastMCP:
     This fixture creates a server with a MockShotgunFactory to avoid
     connecting to a real ShotGrid server.
     """
+
     # Create a factory that returns our mock ShotGrid instance
     class TestFactory:
         def create_client(self) -> Shotgun:
@@ -236,11 +237,13 @@ class TestOptimizedQueries:
         # Prepare data for batch creation
         data_list = []
         for i in range(5):
-            data_list.append({
-                "code": f"BATCH_SHOT_{i+1:03d}",
-                "project": {"type": "Project", "id": project["id"]},
-                "sg_status_list": "ip",
-            })
+            data_list.append(
+                {
+                    "code": f"BATCH_SHOT_{i+1:03d}",
+                    "project": {"type": "Project", "id": project["id"]},
+                    "sg_status_list": "ip",
+                }
+            )
 
         # Execute batch create
         response = await server._mcp_call_tool(
@@ -267,7 +270,7 @@ class TestOptimizedQueries:
                     "code": f"DIRECT_SHOT_{i+1:03d}",
                     "project": {"type": "Project", "id": project["id"]},
                     "sg_status_list": "ip",
-                }
+                },
             )
 
         # Verify entities were created in ShotGrid

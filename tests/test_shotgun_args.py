@@ -60,11 +60,13 @@ class TestShotgunArgs(unittest.TestCase):
         self.assertEqual(args["rpc_attempt_interval"], 10000)
 
         # Test with custom args
-        args = get_shotgun_connection_args({
-            "max_rpc_attempts": 20,
-            "timeout_secs": 60,
-            "rpc_attempt_interval": 20000,
-        })
+        args = get_shotgun_connection_args(
+            {
+                "max_rpc_attempts": 20,
+                "timeout_secs": 60,
+                "rpc_attempt_interval": 20000,
+            }
+        )
         self.assertEqual(args["max_rpc_attempts"], 20)
         self.assertEqual(args["timeout_secs"], 60)
         self.assertEqual(args["rpc_attempt_interval"], 20000)

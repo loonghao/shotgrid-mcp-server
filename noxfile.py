@@ -16,6 +16,7 @@ if ROOT not in sys.path:
 from nox_actions import docs, lint, release
 from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 
+
 @nox.session(name="tests")
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""

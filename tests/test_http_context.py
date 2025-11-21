@@ -1,8 +1,6 @@
 """Tests for HTTP context module."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from shotgrid_mcp_server.http_context import (
     SHOTGRID_SCRIPT_KEY_HEADER,
@@ -146,4 +144,3 @@ class TestLogging:
                 get_shotgrid_credentials_from_headers()
                 # Should log debug message
                 assert mock_logger.debug.called
-

@@ -4,11 +4,7 @@ This module contains unit tests for the MockgunExt class.
 """
 
 # Import built-in modules
-import datetime
-import os
 import pickle
-from pathlib import Path
-from typing import Dict, Any
 
 # Import third-party modules
 import pytest
@@ -84,7 +80,10 @@ def schema_paths(tmp_path):
             },
             "entity": {
                 "data_type": {"value": "entity"},
-                "properties": {"default_value": {"value": None}, "valid_types": {"value": ["Project", "Shot", "HumanUser"]}},
+                "properties": {
+                    "default_value": {"value": None},
+                    "valid_types": {"value": ["Project", "Shot", "HumanUser"]},
+                },
             },
             "event_type": {
                 "data_type": {"value": "text"},
@@ -182,9 +181,7 @@ class TestMockgunExt:
         assert len(shots) == 0
 
         # Find shots with multiple filters (AND)
-        shots = mockgun.find(
-            "Shot", [["code", "is", "test_shot"], ["project", "is", test_project]]
-        )
+        shots = mockgun.find("Shot", [["code", "is", "test_shot"], ["project", "is", test_project]])
         assert len(shots) == 1
         assert shots[0]["code"] == "test_shot"
 

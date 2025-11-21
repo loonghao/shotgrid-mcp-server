@@ -3,11 +3,10 @@
 import sys
 from unittest.mock import MagicMock, patch
 
-import click
 import pytest
 from click.testing import CliRunner
 
-from shotgrid_mcp_server.cli import cli, http, main, stdio
+from shotgrid_mcp_server.cli import cli, main
 
 
 @pytest.fixture
@@ -72,9 +71,7 @@ class TestStdioCommand:
 
     def test_stdio_value_error(self, runner, mock_create_server):
         """Test stdio command handles ValueError."""
-        mock_create_server.side_effect = ValueError(
-            "Missing required environment variables for ShotGrid connection"
-        )
+        mock_create_server.side_effect = ValueError("Missing required environment variables for ShotGrid connection")
         result = runner.invoke(cli, ["stdio"])
         assert result.exit_code == 1
         assert "ERROR: ShotGrid MCP Server Configuration Issue" in result.output
@@ -104,9 +101,7 @@ class TestHttpCommand:
     def test_http_command_custom_options(self, runner, mock_create_server):
         """Test http command with custom options."""
         with patch.object(sys, "exit"):
-            result = runner.invoke(
-                cli, ["http", "--host", "0.0.0.0", "--port", "8080", "--path", "/api/mcp"]
-            )
+            result = runner.invoke(cli, ["http", "--host", "0.0.0.0", "--port", "8080", "--path", "/api/mcp"])
             mock_create_server.return_value.run.assert_called_once_with(
                 transport="http", host="0.0.0.0", port=8080, path="/api/mcp"
             )
@@ -146,4 +141,3 @@ class TestDefaultCommand:
             mock_create_server.assert_called_once_with(lazy_connection=False)
             # Should run with stdio transport
             mock_create_server.return_value.run.assert_called_once_with(transport="stdio")
-

@@ -99,7 +99,7 @@ def test_advanced_search_filters_missing_required_keys_raises():
     # Missing both internal and REST-style key sets
     filters = [{"field": "code"}]
 
-    with pytest.raises(ValueError, match="must have either \('field', 'operator', 'value'\)"):
+    with pytest.raises(ValueError, match=r"must have either \('field', 'operator', 'value'\)"):
         AdvancedSearchRequest(**_make_base_advanced_search_kwargs(filters=filters))
 
 
@@ -120,10 +120,7 @@ def test_search_entities_list_format_filters():
     from shotgrid_mcp_server.api_models import SearchEntitiesRequest
 
     # Single filter in list format
-    request = SearchEntitiesRequest(
-        entity_type="Shot",
-        filters=[["sg_status_list", "is", "ip"]]
-    )
+    request = SearchEntitiesRequest(entity_type="Shot", filters=[["sg_status_list", "is", "ip"]])
     assert len(request.filters) == 1
     # Filters are now kept as-is (list format)
     assert request.filters[0][0] == "sg_status_list"
@@ -132,11 +129,7 @@ def test_search_entities_list_format_filters():
 
     # Multiple filters in list format
     request = SearchEntitiesRequest(
-        entity_type="Shot",
-        filters=[
-            ["sg_status_list", "is", "ip"],
-            ["project", "is", {"type": "Project", "id": 123}]
-        ]
+        entity_type="Shot", filters=[["sg_status_list", "is", "ip"], ["project", "is", {"type": "Project", "id": 123}]]
     )
     assert len(request.filters) == 2
     # Filters are kept as-is (list format)
@@ -148,10 +141,7 @@ def test_find_one_entity_list_format_filters():
     """FindOneEntityRequest accepts list format filters and converts to dict."""
     from shotgrid_mcp_server.api_models import FindOneEntityRequest
 
-    request = FindOneEntityRequest(
-        entity_type="Shot",
-        filters=[["code", "is", "SH001"]]
-    )
+    request = FindOneEntityRequest(entity_type="Shot", filters=[["code", "is", "SH001"]])
     assert len(request.filters) == 1
     # FindOneEntityRequest converts list format to dict format
     assert request.filters[0]["field"] == "code"
@@ -162,10 +152,7 @@ def test_find_one_entity_list_format_filters():
 def test_advanced_search_list_format_filters():
     """AdvancedSearchRequest accepts list format filters."""
 
-    request = AdvancedSearchRequest(
-        entity_type="Shot",
-        filters=[["sg_status_list", "is", "ip"]]
-    )
+    request = AdvancedSearchRequest(entity_type="Shot", filters=[["sg_status_list", "is", "ip"]])
     assert len(request.filters) == 1
     # Advanced search filters are kept in dict format (different validator)
     assert request.filters[0]["field"] == "sg_status_list"
@@ -181,9 +168,7 @@ def test_advanced_search_related_fields_valid():
         "created_by": ["name", "email"],
     }
 
-    request = AdvancedSearchRequest(
-        **_make_base_advanced_search_kwargs(filters=[], related_fields=related_fields)
-    )
+    request = AdvancedSearchRequest(**_make_base_advanced_search_kwargs(filters=[], related_fields=related_fields))
 
     assert request.related_fields == related_fields
 
@@ -196,7 +181,6 @@ def test_advanced_search_related_fields_valid():
         {"project": [123]},
     ],
 )
-
 def test_advanced_search_related_fields_invalid_type_errors(related_fields):
     """Invalid related_fields types should raise Pydantic validation errors.
 
@@ -206,9 +190,7 @@ def test_advanced_search_related_fields_invalid_type_errors(related_fields):
     """
 
     with pytest.raises(ValidationError):
-        AdvancedSearchRequest(
-            **_make_base_advanced_search_kwargs(filters=[], related_fields=related_fields)
-        )
+        AdvancedSearchRequest(**_make_base_advanced_search_kwargs(filters=[], related_fields=related_fields))
 
 
 # Tests for field_name auto-correction
@@ -281,4 +263,3 @@ def test_advanced_search_missing_field_helpful_error():
 
     with pytest.raises(ValueError, match="must have either"):
         AdvancedSearchRequest(entity_type="Shot", filters=filters)
-

@@ -46,42 +46,26 @@ class FindRequest(BaseAPIRequest):
     """
 
     entity_type: EntityType = Field(..., description="ShotGrid entity type to find")
-    filters: List[Any] = Field(
-        ...,
-        description="List of filter conditions. Each filter is [field, operator, value]"
-    )
+    filters: List[Any] = Field(..., description="List of filter conditions. Each filter is [field, operator, value]")
     fields: Optional[List[str]] = Field(
-        None,
-        description="List of field names to return. Defaults to ['id'] if not specified"
+        None, description="List of field names to return. Defaults to ['id'] if not specified"
     )
     order: Optional[List[Dict[str, str]]] = Field(
-        None,
-        description="List of dicts with 'field_name' and 'direction' keys for sorting results"
+        None, description="List of dicts with 'field_name' and 'direction' keys for sorting results"
     )
     filter_operator: Optional[Literal["all", "any"]] = Field(
-        None,
-        description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
+        None, description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
     )
     limit: Optional[int] = Field(
-        None,
-        description="Maximum number of entities to return. 0 or None returns all matches"
+        None, description="Maximum number of entities to return. 0 or None returns all matches"
     )
-    retired_only: bool = Field(
-        False,
-        description="If True, return only retired (deleted) entities"
-    )
+    retired_only: bool = Field(False, description="If True, return only retired (deleted) entities")
     page: Optional[int] = Field(
-        None,
-        gt=0,
-        description="Page number for pagination (1-based). Use with limit parameter"
+        None, gt=0, description="Page number for pagination (1-based). Use with limit parameter"
     )
-    include_archived_projects: bool = Field(
-        True,
-        description="If True, include entities from archived projects"
-    )
+    include_archived_projects: bool = Field(True, description="If True, include entities from archived projects")
     additional_filter_presets: Optional[List[Dict[str, Any]]] = Field(
-        None,
-        description="Additional filter presets to apply (e.g., LATEST, CUT_SHOT_VERSIONS)"
+        None, description="Additional filter presets to apply (e.g., LATEST, CUT_SHOT_VERSIONS)"
     )
 
     @field_validator("limit")
@@ -108,21 +92,17 @@ class FindRequest(BaseAPIRequest):
 
             if "field_name" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'field_name' key. "
-                    f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'field_name' key. " f"Available keys: {list(order_dict.keys())}"
                 )
 
             if "direction" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'direction' key. "
-                    f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'direction' key. " f"Available keys: {list(order_dict.keys())}"
                 )
 
             direction = order_dict["direction"]
             if direction not in ["asc", "desc"]:
-                raise ValueError(
-                    f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'"
-                )
+                raise ValueError(f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'")
 
         return v
 
@@ -144,30 +124,18 @@ class FindOneRequest(BaseAPIRequest):
     """
 
     entity_type: EntityType = Field(..., description="ShotGrid entity type to find")
-    filters: List[Any] = Field(
-        ...,
-        description="List of filter conditions. Each filter is [field, operator, value]"
-    )
+    filters: List[Any] = Field(..., description="List of filter conditions. Each filter is [field, operator, value]")
     fields: Optional[List[str]] = Field(
-        None,
-        description="List of field names to return. Defaults to ['id'] if not specified"
+        None, description="List of field names to return. Defaults to ['id'] if not specified"
     )
     order: Optional[List[Dict[str, str]]] = Field(
-        None,
-        description="List of dicts with 'field_name' and 'direction' keys for sorting results"
+        None, description="List of dicts with 'field_name' and 'direction' keys for sorting results"
     )
     filter_operator: Optional[Literal["all", "any"]] = Field(
-        None,
-        description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
+        None, description="Operator to combine filters. 'all' = AND, 'any' = OR. Defaults to 'all'"
     )
-    retired_only: bool = Field(
-        False,
-        description="If True, return only retired (deleted) entities"
-    )
-    include_archived_projects: bool = Field(
-        True,
-        description="If True, include entities from archived projects"
-    )
+    retired_only: bool = Field(False, description="If True, return only retired (deleted) entities")
+    include_archived_projects: bool = Field(True, description="If True, include entities from archived projects")
 
     @field_validator("order")
     @classmethod
@@ -182,21 +150,17 @@ class FindOneRequest(BaseAPIRequest):
 
             if "field_name" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'field_name' key. "
-                    f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'field_name' key. " f"Available keys: {list(order_dict.keys())}"
                 )
 
             if "direction" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'direction' key. "
-                    f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'direction' key. " f"Available keys: {list(order_dict.keys())}"
                 )
 
             direction = order_dict["direction"]
             if direction not in ["asc", "desc"]:
-                raise ValueError(
-                    f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'"
-                )
+                raise ValueError(f"Order item {i} direction must be 'asc' or 'desc', got '{direction}'")
 
         return v
 
@@ -222,13 +186,9 @@ class CreateRequest(BaseAPIRequest):
     """
 
     entity_type: EntityType = Field(..., description="ShotGrid entity type to create")
-    data: Dict[str, Any] = Field(
-        ...,
-        description="Dictionary of field names and values to set on the new entity"
-    )
+    data: Dict[str, Any] = Field(..., description="Dictionary of field names and values to set on the new entity")
     return_fields: Optional[List[str]] = Field(
-        None,
-        description="Additional fields to return. Always includes 'type', 'id', and fields from 'data'"
+        None, description="Additional fields to return. Always includes 'type', 'id', and fields from 'data'"
     )
 
 
@@ -251,13 +211,9 @@ class UpdateRequest(BaseAPIRequest):
 
     entity_type: EntityType = Field(..., description="ShotGrid entity type to update")
     entity_id: int = Field(..., gt=0, description="ID of the entity to update")
-    data: Dict[str, Any] = Field(
-        ...,
-        description="Dictionary of field names and values to update"
-    )
+    data: Dict[str, Any] = Field(..., description="Dictionary of field names and values to update")
     multi_entity_update_modes: Optional[Dict[str, Literal["set", "add", "remove"]]] = Field(
-        None,
-        description="Update mode for multi-entity fields: 'set' (replace), 'add', or 'remove'"
+        None, description="Update mode for multi-entity fields: 'set' (replace), 'add', or 'remove'"
     )
 
 
@@ -330,8 +286,7 @@ class BatchRequest(BaseAPIRequest):
     """
 
     requests: List[Dict[str, Any]] = Field(
-        ...,
-        description="List of create/update/delete operations to perform atomically"
+        ..., description="List of create/update/delete operations to perform atomically"
     )
 
     @model_validator(mode="after")
@@ -352,14 +307,10 @@ class BatchRequest(BaseAPIRequest):
                 raise ValueError(f"Batch request {i} must have an 'entity_type'")
 
             if request_type in ["update", "delete"] and "entity_id" not in request:
-                raise ValueError(
-                    f"Batch request {i} of type '{request_type}' must have an 'entity_id'"
-                )
+                raise ValueError(f"Batch request {i} of type '{request_type}' must have an 'entity_id'")
 
             if request_type in ["create", "update"] and "data" not in request:
-                raise ValueError(
-                    f"Batch request {i} of type '{request_type}' must have 'data'"
-                )
+                raise ValueError(f"Batch request {i} of type '{request_type}' must have 'data'")
 
         return self
 
@@ -371,7 +322,8 @@ class SummarizeRequest(BaseAPIRequest):
     filters: List[Any]
     summary_fields: List[Dict[str, Any]]
     filter_operator: Optional[str] = Field(
-        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
+        None,
+        description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key.",
     )
     grouping: Optional[List[Dict[str, Any]]] = None
     include_archived_projects: bool = True
@@ -465,7 +417,8 @@ class SearchEntitiesRequest(BaseAPIRequest):
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
+        None,
+        description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key.",
     )
     limit: Optional[int] = Field(None, gt=0)
 
@@ -542,7 +495,8 @@ class FindOneEntityRequest(BaseAPIRequest):
     fields: Optional[List[str]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
+        None,
+        description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key.",
     )
 
     @field_validator("filter_operator")
@@ -575,11 +529,13 @@ class FindOneEntityRequest(BaseAPIRequest):
                     raise ValueError(
                         f"Filter {i} in list format must have at least 3 elements [field, operator, value], got {len(filter_item)}"
                     )
-                normalized_filters.append({
-                    "field": filter_item[0],
-                    "operator": filter_item[1],
-                    "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:]
-                })
+                normalized_filters.append(
+                    {
+                        "field": filter_item[0],
+                        "operator": filter_item[1],
+                        "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:],
+                    }
+                )
                 continue
 
             # Handle dict format
@@ -606,15 +562,11 @@ class FindOneEntityRequest(BaseAPIRequest):
 
             if "operator" not in normalized_filter:
                 available_keys = list(filter_item.keys())
-                raise ValueError(
-                    f"Filter {i} must have an 'operator' key. Available keys: {available_keys}"
-                )
+                raise ValueError(f"Filter {i} must have an 'operator' key. Available keys: {available_keys}")
 
             if "value" not in normalized_filter:
                 available_keys = list(filter_item.keys())
-                raise ValueError(
-                    f"Filter {i} must have a 'value' key. Available keys: {available_keys}"
-                )
+                raise ValueError(f"Filter {i} must have a 'value' key. Available keys: {available_keys}")
 
             normalized_filters.append(normalized_filter)
 
@@ -639,7 +591,8 @@ class AdvancedSearchRequest(BaseAPIRequest):
     related_fields: Optional[Dict[str, List[str]]] = None
     order: Optional[List[Dict[str, str]]] = None
     filter_operator: Optional[str] = Field(
-        None, description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key."
+        None,
+        description="Logical operator for combining filters. Must be 'all' (AND logic) or 'any' (OR logic). Only used when filters is a complex filter dict with 'filters' key.",
     )
     limit: Optional[int] = Field(None, gt=0)
 
@@ -675,11 +628,13 @@ class AdvancedSearchRequest(BaseAPIRequest):
                     raise ValueError(
                         f"Filter {i} in list format must have at least 3 elements [field, operator, value], got {len(filter_item)}"
                     )
-                normalized_filters.append({
-                    "field": filter_item[0],
-                    "operator": filter_item[1],
-                    "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:]
-                })
+                normalized_filters.append(
+                    {
+                        "field": filter_item[0],
+                        "operator": filter_item[1],
+                        "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:],
+                    }
+                )
                 continue
 
             # Handle dict format

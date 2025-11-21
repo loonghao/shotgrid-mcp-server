@@ -32,10 +32,10 @@ DEFAULT_SCHEMA_TTL = 86400
 
 class SchemaCache:
     """Cache for ShotGrid schema data.
-    
+
     This class provides a simple interface for caching and retrieving
     ShotGrid schema information using diskcache.
-    
+
     Example:
         >>> cache = SchemaCache()
         >>> cache.set_entity_schema("Shot", schema_data)
@@ -44,7 +44,7 @@ class SchemaCache:
 
     def __init__(self, cache_dir: str = DEFAULT_CACHE_DIR, ttl: int = DEFAULT_SCHEMA_TTL):
         """Initialize the schema cache.
-        
+
         Args:
             cache_dir: Directory to store cache files
             ttl: Time to live for cached items in seconds
@@ -55,10 +55,10 @@ class SchemaCache:
 
     def get_entity_schema(self, entity_type: str) -> Optional[Dict[str, Any]]:
         """Get cached schema for an entity type.
-        
+
         Args:
             entity_type: ShotGrid entity type (e.g., "Shot", "Asset")
-            
+
         Returns:
             Schema dictionary if cached, None otherwise
         """
@@ -72,7 +72,7 @@ class SchemaCache:
 
     def set_entity_schema(self, entity_type: str, schema: Dict[str, Any]) -> None:
         """Cache schema for an entity type.
-        
+
         Args:
             entity_type: ShotGrid entity type (e.g., "Shot", "Asset")
             schema: Schema dictionary from ShotGrid API
@@ -83,11 +83,11 @@ class SchemaCache:
 
     def get_field_schema(self, entity_type: str, field_name: str) -> Optional[Dict[str, Any]]:
         """Get cached schema for a specific field.
-        
+
         Args:
             entity_type: ShotGrid entity type (e.g., "Shot", "Asset")
             field_name: Field name (e.g., "code", "sg_status_list")
-            
+
         Returns:
             Field schema dictionary if cached, None otherwise
         """
@@ -101,7 +101,7 @@ class SchemaCache:
 
     def set_field_schema(self, entity_type: str, field_name: str, schema: Dict[str, Any]) -> None:
         """Cache schema for a specific field.
-        
+
         Args:
             entity_type: ShotGrid entity type (e.g., "Shot", "Asset")
             field_name: Field name (e.g., "code", "sg_status_list")
@@ -113,7 +113,7 @@ class SchemaCache:
 
     def get_entity_types(self) -> Optional[Dict[str, Any]]:
         """Get cached list of entity types.
-        
+
         Returns:
             Dictionary of entity types if cached, None otherwise
         """
@@ -127,7 +127,7 @@ class SchemaCache:
 
     def set_entity_types(self, entity_types: Dict[str, Any]) -> None:
         """Cache list of entity types.
-        
+
         Args:
             entity_types: Dictionary of entity types from ShotGrid API
         """
@@ -204,4 +204,3 @@ async def preload_schemas(sg_connection: Any, entity_types: Optional[List[str]] 
             logger.warning(f"Failed to preload schema for {entity_type}: {e}")
 
     logger.info(f"Schema preloading completed for {len(entity_types)} entity types")
-

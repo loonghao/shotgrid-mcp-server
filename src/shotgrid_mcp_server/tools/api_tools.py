@@ -195,11 +195,15 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
         try:
             # Validate limit parameter
             if limit is not None and limit <= 0:
-                raise ValueError("limit parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values.")
+                raise ValueError(
+                    "limit parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values."
+                )
 
             # Validate page parameter
             if page is not None and page <= 0:
-                raise ValueError("page parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values.")
+                raise ValueError(
+                    "page parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values."
+                )
 
             result = _get_sg(sg).find(
                 entity_type,

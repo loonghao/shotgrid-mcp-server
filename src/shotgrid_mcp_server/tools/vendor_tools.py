@@ -14,9 +14,9 @@ from shotgrid_mcp_server.models import (
     create_in_last_filter,
 )
 from shotgrid_mcp_server.response_models import (
+    PlaylistsResult,
     VendorUsersResult,
     VendorVersionsResult,
-    PlaylistsResult,
     generate_playlist_url,
 )
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity

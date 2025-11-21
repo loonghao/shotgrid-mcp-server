@@ -153,9 +153,7 @@ def register_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             # Raise error if there are invalid fields
             if validation_result["invalid"]:
-                raise ToolError(
-                    f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}"
-                )
+                raise ToolError(f"Invalid fields for {entity_type}: {', '.join(validation_result['invalid'])}")
 
             result = sg.update(entity_type, entity_id, data)
             if result is None:

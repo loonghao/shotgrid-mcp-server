@@ -3,15 +3,13 @@
 import os
 import ssl
 import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
-from shotgun_api3.shotgun import Shotgun, ShotgunError
+from shotgun_api3.shotgun import Shotgun
 
-from shotgrid_mcp_server.utils import create_ssl_context, download_file
 from shotgrid_mcp_server.tools.thumbnail_tools import download_thumbnail
+from shotgrid_mcp_server.utils import create_ssl_context, download_file
 
 
 def test_create_ssl_context():
@@ -25,7 +23,7 @@ def test_create_ssl_context():
     assert context.minimum_version == ssl.TLSVersion.TLSv1_1
 
 
-@patch('requests.Session')
+@patch("requests.Session")
 def test_download_file_with_ssl_error(mock_session_class):
     """Test download_file with SSL error fallback."""
     # Setup mock session and responses
@@ -60,7 +58,7 @@ def test_download_file_with_ssl_error(mock_session_class):
         assert mock_session.get.call_count >= 1
 
         # Verify file was created (mock doesn't actually create it, so we'll create it)
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(b"test data")
         assert os.path.exists(file_path)
 
@@ -75,10 +73,7 @@ def test_download_thumbnail_with_ssl_error():
     mock_sg = MagicMock(spec=Shotgun)
 
     # Setup find_one to return an entity with attachment
-    mock_entity = {
-        "id": 123,
-        "image": {"id": 456, "type": "Attachment"}
-    }
+    mock_entity = {"id": 123, "image": {"id": 456, "type": "Attachment"}}
     mock_sg.find_one.return_value = mock_entity
 
     # Setup download_attachment to succeed
@@ -89,12 +84,7 @@ def test_download_thumbnail_with_ssl_error():
         file_path = os.path.join(temp_dir, "thumbnail.jpg")
 
         # Call the function
-        result = download_thumbnail(
-            sg=mock_sg,
-            entity_type="Shot",
-            entity_id=123,
-            file_path=file_path
-        )
+        result = download_thumbnail(sg=mock_sg, entity_type="Shot", entity_id=123, file_path=file_path)
 
         # Verify the result
         assert result is not None
