@@ -3,6 +3,9 @@
 # Import third-party modules
 import nox
 
+# Ruff version should match .pre-commit-config.yaml
+RUFF_VERSION = "0.8.6"
+
 
 def get_default_commands() -> list[str]:
     """Get default linting commands."""
@@ -12,7 +15,7 @@ def get_default_commands() -> list[str]:
 def lint(session: nox.Session, commands: list[str] | None = None) -> None:
     """Run linters."""
     # Install linting tools into the nox virtualenv using pip
-    session.install("ruff", "black", "mypy")
+    session.install(f"ruff=={RUFF_VERSION}", "black", "mypy")
 
     if commands is None:
         # Run default linting commands
@@ -27,7 +30,7 @@ def lint(session: nox.Session, commands: list[str] | None = None) -> None:
 def lint_fix(session: nox.Session) -> None:
     """Run linters and fix issues."""
     # Install linting tools into the nox virtualenv using pip
-    session.install("ruff", "black", "mypy")
+    session.install(f"ruff=={RUFF_VERSION}", "black", "mypy")
 
     # Run ruff format
     session.run("ruff", "format", "src")

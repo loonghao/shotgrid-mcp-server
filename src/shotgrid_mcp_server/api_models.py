@@ -9,7 +9,6 @@ https://developers.shotgridsoftware.com/python-api/reference.html
 
 from typing import Any, Dict, List, Literal, Optional
 
-
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from shotgrid_mcp_server.custom_types import EntityType

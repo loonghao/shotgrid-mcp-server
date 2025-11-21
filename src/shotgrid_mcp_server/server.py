@@ -6,7 +6,6 @@ import logging
 # Import third-party modules
 from fastmcp import FastMCP
 
-
 # Import local modules
 from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
 from shotgrid_mcp_server.http_context import get_shotgrid_credentials_from_headers
