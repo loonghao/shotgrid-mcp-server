@@ -1352,11 +1352,12 @@ wheels = [
 
 [[package]]
 name = "shotgrid-mcp-server"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "click" },
+    { name = "diskcache" },
     { name = "fastmcp" },
     { name = "mcp" },
     { name = "pendulum" },
@@ -1365,6 +1366,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-slugify" },
     { name = "requests" },
+    { name = "shotgrid-query" },
     { name = "shotgun-api3" },
     { name = "tenacity" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1405,6 +1407,7 @@ requires-dist = [
     { name = "black", marker = "extra == 'lint'" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.4.0" },
+    { name = "diskcache", specifier = ">=5.6.0" },
     { name = "fastmcp", specifier = ">=2.13.0" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13.2" },
@@ -1427,6 +1430,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.11" },
     { name = "ruff", marker = "extra == 'lint'" },
+    { name = "shotgrid-query", specifier = ">=0.1.0" },
     { name = "shotgun-api3", specifier = ">=3.8.2" },
     { name = "tenacity", specifier = ">=9.1.2,<10.0.0" },
     { name = "types-requests", marker = "extra == 'lint'" },
@@ -1435,6 +1439,18 @@ requires-dist = [
     { name = "websockets", specifier = ">=15.0.1" },
 ]
 provides-extras = ["test", "lint", "dev"]
+
+[[package]]
+name = "shotgrid-query"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/56/c2/d754207a8e015c747280c156ae91c33c42560da93f30009d5a25614759ba/shotgrid_query-0.3.0.tar.gz", hash = "sha256:b4a5e48700ee66e5c3df53879b30e115015b239c217b055456b70bec8aca980d", size = 81723, upload-time = "2025-11-21T12:18:40.923Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/13/44bbd57f5e5ad2089fa5d850643f1c2e050fca9ef01722d44eb1233aff9d/shotgrid_query-0.3.0-py3-none-any.whl", hash = "sha256:a95386509d2a86cc54e0367c0ddd5f7a30ceb6c8ccd24d3caf32d42e713739ca", size = 31886, upload-time = "2025-11-21T12:18:39.519Z" },
+]
 
 [[package]]
 name = "shotgun-api3"

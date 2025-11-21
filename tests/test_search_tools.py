@@ -545,8 +545,12 @@ class TestSearchTools:
     @pytest.mark.asyncio
     @pytest.mark.skip(reason="MockgunExt has issues with order parameter as dict")
     async def test_find_active_users(self, search_server: FastMCP, mock_sg: Shotgun):
-        """Test find_active_users tool."""
-        # Create test users with different login dates
+        """Test find_active_users tool.
+
+        Note: This test uses 'updated_at' instead of 'last_login' because
+        HumanUser entities don't have a 'last_login' field in ShotGrid.
+        """
+        # Create test users with different update dates
         recent_user = mock_sg.create(
             "HumanUser",
             {
@@ -554,7 +558,7 @@ class TestSearchTools:
                 "login": "recent_user",
                 "email": "recent@example.com",
                 "sg_status_list": "act",
-                "last_login": datetime.datetime.now(),
+                "updated_at": datetime.datetime.now(),
             },
         )
 
@@ -565,7 +569,7 @@ class TestSearchTools:
                 "login": "old_user",
                 "email": "old@example.com",
                 "sg_status_list": "act",
-                "last_login": datetime.datetime(2020, 1, 1),  # Old date
+                "updated_at": datetime.datetime(2020, 1, 1),  # Old date
             },
         )
 
@@ -576,7 +580,7 @@ class TestSearchTools:
                 "login": "inactive_user",
                 "email": "inactive@example.com",
                 "sg_status_list": "dis",  # Disabled
-                "last_login": datetime.datetime.now(),
+                "updated_at": datetime.datetime.now(),
             },
         )
 

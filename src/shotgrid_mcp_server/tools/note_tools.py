@@ -27,39 +27,338 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
     # Register note tools
     @server.tool("shotgrid_note_create")
     async def create_note_tool(request: NoteCreateRequest) -> NoteCreateResponse:
-        """Create a new note in ShotGrid.
+        """Create a new note in ShotGrid for feedback, comments, and communication.
+
+        Use this tool to create notes for providing feedback, tracking issues, or
+        communicating about entities (shots, assets, versions, tasks, etc.).
+
+        Common use cases:
+        - Add feedback on a version during review
+        - Create task notes for artists
+        - Document issues or bugs on shots/assets
+        - Add client feedback to versions
+        - Create general project notes
+        - Link notes to multiple entities
+
+        For reading existing notes, use `shotgrid_note_read`.
+        For updating notes, use `shotgrid_note_update`.
+        For searching notes, use `search_entities` with entity_type="Note".
 
         Args:
-            request: Note creation request.
+            request: NoteCreateRequest containing:
+
+                project_id: ID of the project for this note.
+                           All notes must belong to a project.
+
+                           Example: 123
+
+                subject: Subject/title of the note.
+                        Brief summary of the note's content.
+
+                        Examples:
+                        - "Animation timing needs adjustment"
+                        - "Client feedback on lighting"
+                        - "Bug: Missing texture on character"
+
+                content: Full content/body of the note.
+                        Detailed feedback or comments.
+                        Supports plain text and basic formatting.
+
+                        Example:
+                        "The character's walk cycle feels too slow. Please speed it up by 20% and add more bounce to the step."
+
+                link_entity_type: Optional entity type to link the note to.
+                                 Common types: "Version", "Shot", "Asset", "Task"
+                                 Must be provided with link_entity_id.
+
+                                 Example: "Version"
+
+                link_entity_id: Optional entity ID to link the note to.
+                               Must be provided with link_entity_type.
+
+                               Example: 1234
+
+                user_id: Optional ID of the user creating the note.
+                        If not provided, uses the API user.
+
+                        Example: 42
+
+                addressings_to: Optional list of user IDs to address the note to (recipients).
+                               These users will be notified about the note.
+
+                               Example: [42, 43, 44]
+
+                addressings_cc: Optional list of user IDs to CC on the note.
+                               These users will receive a copy of the notification.
+
+                               Example: [45, 46]
 
         Returns:
-            Note creation response.
+            NoteCreateResponse containing:
+            - id: ID of the created note
+            - type: "Note"
+            - subject: Note subject
+            - content: Note content
+            - created_at: Creation timestamp
+            - user_id: Creator user ID
+            - user_name: Creator user name
+            - link_entity_type: Linked entity type (if any)
+            - link_entity_id: Linked entity ID (if any)
+
+            Example:
+            {
+                "id": 5678,
+                "type": "Note",
+                "subject": "Animation timing needs adjustment",
+                "content": "The character's walk cycle feels too slow...",
+                "created_at": "2025-01-15T10:30:00Z",
+                "user_id": 42,
+                "user_name": "John Doe",
+                "link_entity_type": "Version",
+                "link_entity_id": 1234
+            }
+
+        Raises:
+            ValueError: If project_id is invalid or required fields are missing.
+
+        Examples:
+            Create note on a version:
+            {
+                "project_id": 123,
+                "subject": "Great work on the animation!",
+                "content": "The timing and spacing look perfect. Approved for final.",
+                "link_entity_type": "Version",
+                "link_entity_id": 1234,
+                "addressings_to": [42]
+            }
+
+            Create task note:
+            {
+                "project_id": 123,
+                "subject": "Task instructions",
+                "content": "Please focus on the facial expressions in this shot. Reference the animatic for timing.",
+                "link_entity_type": "Task",
+                "link_entity_id": 5678,
+                "user_id": 10,
+                "addressings_to": [42, 43]
+            }
+
+            Create general project note:
+            {
+                "project_id": 123,
+                "subject": "Project update",
+                "content": "All shots in sequence 010 are now ready for review.",
+                "addressings_to": [42, 43, 44],
+                "addressings_cc": [45]
+            }
+
+            Create client feedback note:
+            {
+                "project_id": 123,
+                "subject": "Client feedback - Episode 1",
+                "content": "Client loves the overall look but wants the lighting warmer in shots 010-020.",
+                "link_entity_type": "Shot",
+                "link_entity_id": 1001,
+                "addressings_to": [42]
+            }
+
+        Note Linking:
+            - Notes can be linked to any entity type (Shot, Asset, Version, Task, etc.)
+            - One note can be linked to multiple entities via note_links field
+            - Linked notes appear in the entity's Notes tab in ShotGrid
+            - Use link_entity_type and link_entity_id for single entity linking
+
+        Notifications:
+            - Users in addressings_to receive direct notifications
+            - Users in addressings_cc receive CC notifications
+            - Notifications are sent via email and ShotGrid inbox
+
+        Note:
+            - All notes must belong to a project
+            - Subject and content are required
+            - Notes support @mentions in content (use @username)
+            - Created notes are immediately visible in ShotGrid
+            - Use shotgrid_note_update to modify notes after creation
         """
         context = ShotGridConnectionContext(sg)
         return create_note(request, context)
 
     @server.tool("shotgrid_note_read")
     async def read_note_tool(note_id: int) -> NoteReadResponse:
-        """Read a note from ShotGrid.
+        """Read a note from ShotGrid to view its content and metadata.
+
+        Use this tool to retrieve the full details of a specific note by its ID.
+
+        Common use cases:
+        - View note content and feedback
+        - Check who created the note and when
+        - See which entities the note is linked to
+        - View note recipients (addressings_to, addressings_cc)
+        - Retrieve note details for display or processing
+
+        For creating new notes, use `shotgrid_note_create`.
+        For updating notes, use `shotgrid_note_update`.
+        For searching multiple notes, use `search_entities` with entity_type="Note".
 
         Args:
-            note_id: Note ID.
+            note_id: ID of the note to read.
+                    Must be a valid note ID in ShotGrid.
+
+                    Example: 5678
 
         Returns:
-            Note read response.
+            NoteReadResponse containing:
+            - id: Note ID
+            - type: "Note"
+            - subject: Note subject/title
+            - content: Full note content
+            - created_at: Creation timestamp
+            - updated_at: Last update timestamp
+            - user_id: Creator user ID
+            - user_name: Creator user name
+            - link_entities: List of linked entities
+            - addressings_to: List of recipient users
+            - addressings_cc: List of CC'd users
+
+            Example:
+            {
+                "id": 5678,
+                "type": "Note",
+                "subject": "Animation timing needs adjustment",
+                "content": "The character's walk cycle feels too slow...",
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T11:00:00Z",
+                "user_id": 42,
+                "user_name": "John Doe",
+                "link_entities": [
+                    {"type": "Version", "id": 1234, "name": "shot_010_anim_v003"}
+                ],
+                "addressings_to": [
+                    {"type": "HumanUser", "id": 43, "name": "Jane Smith"}
+                ],
+                "addressings_cc": []
+            }
+
+        Raises:
+            ValueError: If note with the given ID is not found.
+
+        Examples:
+            Read a note:
+            {
+                "note_id": 5678
+            }
+
+        Note:
+            - Returns all note fields including content, metadata, and links
+            - Linked entities include type, id, and name
+            - User information includes id and name
+            - Timestamps are in ISO 8601 format
         """
         context = ShotGridConnectionContext(sg)
         return read_note(note_id, context)
 
     @server.tool("shotgrid_note_update")
     async def update_note_tool(request: NoteUpdateRequest) -> NoteUpdateResponse:
-        """Update a note in ShotGrid.
+        """Update an existing note in ShotGrid to modify its content or recipients.
+
+        Use this tool to update note content, subject, or change who the note is addressed to.
+
+        Common use cases:
+        - Correct typos or errors in note content
+        - Update note subject
+        - Add or remove note recipients
+        - Add or remove CC recipients
+        - Modify feedback based on new information
+
+        For creating new notes, use `shotgrid_note_create`.
+        For reading notes, use `shotgrid_note_read`.
 
         Args:
-            request: Note update request.
+            request: NoteUpdateRequest containing:
+
+                id: ID of the note to update.
+                   Must be a valid note ID in ShotGrid.
+
+                   Example: 5678
+
+                subject: Optional new subject/title for the note.
+                        If not provided, subject remains unchanged.
+
+                        Example: "Updated: Animation timing needs adjustment"
+
+                content: Optional new content/body for the note.
+                        If not provided, content remains unchanged.
+
+                        Example: "The character's walk cycle feels too slow. Please speed it up by 25% (updated from 20%)."
+
+                addressings_to: Optional new list of recipient user IDs.
+                               If provided, replaces existing recipients.
+                               If not provided, recipients remain unchanged.
+
+                               Example: [42, 43, 44]
+
+                addressings_cc: Optional new list of CC user IDs.
+                               If provided, replaces existing CC list.
+                               If not provided, CC list remains unchanged.
+
+                               Example: [45, 46]
 
         Returns:
-            Note update response.
+            NoteUpdateResponse containing:
+            - id: Note ID
+            - type: "Note"
+            - subject: Updated subject
+            - content: Updated content
+            - updated_at: Update timestamp
+
+            Example:
+            {
+                "id": 5678,
+                "type": "Note",
+                "subject": "Updated: Animation timing needs adjustment",
+                "content": "The character's walk cycle feels too slow. Please speed it up by 25%.",
+                "updated_at": "2025-01-15T12:00:00Z"
+            }
+
+        Raises:
+            ValueError: If note with the given ID is not found.
+
+        Examples:
+            Update note content:
+            {
+                "id": 5678,
+                "content": "The character's walk cycle feels too slow. Please speed it up by 25% (updated from 20%)."
+            }
+
+            Update note subject and content:
+            {
+                "id": 5678,
+                "subject": "Updated: Animation timing needs adjustment",
+                "content": "The character's walk cycle feels too slow. Please speed it up by 25% and add more weight to the landing."
+            }
+
+            Update note recipients:
+            {
+                "id": 5678,
+                "addressings_to": [42, 43, 44],
+                "addressings_cc": [45]
+            }
+
+            Update all fields:
+            {
+                "id": 5678,
+                "subject": "Final: Animation approved with minor notes",
+                "content": "Great work! Just add a bit more bounce to the step and we're good to go.",
+                "addressings_to": [42],
+                "addressings_cc": []
+            }
+
+        Note:
+            - Only provided fields are updated; others remain unchanged
+            - Updating addressings_to or addressings_cc replaces the entire list
+            - Updated notes trigger notifications to new recipients
+            - Update timestamp is automatically set
+            - Cannot change the linked entities (use note_links field via entity_update)
         """
         context = ShotGridConnectionContext(sg)
         return update_note(request, context)

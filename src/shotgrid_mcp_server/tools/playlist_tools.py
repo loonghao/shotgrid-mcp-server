@@ -8,19 +8,21 @@ from typing import Any, Dict, List, Optional
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+# Import from shotgrid-query
+from shotgrid_query import TimeUnitEnum as TimeUnit
+from shotgrid_query import process_filters
+
+# Import MCP-specific models
 from shotgrid_mcp_server.models import (
-    TimeUnit,
     create_in_last_filter,
     create_in_project_filter,
-    process_filters,
 )
 from shotgrid_mcp_server.response_models import (
-    create_playlist_response,
+    PlaylistsResult,
     generate_playlist_url_variants,
-    serialize_response,
 )
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
-from shotgrid_mcp_server.tools.types import FastMCPType
+from shotgrid_mcp_server.tools.types import EntityDict, FastMCPType
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -36,28 +38,25 @@ def _get_default_playlist_fields() -> List[str]:
 
 
 def _serialize_playlists_response(playlists: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Serialize playlists to JSON response.
+    """Serialize playlists to JSON response using Pydantic model.
 
     Args:
         playlists: List of playlists to serialize.
 
     Returns:
-        List[Dict[str, str]]: Serialized playlists response.
+        Dict[str, Any]: Serialized playlists response with schema resources.
     """
-    from shotgrid_mcp_server.response_models import create_success_response
+    from typing import cast
 
     # Serialize each playlist
-    serialized_playlists = [serialize_entity(playlist) for playlist in playlists]
+    serialized_playlists = [cast(EntityDict, serialize_entity(playlist)) for playlist in playlists]
 
-    # Create standardized response
-    response = create_success_response(
-        data=serialized_playlists,
-        message=f"Found {len(serialized_playlists)} playlists",
+    # Return structured result
+    return PlaylistsResult(
+        playlists=serialized_playlists,
         total_count=len(serialized_playlists),
-    )
-
-    # Return serialized response for FastMCP
-    return serialize_response(response)
+        message=f"Found {len(serialized_playlists)} playlists",
+    ).model_dump()
 
 
 def _find_playlists_impl(
@@ -157,23 +156,183 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         page: Optional[int] = None,
         page_size: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Find playlists in ShotGrid.
+        """Find playlists in ShotGrid using filters and field selection.
+
+        Use this tool to search for playlists across projects or with specific criteria.
+        Playlists are used for organizing versions for review, dailies, and approvals.
+
+        Common use cases:
+        - Find playlists in a specific project
+        - Find playlists created by a specific user
+        - Find playlists created within a date range
+        - Find playlists containing specific versions
+        - Search for playlists by name pattern
+
+        For finding recent playlists, use `find_recent_playlists` instead (simpler).
+        For finding playlists in a specific project, use `find_project_playlists` instead.
+        For creating new playlists, use `create_playlist`.
 
         Args:
-            filters: Optional list of filters to apply. Each filter is a dictionary with field, operator, and value keys.
-                     If not provided, all playlists will be returned (subject to other filters).
+            filters: Optional list of filter conditions.
+                    If not provided, returns all playlists (subject to limit).
+
+                    Filter format (same as search_entities):
+                    [
+                        ["field_name", "operator", value],
+                        ...
+                    ]
+
+                    Common filters:
+
+                    By project:
+                    [["project", "is", {"type": "Project", "id": 123}]]
+
+                    By creator:
+                    [["created_by", "is", {"type": "HumanUser", "id": 42}]]
+
+                    By date range:
+                    [["created_at", "in_last", 7, "DAY"]]
+
+                    By name pattern:
+                    [["code", "contains", "dailies"]]
+
+                    Multiple filters (AND logic):
+                    [
+                        ["project", "is", {"type": "Project", "id": 123}],
+                        ["created_at", "in_last", 30, "DAY"]
+                    ]
+
             fields: Optional list of fields to return.
-            order: Optional list of fields to order by.
-            filter_operator: Optional filter operator.
-            limit: Optional limit on number of entities to return.
-            page: Optional page number for pagination.
-            page_size: Optional page size for pagination.
+                   If not provided, returns default fields:
+                   ["id", "code", "description", "created_at", "updated_at",
+                    "created_by", "versions", "project"]
+
+                   Additional useful fields:
+                   - "sg_status": Playlist status
+                   - "sg_date_and_time": Scheduled review date/time
+                   - "sg_client_approved": Client approval status
+
+                   Example:
+                   ["code", "description", "versions", "created_at"]
+
+            order: Optional sort order.
+                  Format: [{"field_name": "field", "direction": "asc|desc"}]
+
+                  Examples:
+
+                  Newest first:
+                  [{"field_name": "created_at", "direction": "desc"}]
+
+                  Alphabetical:
+                  [{"field_name": "code", "direction": "asc"}]
+
+                  Multiple sort fields:
+                  [
+                      {"field_name": "project", "direction": "asc"},
+                      {"field_name": "created_at", "direction": "desc"}
+                  ]
+
+            filter_operator: Logical operator for combining filters.
+                           Values: "all" (AND, default) or "any" (OR)
+
+                           Example with OR logic:
+                           filter_operator="any" combines filters with OR
+
+            limit: Maximum number of playlists to return.
+                  Useful for limiting large result sets.
+
+                  Example: 50
+
+            page: Page number for pagination (1-based).
+                 Used with page_size for paginated results.
+
+                 Example: 1 (first page)
+
+            page_size: Number of playlists per page.
+                      Used with page for pagination.
+
+                      Example: 20
 
         Returns:
-            List[Dict[str, str]]: List of playlists found.
+            Dictionary containing:
+            - playlists: List of matching playlists
+            - total_count: Number of playlists found
+            - message: Summary message
+            - schema_resources: Links to schema information
+
+            Each playlist includes:
+            - All requested fields
+            - sg_url: Primary URL (screening room)
+            - sg_urls: All URL variants
+
+            Example:
+            {
+                "playlists": [
+                    {
+                        "type": "Playlist",
+                        "id": 456,
+                        "code": "Dailies_2025-01-15",
+                        "description": "Daily review",
+                        "project": {"type": "Project", "id": 123, "name": "Demo"},
+                        "created_at": "2025-01-15T10:00:00Z",
+                        "versions": [
+                            {"type": "Version", "id": 1001},
+                            {"type": "Version", "id": 1002}
+                        ],
+                        "sg_url": "https://studio.shotgrid.autodesk.com/page/screening_room?playlist_id=456",
+                        "sg_urls": {...}
+                    },
+                    ...
+                ],
+                "total_count": 5,
+                "message": "Found 5 playlists",
+                "schema_resources": {...}
+            }
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If filters are malformed or the find operation fails.
+
+        Examples:
+            Find all playlists in a project:
+            {
+                "filters": [["project", "is", {"type": "Project", "id": 123}]],
+                "order": [{"field_name": "created_at", "direction": "desc"}],
+                "limit": 20
+            }
+
+            Find playlists created last week:
+            {
+                "filters": [["created_at", "in_last", 7, "DAY"]],
+                "fields": ["code", "description", "created_at", "versions"],
+                "order": [{"field_name": "created_at", "direction": "desc"}]
+            }
+
+            Find playlists by name pattern:
+            {
+                "filters": [["code", "contains", "client_review"]],
+                "fields": ["code", "description", "project"]
+            }
+
+            Find playlists with pagination:
+            {
+                "filters": [["project", "is", {"type": "Project", "id": 123}]],
+                "page": 1,
+                "page_size": 20,
+                "order": [{"field_name": "created_at", "direction": "desc"}]
+            }
+
+        Common Filter Operators:
+            - is, is_not: Exact match
+            - contains, not_contains: Substring match
+            - in_last, not_in_last: Time-based (e.g., last 7 days)
+            - greater_than, less_than: Date/numeric comparison
+
+        Note:
+            - All playlists include screening room URLs for easy access
+            - Default fields include versions and project information
+            - Pagination is 1-based (page 1 is the first page)
+            - Empty filters return all playlists (subject to limit)
+            - Results are automatically enriched with ShotGrid URLs
         """
         try:
             # Process filters if provided
@@ -297,19 +456,142 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         description: Optional[str] = None,
         versions: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
-        """Create a playlist in ShotGrid.
+        """Create a playlist in ShotGrid for version review and approval.
+
+        Use this tool to create a new playlist for organizing and reviewing versions.
+        Playlists are used for dailies, client reviews, and approval sessions.
+
+        Common use cases:
+        - Create dailies playlist for daily review sessions
+        - Organize versions for client review
+        - Group versions for approval workflows
+        - Create screening room sessions
+        - Collect versions for specific milestones
+
+        For finding existing playlists, use `find_playlists` or `find_recent_playlists`.
+        For adding versions to existing playlists, use `add_versions_to_playlist`.
 
         Args:
-            code: Code/name of the playlist.
+            code: Name/code of the playlist.
+                 This is the display name shown in ShotGrid.
+                 Should be descriptive and unique within the project.
+
+                 Examples:
+                 - "Dailies_2025-01-15"
+                 - "Client_Review_v1"
+                 - "Final_Approval_Shots"
+                 - "Animation_Review_Week_3"
+
             project_id: ID of the project to create the playlist in.
+                       The playlist will be associated with this project.
+
+                       Example: 123
+
             description: Optional description of the playlist.
+                        Provides context about the playlist's purpose.
+
+                        Examples:
+                        - "Daily review for animation department"
+                        - "Client review for Episode 1"
+                        - "Final approval for all hero shots"
+
             versions: Optional list of versions to add to the playlist.
+                     Each version should be a dictionary with type and id.
+                     Versions can also be added later using `add_versions_to_playlist`.
+
+                     Format:
+                     [
+                         {"type": "Version", "id": 1234},
+                         {"type": "Version", "id": 1235},
+                         ...
+                     ]
+
+                     Example:
+                     [
+                         {"type": "Version", "id": 1001},
+                         {"type": "Version", "id": 1002},
+                         {"type": "Version", "id": 1003}
+                     ]
 
         Returns:
-            Dict[str, Any]: Created playlist.
+            Dictionary containing:
+            - entity: The created playlist with all fields
+            - entity_type: "Playlist"
+            - sg_url: Primary URL to view the playlist (screening room)
+            - sg_urls: All URL variants for accessing the playlist
+            - schema_resources: Links to schema information
+
+            Example:
+            {
+                "entity": {
+                    "type": "Playlist",
+                    "id": 456,
+                    "code": "Dailies_2025-01-15",
+                    "description": "Daily review for animation",
+                    "project": {"type": "Project", "id": 123, "name": "Demo"},
+                    "versions": [
+                        {"type": "Version", "id": 1001},
+                        {"type": "Version", "id": 1002}
+                    ],
+                    "sg_url": "https://studio.shotgrid.autodesk.com/page/screening_room?playlist_id=456",
+                    "sg_urls": {
+                        "screening_room": "https://...",
+                        "detail": "https://...",
+                        "versions_tab": "https://..."
+                    }
+                },
+                "entity_type": "Playlist",
+                "schema_resources": {...}
+            }
 
         Raises:
-            ToolError: If the create operation fails.
+            ToolError: If project_id is invalid or the create operation fails.
+
+        Examples:
+            Create empty playlist:
+            {
+                "code": "Dailies_2025-01-15",
+                "project_id": 123,
+                "description": "Daily review for animation department"
+            }
+
+            Create playlist with versions:
+            {
+                "code": "Client_Review_v1",
+                "project_id": 123,
+                "description": "First client review for Episode 1",
+                "versions": [
+                    {"type": "Version", "id": 1001},
+                    {"type": "Version", "id": 1002},
+                    {"type": "Version", "id": 1003}
+                ]
+            }
+
+            Create approval playlist:
+            {
+                "code": "Final_Approval_Hero_Shots",
+                "project_id": 123,
+                "description": "Final approval for all hero character shots",
+                "versions": [
+                    {"type": "Version", "id": 2001},
+                    {"type": "Version", "id": 2002}
+                ]
+            }
+
+        Playlist URLs:
+            The created playlist includes multiple URL variants:
+            - screening_room: View in ShotGrid's screening room (recommended)
+            - detail: View playlist detail page
+            - versions_tab: View versions tab
+
+            Use the screening_room URL for review sessions.
+
+        Note:
+            - Playlists are project-specific
+            - Versions must belong to the same project as the playlist
+            - Empty playlists can be created and populated later
+            - Playlist code should be unique within the project
+            - Created playlists are immediately available in ShotGrid
         """
         try:
             # Build playlist data
@@ -343,18 +625,17 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             result["sg_url"] = playlist_url
             result["sg_urls"] = urls
 
+            from typing import cast
+
             # Serialize the entity
-            serialized_entity = serialize_entity(result)
+            serialized_entity = cast(EntityDict, serialize_entity(result))
 
-            # Create standardized response
-            response = create_playlist_response(
-                data=serialized_entity,
-                url=playlist_url,
+            # Return structured result
+            return PlaylistsResult(
+                playlists=[serialized_entity],
+                total_count=1,
                 message="Playlist created successfully",
-            )
-
-            # Return serialized response for FastMCP
-            return serialize_response(response)
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="create_playlist")
             raise  # This is needed to satisfy the type checker
@@ -365,7 +646,7 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
         code: Optional[str] = None,
         description: Optional[str] = None,
         versions: Optional[List[Dict[str, Any]]] = None,
-    ) -> None:
+    ) -> Dict[str, Any]:
         """Update a playlist in ShotGrid.
 
         Args:
@@ -374,10 +655,16 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             description: Optional new description for the playlist.
             versions: Optional new list of versions for the playlist.
 
+        Returns:
+            Dict[str, Any]: Updated playlist with schema resources.
+
         Raises:
             ToolError: If the update operation fails.
         """
         try:
+            from typing import cast
+            from shotgrid_mcp_server.response_models import EntityUpdateResult
+
             # Build update data
             data = {}
 
@@ -399,7 +686,11 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             if result is None:
                 raise ValueError(f"Failed to update playlist with ID {playlist_id}")
 
-            return None
+            # Return structured result
+            return EntityUpdateResult(
+                entity=cast(EntityDict, serialize_entity(result)),
+                entity_type="Playlist",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="update_playlist")
             raise  # This is needed to satisfy the type checker
@@ -408,17 +699,23 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
     def add_versions_to_playlist(
         playlist_id: int,
         version_ids: List[int],
-    ) -> None:
+    ) -> Dict[str, Any]:
         """Add versions to a playlist in ShotGrid.
 
         Args:
             playlist_id: ID of the playlist to update.
             version_ids: List of version IDs to add to the playlist.
 
+        Returns:
+            Dict[str, Any]: Updated playlist with schema resources.
+
         Raises:
             ToolError: If the update operation fails.
         """
         try:
+            from typing import cast
+            from shotgrid_mcp_server.response_models import EntityUpdateResult
+
             # Get current versions in playlist
             playlist = sg.find_one("Playlist", [["id", "is", playlist_id]], ["versions"])
             if playlist is None:
@@ -434,9 +731,12 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
                 if version_id not in current_version_ids:
                     version_entities.append({"type": "Version", "id": version_id})
 
-            # If no new versions to add, return
+            # If no new versions to add, return current playlist
             if not version_entities:
-                return None
+                return EntityUpdateResult(
+                    entity=cast(EntityDict, serialize_entity(playlist)),
+                    entity_type="Playlist",
+                ).model_dump()
 
             # Update playlist with new versions
             all_versions = current_versions + version_entities
@@ -444,7 +744,11 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
             if result is None:
                 raise ValueError(f"Failed to update playlist with ID {playlist_id}")
 
-            return None
+            # Return structured result
+            return EntityUpdateResult(
+                entity=cast(EntityDict, serialize_entity(result)),
+                entity_type="Playlist",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="add_versions_to_playlist")
             raise  # This is needed to satisfy the type checker

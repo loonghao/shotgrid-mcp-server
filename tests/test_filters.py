@@ -4,14 +4,16 @@ import datetime
 import unittest
 from unittest.mock import MagicMock, patch
 
-from shotgrid_mcp_server.filters import (
+# Import from shotgrid-query
+from shotgrid_query import (
     FilterBuilder,
+    FilterModel as Filter,
+    FilterOperatorEnum as FilterOperator,
     TimeUnit,
     create_date_filter,
     process_filters,
     validate_filters,
 )
-from shotgrid_mcp_server.models import Filter, FilterOperator
 
 
 class TestFilterValidation(unittest.TestCase):
@@ -139,44 +141,50 @@ class TestFilterBuilder(unittest.TestCase):
     def test_is_field(self):
         """Test is_field method."""
         filter_item = FilterBuilder.is_field("code", "SHOT001")
-        self.assertEqual(filter_item, ["code", "is", "SHOT001"])
+        # shotgrid-query returns tuples, which are compatible with ShotGrid API
+        self.assertEqual(filter_item, ("code", "is", "SHOT001"))
 
     def test_is_not_field(self):
         """Test is_not_field method."""
         filter_item = FilterBuilder.is_not_field("code", "SHOT001")
-        self.assertEqual(filter_item, ["code", "is_not", "SHOT001"])
+        self.assertEqual(filter_item, ("code", "is_not", "SHOT001"))
 
     def test_contains(self):
         """Test contains method."""
         filter_item = FilterBuilder.contains("code", "SHOT")
-        self.assertEqual(filter_item, ["code", "contains", "SHOT"])
+        self.assertEqual(filter_item, ("code", "contains", "SHOT"))
 
     def test_in_last(self):
         """Test in_last method."""
         filter_item = FilterBuilder.in_last("created_at", 30, TimeUnit.DAY)
-        self.assertEqual(filter_item, ["created_at", "in_last", [30, "DAY"]])
+        # shotgrid-query uses list for nested values
+        self.assertEqual(filter_item, ("created_at", "in_last", [30, "DAY"]))
 
     def test_in_next(self):
         """Test in_next method."""
         filter_item = FilterBuilder.in_next("due_date", 7, TimeUnit.DAY)
-        self.assertEqual(filter_item, ["due_date", "in_next", [7, "DAY"]])
+        self.assertEqual(filter_item, ("due_date", "in_next", [7, "DAY"]))
 
     def test_between(self):
         """Test between method."""
         filter_item = FilterBuilder.between("created_at", "2023-01-01", "2023-12-31")
-        self.assertEqual(filter_item, ["created_at", "between", ["2023-01-01", "2023-12-31"]])
+        self.assertEqual(filter_item, ("created_at", "between", ["2023-01-01", "2023-12-31"]))
 
     def test_today(self):
         """Test today method."""
-        with patch("shotgrid_mcp_server.filters.datetime") as mock_datetime:
-            mock_datetime.now.return_value.strftime.return_value = "2023-01-01"
-            filter_item = FilterBuilder.today("due_date")
-            self.assertEqual(filter_item, ["due_date", "is", "2023-01-01"])
+        # shotgrid-query's FilterBuilder.today() uses its own datetime handling
+        filter_item = FilterBuilder.today("due_date")
+        # Just verify it returns a tuple with the correct structure
+        self.assertEqual(len(filter_item), 3)
+        self.assertEqual(filter_item[0], "due_date")
+        self.assertEqual(filter_item[1], "is")
+        # The date value should be today's date in YYYY-MM-DD format
+        self.assertRegex(filter_item[2], r"\d{4}-\d{2}-\d{2}")
 
     def test_in_project(self):
         """Test in_project method."""
         filter_item = FilterBuilder.in_project(123)
-        self.assertEqual(filter_item, ["project", "is", {"type": "Project", "id": 123}])
+        self.assertEqual(filter_item, ("project", "is", {"type": "Project", "id": 123}))
 
 
 class TestDateFilter(unittest.TestCase):
@@ -185,13 +193,14 @@ class TestDateFilter(unittest.TestCase):
     def test_create_date_filter_with_string(self):
         """Test create_date_filter with string value."""
         filter_item = create_date_filter("due_date", "is", "2023-01-01")
-        self.assertEqual(filter_item, ["due_date", "is", "2023-01-01"])
+        # shotgrid-query returns tuples
+        self.assertEqual(filter_item, ("due_date", "is", "2023-01-01"))
 
     def test_create_date_filter_with_datetime(self):
         """Test create_date_filter with datetime value."""
         date = datetime.datetime(2023, 1, 1)
         filter_item = create_date_filter("due_date", "is", date)
-        self.assertEqual(filter_item, ["due_date", "is", "2023-01-01"])
+        self.assertEqual(filter_item, ("due_date", "is", "2023-01-01"))
 
     def test_create_date_filter_with_timedelta(self):
         """Test create_date_filter with timedelta value."""

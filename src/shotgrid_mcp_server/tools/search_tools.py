@@ -18,18 +18,30 @@ from shotgrid_mcp_server.api_models import (
     SearchEntitiesWithRelatedRequest,
 )
 from shotgrid_mcp_server.custom_types import EntityType
+
+# Import from shotgrid-query
+from shotgrid_query import FilterModel as Filter
+from shotgrid_query import TimeUnitEnum as TimeUnit
+from shotgrid_query import process_filters
+
+# Import MCP-specific models
 from shotgrid_mcp_server.models import (
     EntitiesResponse,
     EntityDict,
-    Filter,
     ProjectDict,
     ProjectsResponse,
-    TimeUnit,
     UserDict,
     UsersResponse,
     create_in_last_filter,
-    process_filters,
 )
+from shotgrid_mcp_server.response_models import (
+    BaseResponse,
+    ResponseMetadata,
+    SearchEntitiesResult,
+    SingleEntityResult,
+    serialize_response,
+)
+
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -65,29 +77,173 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     @server.tool("search_entities")
-    def search_entities(
-        entity_type: EntityType,
-        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
-        fields: Optional[List[str]] = None,
-        order: Optional[List[Dict[str, str]]] = None,
-        filter_operator: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> EntitiesResponse:
-        """Find entities in ShotGrid.
+    def search_entities(request: SearchEntitiesRequest) -> Dict[str, Any]:
+        """Search for entities in ShotGrid using filters and field selection.
+
+        Use this tool for basic entity searches when you need to:
+        - Find multiple entities matching specific criteria
+        - Filter by field values (status, dates, names, etc.)
+        - Return specific fields from matched entities
+        - Sort results by one or more fields
+
+        For searches requiring related entity data (e.g., "get shots with their sequence names"),
+        use `search_entities_with_related` instead.
+
+        For finding a single entity by ID or unique field, use `find_one_entity` instead.
+
+        For full-text search across multiple entity types, use `sg_text_search` instead.
 
         Args:
-            entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
-            fields: Optional list of fields to return.
-            order: Optional list of fields to order by.
-            filter_operator: Optional filter operator.
-            limit: Optional limit on number of entities to return.
+            request: SearchEntitiesRequest containing:
+
+                entity_type: Type of entity to search.
+                    Common types: "Shot", "Asset", "Task", "Version", "Note", "PublishedFile"
+
+                filters: List of filter conditions (optional).
+                    If omitted, returns all entities of the specified type.
+
+                    Simple filter (single condition):
+                    ["sg_status_list", "is", "ip"]
+
+                    Multiple filters with AND logic:
+                    {
+                        "filter_operator": "all",
+                        "filters": [
+                            ["sg_status_list", "is", "ip"],
+                            ["project", "is", {"type": "Project", "id": 123}]
+                        ]
+                    }
+
+                    Multiple filters with OR logic:
+                    {
+                        "filter_operator": "any",
+                        "filters": [
+                            ["sg_status_list", "is", "ip"],
+                            ["sg_status_list", "is", "wtg"]
+                        ]
+                    }
+
+                    Time-based filter:
+                    ["updated_at", "in_last", 7, "DAY"]
+
+                    Text search (substring match):
+                    ["code", "contains", "hero"]
+
+                    Entity reference filter:
+                    ["project", "is", {"type": "Project", "id": 123}]
+
+                    Numeric comparison:
+                    ["sg_cut_duration", "greater_than", 100]
+
+                fields: List of field names to return (optional).
+                    If omitted, returns default fields (id, type, code, etc.).
+
+                    Example: ["code", "sg_status_list", "description", "project"]
+
+                order: Sort order (optional).
+                    Format: [{"field_name": "code", "direction": "asc"}]
+                    Direction: "asc" (ascending) or "desc" (descending)
+
+                    Multiple sort fields:
+                    [
+                        {"field_name": "project", "direction": "asc"},
+                        {"field_name": "code", "direction": "asc"}
+                    ]
+
+                limit: Maximum number of results (optional).
+                    Example: 100
+
+                retired_only: Include only retired entities (optional, default: False).
 
         Returns:
-            List[Dict[str, str]]: List of entities found.
+            Dictionary containing:
+            - items: List of matching entities
+            - entity_type: The entity type searched
+            - fields: Fields returned for each entity
+            - filter_fields: Fields used in filters
+            - total_count: Number of entities found
+            - schema_resources: Links to schema information
+
+            Example:
+            {
+                "items": [
+                    {
+                        "type": "Shot",
+                        "id": 1234,
+                        "code": "SH001",
+                        "sg_status_list": "ip",
+                        "project": {"type": "Project", "id": 123, "name": "Demo"}
+                    },
+                    ...
+                ],
+                "entity_type": "Shot",
+                "total_count": 42,
+                "schema_resources": {...}
+            }
+
+        Common Entity Types:
+            - Shot: Individual shots in sequences
+            - Asset: Reusable elements (characters, props, environments)
+            - Task: Work assignments for artists
+            - Version: Iterations of work
+            - PublishedFile: Finalized files
+            - Note: Comments and feedback
+            - Playlist: Collections of versions for review
+
+        Common Filter Operators:
+            - is, is_not: Exact match
+            - contains, not_contains: Substring match (case-insensitive)
+            - in, not_in: Match any value in list
+            - greater_than, less_than: Numeric/date comparison
+            - between: Range (e.g., ["created_at", "between", date1, date2])
+            - in_last, not_in_last: Time-based (e.g., ["updated_at", "in_last", 7, "DAY"])
+            - in_next, not_in_next: Future time-based
+            - starts_with, ends_with: String prefix/suffix match
+
+        Common Status Codes:
+            - wtg: Waiting to Start
+            - rdy: Ready to Start
+            - ip: In Progress
+            - rev: Pending Review
+            - fin: Final
+            - omt: Omitted
+
+        Time Units (for time-based filters):
+            - DAY: Days
+            - WEEK: Weeks
+            - MONTH: Months
+            - YEAR: Years
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If entity_type is invalid or filters are malformed.
+
+        Examples:
+            Find all in-progress shots:
+            {
+                "entity_type": "Shot",
+                "filters": [["sg_status_list", "is", "ip"]],
+                "fields": ["code", "description", "sg_sequence"]
+            }
+
+            Find shots updated in last week:
+            {
+                "entity_type": "Shot",
+                "filters": [["updated_at", "in_last", 7, "DAY"]],
+                "order": [{"field_name": "updated_at", "direction": "desc"}]
+            }
+
+            Find tasks assigned to user:
+            {
+                "entity_type": "Task",
+                "filters": [["task_assignees", "is", {"type": "HumanUser", "id": 42}]],
+                "fields": ["content", "entity", "sg_status_list"]
+            }
+
+        Note:
+            - Filters are automatically normalized (field_name → field)
+            - Entity references must use {"type": "EntityType", "id": 123} format
+            - Date filters support DAY, WEEK, MONTH, YEAR units
+            - Text filters (contains, starts_with) are case-insensitive
         """
         try:
             # Get current ShotGrid connection (from HTTP headers or fallback)
@@ -98,31 +254,8 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
             # Create API client with current connection
             api_client = ShotGridAPIClient(current_sg)
 
-            # Create request model with validation
-            request = SearchEntitiesRequest(
-                entity_type=entity_type,
-                filters=filters,
-                fields=fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
-            )
-
-            # Convert dict filters to Filter objects
-            filter_objects = []
-            for filter_dict in request.filters:
-                try:
-                    filter_obj = Filter(
-                        field=filter_dict["field"], operator=filter_dict["operator"], value=filter_dict["value"]
-                    )
-                    filter_objects.append(filter_obj)
-                except Exception as e:
-                    # Fallback to tuple format if Filter validation fails
-                    logger.warning(f"Filter validation failed: {e}. Using tuple format instead.")
-                    filter_objects.append((filter_dict["field"], filter_dict["operator"], filter_dict["value"]))
-
-            # Process filters
-            processed_filters = process_filters(filter_objects)
+            # Process filters through the shared normalization pipeline
+            processed_filters = process_filters(request.filters or [])
 
             # Create FindRequest for API client
             find_request = FindRequest(
@@ -132,39 +265,44 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
                 order=request.order,
                 filter_operator=request.filter_operator,
                 limit=request.limit,
-                page=1,  # Set a default page value to avoid "page parameter must be a positive integer" error
+                page=1,  # Avoid "page parameter must be a positive integer" errors
             )
 
             # Execute query through API client
-            result = api_client.find(find_request)
-
-            # Format response
-            if result is None:
-                # Use Pydantic model for response
-                return EntitiesResponse(entities=[])
+            result = api_client.find(find_request) or []
 
             # Convert results to Pydantic models
-            entity_dicts = []
+            entity_dicts: List[EntityDict] = []
             for entity in result:
-                # Serialize entity data
                 serialized_entity = serialize_entity(entity)
 
-                # Ensure id field is present
                 if "id" not in serialized_entity and entity.get("id"):
                     serialized_entity["id"] = entity["id"]
 
-                # Convert to Pydantic model if possible
                 try:
-                    entity_dict = EntityDict(**serialized_entity)
-                    entity_dicts.append(entity_dict)
-                except Exception as e:
-                    # Log warning and skip this entity
-                    logger.warning(f"Failed to convert entity to EntityDict: {e}")
-                    # Add a minimal valid entity
+                    entity_dicts.append(EntityDict(**serialized_entity))
+                except Exception as exc:
+                    logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+                        entity_dicts.append(
+                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
+                        )
 
-            return EntitiesResponse(entities=entity_dicts)
+            search_result = SearchEntitiesResult(
+                items=entity_dicts,
+                entity_type=request.entity_type,
+                fields=request.fields,
+                filter_fields=[
+                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
+                ],
+                total_count=len(entity_dicts),
+            )
+
+            response = BaseResponse(
+                data=search_result,
+                metadata=ResponseMetadata(status="success"),
+            )
+            return serialize_response(response)
         except Exception as err:
             handle_error(err, operation="search_entities")
             raise  # This is needed to satisfy the type checker
@@ -184,53 +322,178 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
     api_client = ShotGridAPIClient(sg)
 
     @server.tool("search_entities_with_related")
-    def search_entities_with_related(
-        entity_type: EntityType,
-        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
-        fields: Optional[List[str]] = None,
-        related_fields: Optional[Dict[str, List[str]]] = None,
-        order: Optional[List[Dict[str, str]]] = None,
-        filter_operator: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> EntitiesResponse:
-        """Find entities in ShotGrid with related entity fields.
+    def search_entities_with_related(request: SearchEntitiesWithRelatedRequest) -> Dict[str, Any]:
+        """Search for entities in ShotGrid with related entity data (field hopping).
 
-        This method uses field hopping to efficiently retrieve data from related entities
-        in a single query, reducing the number of API calls needed.
+        Use this tool when you need to retrieve data from related entities in a single query.
+        This is more efficient than making multiple separate queries.
+
+        Common use cases:
+        - Get shots with their sequence names
+        - Get tasks with assignee details (name, email)
+        - Get versions with linked entity information
+        - Get published files with version and task details
+        - Any query requiring data from linked entities
+
+        For basic searches without related data, use `search_entities` instead.
+        For time-based filters or complex queries, use `sg_search_advanced` instead.
+
+        Field Hopping Explained:
+            Field hopping allows you to retrieve fields from related entities by using
+            dot notation in field names. For example:
+            - "sg_sequence.Sequence.code" gets the sequence code for a shot
+            - "task_assignees.HumanUser.name" gets assignee names for a task
+
+            The format is: "field_name.EntityType.field_to_retrieve"
 
         Args:
-            entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
-            fields: Optional list of fields to return from the main entity.
-            related_fields: Optional dictionary mapping entity fields to lists of fields to return
-                from related entities. For example: {"project": ["name", "sg_status"]}
-            order: Optional list of fields to order by.
-            filter_operator: Optional filter operator.
-            limit: Optional limit on number of entities to return.
+            request: SearchEntitiesWithRelatedRequest containing:
+
+                entity_type: Type of entity to search.
+                    Common types: "Shot", "Asset", "Task", "Version", "PublishedFile"
+
+                filters: List of filter conditions (optional).
+                    Same format as `search_entities`.
+
+                    Example:
+                    [["sg_status_list", "is", "ip"]]
+
+                fields: List of standard fields to return (optional).
+                    Example: ["code", "description", "sg_status_list"]
+
+                related_fields: Dictionary mapping entity link fields to lists of fields
+                               to retrieve from the related entity.
+
+                    Format:
+                    {
+                        "link_field": ["field1", "field2", ...],
+                        ...
+                    }
+
+                    Examples:
+
+                    Get sequence info for shots:
+                    {
+                        "sg_sequence": ["code", "description"]
+                    }
+
+                    Get assignee details for tasks:
+                    {
+                        "task_assignees": ["name", "email", "login"]
+                    }
+
+                    Get multiple related entities:
+                    {
+                        "entity": ["code", "sg_status_list"],
+                        "user": ["name", "email"]
+                    }
+
+                order: Sort order (optional).
+                    Example: [{"field_name": "code", "direction": "asc"}]
+
+                filter_operator: Logical operator for combining filters (optional).
+                    Values: "all" (AND logic, default) or "any" (OR logic)
+
+                    IMPORTANT: Use "all" or "any", NOT "and" or "or"
+
+                    Examples:
+                    - "all" (default): All filters must match (AND logic)
+                    - "any": Any filter can match (OR logic)
+
+                limit: Maximum number of results (optional).
+                    Example: 100
 
         Returns:
-            List[Dict[str, str]]: List of entities found with related fields.
+            Dictionary containing:
+            - items: List of entities with related data populated
+            - entity_type: The type of entity searched
+            - fields: All fields returned (including related fields)
+            - total_count: Number of entities found
+            - schema_resources: Links to schema information
+
+            Example:
+            {
+                "items": [
+                    {
+                        "id": 1234,
+                        "code": "SH001",
+                        "sg_sequence": {
+                            "id": 100,
+                            "type": "Sequence",
+                            "code": "SEQ01",
+                            "description": "Opening sequence"
+                        }
+                    }
+                ],
+                "entity_type": "Shot",
+                "fields": ["code", "sg_sequence.Sequence.code", "sg_sequence.Sequence.description"],
+                "total_count": 1,
+                "schema_resources": {...}
+            }
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If entity_type is invalid, filters are malformed, or related_fields
+                      reference non-existent fields.
+
+        Examples:
+            Get shots with sequence names:
+            {
+                "entity_type": "Shot",
+                "filters": [["sg_status_list", "is", "ip"]],
+                "fields": ["code", "description"],
+                "related_fields": {
+                    "sg_sequence": ["code", "description"]
+                }
+            }
+
+            Get tasks with assignee and entity details:
+            {
+                "entity_type": "Task",
+                "filters": [["sg_status_list", "is", "ip"]],
+                "fields": ["content", "sg_status_list"],
+                "related_fields": {
+                    "task_assignees": ["name", "email"],
+                    "entity": ["code", "sg_status_list"]
+                }
+            }
+
+            Get versions with user and entity info:
+            {
+                "entity_type": "Version",
+                "filters": [["created_at", "in_last", 7, "DAY"]],
+                "fields": ["code", "sg_status_list"],
+                "related_fields": {
+                    "user": ["name", "email"],
+                    "entity": ["code"],
+                    "sg_task": ["content"]
+                },
+                "order": [{"field_name": "created_at", "direction": "desc"}],
+                "limit": 50
+            }
+
+        Performance Benefits:
+            - Single API call instead of N+1 queries
+            - Reduced network latency
+            - More efficient for large result sets
+            - Automatic handling of entity references
+
+        Note:
+            - Related fields are returned as nested dictionaries with type, id, and requested fields
+            - Multi-entity fields (like task_assignees) return lists of entities
+            - Invalid related field names will raise an error
+            - Field hopping is limited to direct relationships (no chaining beyond one level)
         """
         try:
-            # Create request model with validation
-            request = SearchEntitiesWithRelatedRequest(
-                entity_type=entity_type,
-                filters=filters,
-                fields=fields,
-                related_fields=related_fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
-            )
-
-            # Use the new process_filters function that can handle dictionaries directly
-            processed_filters = process_filters(request.filters)
+            # Use the shared filter processing pipeline
+            processed_filters = process_filters(request.filters or [])
 
             # Process fields with related entity fields
-            all_fields = prepare_fields_with_related(sg, request.entity_type, request.fields, request.related_fields)
+            all_fields = prepare_fields_with_related(
+                sg,
+                request.entity_type,
+                request.fields,
+                request.related_fields,
+            )
 
             # Create FindRequest for API client
             find_request = FindRequest(
@@ -244,35 +507,40 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
             )
 
             # Execute query through API client
-            result = api_client.find(find_request)
-
-            # Format response
-            if result is None:
-                # Use Pydantic model for response
-                return EntitiesResponse(entities=[])
+            result = api_client.find(find_request) or []
 
             # Convert results to Pydantic models
-            entity_dicts = []
+            entity_dicts: List[EntityDict] = []
             for entity in result:
-                # Serialize entity data
                 serialized_entity = serialize_entity(entity)
 
-                # Ensure id field is present
                 if "id" not in serialized_entity and entity.get("id"):
                     serialized_entity["id"] = entity["id"]
 
-                # Convert to Pydantic model if possible
                 try:
-                    entity_dict = EntityDict(**serialized_entity)
-                    entity_dicts.append(entity_dict)
-                except Exception as e:
-                    # Log warning and skip this entity
-                    logger.warning(f"Failed to convert entity to EntityDict: {e}")
-                    # Add a minimal valid entity
+                    entity_dicts.append(EntityDict(**serialized_entity))
+                except Exception as exc:
+                    logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+                        entity_dicts.append(
+                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
+                        )
 
-            return EntitiesResponse(entities=entity_dicts)
+            search_result = SearchEntitiesResult(
+                items=entity_dicts,
+                entity_type=request.entity_type,
+                fields=all_fields,
+                filter_fields=[
+                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
+                ],
+                total_count=len(entity_dicts),
+            )
+
+            response = BaseResponse(
+                data=search_result,
+                metadata=ResponseMetadata(status="success"),
+            )
+            return serialize_response(response)
         except Exception as err:
             handle_error(err, operation="search_entities_with_related")
             raise  # This is needed to satisfy the type checker
@@ -292,40 +560,118 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
     api_client = ShotGridAPIClient(sg)
 
     @server.tool("entity_find_one")
-    def find_one_entity(
-        entity_type: EntityType,
-        filters: List[Dict[str, Any]],  # Use Dict instead of Filter for FastMCP compatibility
-        fields: Optional[List[str]] = None,
-        order: Optional[List[Dict[str, str]]] = None,
-        filter_operator: Optional[str] = None,
-    ) -> List[Dict[str, str]]:
-        """Find a single entity in ShotGrid.
+    def find_one_entity(request: FindOneEntityRequest) -> Dict[str, Any]:
+        """Find a single entity in ShotGrid by ID or unique field.
+
+        Use this tool when you need to:
+        - Look up a specific entity by its ID
+        - Find an entity by a unique field (e.g., code)
+        - Get detailed information about one entity
+        - Verify if an entity exists
+
+        For searching multiple entities, use `search_entities` instead.
+
+        For searching with related entity data, use `search_entities_with_related` instead.
 
         Args:
-            entity_type: Type of entity to find.
-            filters: List of filters to apply. Each filter is a dictionary with field, operator, and value keys.
-            fields: Optional list of fields to return.
-            order: Optional list of fields to order by.
-            filter_operator: Optional filter operator.
+            request: FindOneEntityRequest containing:
+
+                entity_type: Type of entity to find.
+                    Common types: "Shot", "Asset", "Task", "Version", "Note"
+
+                filters: Filter conditions to identify the entity.
+
+                    Find by ID:
+                    [["id", "is", 1234]]
+
+                    Find by unique code:
+                    [["code", "is", "SH001"]]
+
+                    Find by multiple conditions:
+                    {
+                        "filter_operator": "all",
+                        "filters": [
+                            ["code", "is", "SH001"],
+                            ["project", "is", {"type": "Project", "id": 123}]
+                        ]
+                    }
+
+                fields: List of field names to return (optional).
+                    If omitted, returns default fields.
+
+                    Example: ["code", "sg_status_list", "description", "project", "tasks"]
+
+                order: Sort order if multiple entities match (optional).
+                    Format: [{"field_name": "created_at", "direction": "desc"}]
+                    Returns the first entity matching the sort order.
 
         Returns:
-            List[Dict[str, str]]: Entity found, or None if not found.
+            Dictionary containing:
+            - entity: The found entity (or None if not found)
+            - entity_type: The entity type searched
+            - fields: Fields returned
+            - schema_resources: Links to schema information
+
+            Example (entity found):
+            {
+                "entity": {
+                    "type": "Shot",
+                    "id": 1234,
+                    "code": "SH001",
+                    "sg_status_list": "ip",
+                    "project": {"type": "Project", "id": 123, "name": "Demo"}
+                },
+                "entity_type": "Shot",
+                "schema_resources": {...}
+            }
+
+            Example (entity not found):
+            {
+                "entity": None,
+                "entity_type": "Shot",
+                "schema_resources": {...}
+            }
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If entity_type is invalid or filters are malformed.
+
+        Examples:
+            Find shot by ID:
+            {
+                "entity_type": "Shot",
+                "filters": [["id", "is", 1234]],
+                "fields": ["code", "description", "sg_sequence"]
+            }
+
+            Find task by code and project:
+            {
+                "entity_type": "Task",
+                "filters": {
+                    "filter_operator": "all",
+                    "filters": [
+                        ["content", "is", "Animation"],
+                        ["entity", "is", {"type": "Shot", "id": 789}]
+                    ]
+                },
+                "fields": ["content", "sg_status_list", "task_assignees"]
+            }
+
+            Find version by code:
+            {
+                "entity_type": "Version",
+                "filters": [["code", "is", "animation_v003"]],
+                "fields": ["code", "sg_status_list", "entity", "user"]
+            }
+
+        Note:
+            - Returns None if no entity matches the filters
+            - If multiple entities match, returns the first one (use order to control which)
+            - More efficient than search_entities when you only need one entity
+            - Filters are automatically normalized (field_name → field)
         """
         try:
-            # Create request model with validation
-            request = FindOneEntityRequest(
-                entity_type=entity_type,
-                filters=filters,
-                fields=fields,
-                order=order,
-                filter_operator=filter_operator,
-            )
-
-            # Use the new process_filters function that can handle dictionaries directly
-            processed_filters = process_filters(request.filters)
+            # Use the shared filter processing pipeline
+            processed_filters = process_filters(request.filters or [])
 
             # Create FindOneRequest for API client
             find_one_request = FindOneRequest(
@@ -339,24 +685,34 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             # Execute query through API client
             result = api_client.find_one(find_one_request)
 
-            if result is None:
-                return {"entity": None}
+            entity: Optional[EntityDict] = None
+            if result is not None:
+                serialized_entity = serialize_entity(result)
 
-            # Serialize entity data
-            serialized_entity = serialize_entity(result)
+                if "id" not in serialized_entity and result.get("id"):
+                    serialized_entity["id"] = result["id"]
 
-            # Ensure id field is present
-            if "id" not in serialized_entity and result.get("id"):
-                serialized_entity["id"] = result["id"]
+                try:
+                    entity = EntityDict(**serialized_entity)
+                except Exception as exc:
+                    logger.warning("Failed to convert entity to EntityDict: %s", exc)
+                    if "id" in serialized_entity and "type" in serialized_entity:
+                        entity = EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
 
-            # Convert to Pydantic model if possible
-            try:
-                entity_dict = EntityDict(**serialized_entity)
-                return {"entity": entity_dict}
-            except Exception as e:
-                # Fallback to returning the serialized entity directly
-                logger.warning(f"Failed to convert entity to EntityDict: {e}")
-                return {"entity": serialized_entity}
+            single_result = SingleEntityResult(
+                entity=entity,
+                entity_type=request.entity_type,
+                schema_resources={
+                    "entities": "shotgrid://schema/entities",
+                    "statuses": "shotgrid://schema/statuses",
+                },
+            )
+
+            response = BaseResponse(
+                data=single_result,
+                metadata=ResponseMetadata(status="success"),
+            )
+            return serialize_response(response)
         except Exception as err:
             handle_error(err, operation="find_one_entity")
             raise  # This is needed to satisfy the type checker
@@ -372,54 +728,232 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
     api_client = ShotGridAPIClient(sg)
 
     @server.tool("sg_search_advanced")
-    def sg_search_advanced(
-        entity_type: EntityType,
-        filters: Optional[List[Dict[str, Any]]] = None,
-        time_filters: Optional[List[Dict[str, Any]]] = None,
-        fields: Optional[List[str]] = None,
-        related_fields: Optional[Dict[str, List[str]]] = None,
-        order: Optional[List[Dict[str, str]]] = None,
-        filter_operator: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> EntitiesResponse:
-        """Advanced search for entities in ShotGrid.
+    def sg_search_advanced(request: AdvancedSearchRequest) -> Dict[str, Any]:
+        """Advanced search for entities in ShotGrid with time-based filters and related fields.
+
+        Use this tool when you need advanced filtering capabilities beyond basic searches.
+        This tool combines standard filters, time-based filters, and related field retrieval
+        in a single query.
+
+        Common use cases:
+        - Find entities created or updated within a time range (last N days/weeks/months)
+        - Combine time-based filters with standard filters
+        - Search with complex date logic (in_last, in_next, in_calendar_day, etc.)
+        - Get related entity data along with time-based filtering
+
+        For basic searches without time filters, use `search_entities` instead.
+        For searches with related data but no time filters, use `search_entities_with_related` instead.
+        For full-text search, use `sg_text_search` instead.
 
         Args:
-            entity_type: Type of entity to find.
-            filters: List of standard filters to apply.
-            time_filters: Optional list of time-based filters, such as
-                ``in_last`` or ``in_next`` filters.
-            fields: Optional list of fields to return from the main entity.
-            related_fields: Optional dictionary mapping entity fields to lists
-                of fields to return from related entities.
-            order: Optional list of fields to order by.
-            filter_operator: Optional logical operator for combining filters.
-            limit: Optional limit on number of entities to return.
+            request: AdvancedSearchRequest containing:
+
+                entity_type: Type of entity to search.
+                    Common types: "Shot", "Asset", "Task", "Version", "PublishedFile"
+
+                filters: List of standard filter conditions (optional).
+                    Same format as `search_entities`.
+
+                    Examples:
+                    [["sg_status_list", "is", "ip"]]
+                    [["project", "is", {"type": "Project", "id": 123}]]
+
+                time_filters: List of time-based filter conditions (optional).
+                    These are special filters for date/datetime fields that use
+                    relative time expressions.
+
+                    Format:
+                    [
+                        {
+                            "field": "date_field_name",
+                            "operator": "time_operator",
+                            "count": number,
+                            "unit": "DAY|WEEK|MONTH|YEAR"
+                        },
+                        ...
+                    ]
+
+                    Time Operators:
+                    - in_last: Within the last N units (e.g., last 7 days)
+                    - in_next: Within the next N units (e.g., next 30 days)
+                    - in_calendar_day: On a specific calendar day
+                    - in_calendar_week: Within a specific calendar week
+                    - in_calendar_month: Within a specific calendar month
+                    - in_calendar_year: Within a specific calendar year
+
+                    Time Units:
+                    - DAY: Calendar days
+                    - WEEK: Calendar weeks
+                    - MONTH: Calendar months
+                    - YEAR: Calendar years
+
+                    Examples:
+
+                    Find entities updated in last 7 days:
+                    [
+                        {
+                            "field": "updated_at",
+                            "operator": "in_last",
+                            "count": 7,
+                            "unit": "DAY"
+                        }
+                    ]
+
+                    Find entities created in last 2 weeks:
+                    [
+                        {
+                            "field": "created_at",
+                            "operator": "in_last",
+                            "count": 2,
+                            "unit": "WEEK"
+                        }
+                    ]
+
+                    Find entities due in next 30 days:
+                    [
+                        {
+                            "field": "due_date",
+                            "operator": "in_next",
+                            "count": 30,
+                            "unit": "DAY"
+                        }
+                    ]
+
+                fields: List of standard fields to return (optional).
+                    Example: ["code", "description", "sg_status_list"]
+
+                related_fields: Dictionary mapping entity link fields to lists of fields
+                               to retrieve from the related entity (optional).
+                    Same format as `search_entities_with_related`.
+
+                    Example:
+                    {
+                        "user": ["name", "email"],
+                        "entity": ["code"]
+                    }
+
+                order: Sort order (optional).
+                    Example: [{"field_name": "updated_at", "direction": "desc"}]
+
+                filter_operator: Logical operator for combining filters (optional).
+                    Values: "all" (AND logic, default) or "any" (OR logic)
+
+                    IMPORTANT: Use "all" or "any", NOT "and" or "or"
+
+                    Examples:
+                    - "all" (default): All filters must match (AND logic)
+                    - "any": Any filter can match (OR logic)
+
+                limit: Maximum number of results (optional).
+                    Example: 100
 
         Returns:
-            List of entities found.
+            Dictionary containing:
+            - items: List of entities matching the filters
+            - entity_type: The type of entity searched
+            - fields: All fields returned
+            - filter_fields: Fields used in filters
+            - total_count: Number of entities found
+            - schema_resources: Links to schema information
+
+            Example:
+            {
+                "items": [
+                    {
+                        "id": 1234,
+                        "code": "SH001",
+                        "updated_at": "2025-01-15T10:30:00Z",
+                        "user": {
+                            "id": 42,
+                            "type": "HumanUser",
+                            "name": "John Doe"
+                        }
+                    }
+                ],
+                "entity_type": "Shot",
+                "fields": ["code", "updated_at", "user.HumanUser.name"],
+                "filter_fields": ["updated_at"],
+                "total_count": 1,
+                "schema_resources": {...}
+            }
+
+        Raises:
+            ToolError: If entity_type is invalid, filters are malformed, or time_filters
+                      have invalid operators or units.
+
+        Examples:
+            Find shots updated in last week:
+            {
+                "entity_type": "Shot",
+                "filters": [["sg_status_list", "is", "ip"]],
+                "time_filters": [
+                    {
+                        "field": "updated_at",
+                        "operator": "in_last",
+                        "count": 7,
+                        "unit": "DAY"
+                    }
+                ],
+                "fields": ["code", "description"],
+                "order": [{"field_name": "updated_at", "direction": "desc"}]
+            }
+
+            Find tasks created in last month with assignee info:
+            {
+                "entity_type": "Task",
+                "time_filters": [
+                    {
+                        "field": "created_at",
+                        "operator": "in_last",
+                        "count": 1,
+                        "unit": "MONTH"
+                    }
+                ],
+                "fields": ["content", "sg_status_list"],
+                "related_fields": {
+                    "task_assignees": ["name", "email"],
+                    "entity": ["code"]
+                },
+                "limit": 50
+            }
+
+            Find versions created today in a specific project:
+            {
+                "entity_type": "Version",
+                "filters": [
+                    ["project", "is", {"type": "Project", "id": 123}]
+                ],
+                "time_filters": [
+                    {
+                        "field": "created_at",
+                        "operator": "in_calendar_day",
+                        "count": 0,
+                        "unit": "DAY"
+                    }
+                ],
+                "fields": ["code", "sg_status_list"],
+                "related_fields": {
+                    "user": ["name"]
+                }
+            }
+
+        Note:
+            - Time filters and standard filters are combined with AND logic by default
+            - Use filter_operator="any" to change to OR logic
+            - Time filters are converted to standard ShotGrid filters internally
+            - All time calculations are based on the server's timezone
+            - Related fields work the same as in `search_entities_with_related`
         """
         try:
-            request = AdvancedSearchRequest(
-                entity_type=entity_type,
-                filters=filters or [],
-                time_filters=time_filters or [],
-                fields=fields,
-                related_fields=related_fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
-            )
-
             filter_objects: List[Any] = []
 
             # Standard filters are passed through to process_filters as
             # dictionaries to reuse existing normalization logic.
-            filter_objects.extend(request.filters)
+            filter_objects.extend(request.filters or [])
 
             # Convert any time_filters into Filter instances so they can be
             # processed in the same way as other filters.
-            for time_filter in request.time_filters:
+            for time_filter in request.time_filters or []:
                 try:
                     filter_objects.append(time_filter.to_filter())
                 except Exception as exc:  # pragma: no cover - defensive
@@ -444,10 +978,7 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
                 page=1,
             )
 
-            result = api_client.find(find_request)
-
-            if result is None:
-                return EntitiesResponse(entities=[])
+            result = api_client.find(find_request) or []
 
             entity_dicts: List[EntityDict] = []
             for entity in result:
@@ -461,9 +992,25 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
                 except Exception as exc:
                     logger.warning("Failed to convert entity to EntityDict: %s", exc)
                     if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+                        entity_dicts.append(
+                            EntityDict(id=serialized_entity["id"], type=serialized_entity["type"])
+                        )
 
-            return EntitiesResponse(entities=entity_dicts)
+            search_result = SearchEntitiesResult(
+                items=entity_dicts,
+                entity_type=request.entity_type,
+                fields=all_fields,
+                filter_fields=[
+                    f["field"] for f in (request.filters or []) if isinstance(f, dict) and "field" in f
+                ],
+                total_count=len(entity_dicts),
+            )
+
+            response = BaseResponse(
+                data=search_result,
+                metadata=ResponseMetadata(status="success"),
+            )
+            return serialize_response(response)
         except Exception as err:  # pragma: no cover - error path
             handle_error(err, operation="sg.search.advanced")
             raise
@@ -472,7 +1019,7 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
     globals()["sg_search_advanced"] = sg_search_advanced
 
 
-def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str, str]]:
+def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> ProjectsResponse:
     """Find projects that have been active in the last N days.
 
     Args:
@@ -480,7 +1027,7 @@ def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str
         days: Number of days to look back (default: 90)
 
     Returns:
-        List of active projects
+        ProjectsResponse with list of active projects
     """
     try:
         # Create filter using Pydantic model
@@ -504,24 +1051,28 @@ def _find_recently_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str
         raise
 
 
-def _find_active_users(sg: Shotgun, days: int = 30) -> List[Dict[str, str]]:
+def _find_active_users(sg: Shotgun, days: int = 30) -> UsersResponse:
     """Find users who have been active in the last N days.
+
+    Note: This uses the 'updated_at' field as a proxy for user activity,
+    since HumanUser entities don't have a 'last_login' field.
+    A user is considered active if their record was updated recently.
 
     Args:
         sg: ShotGrid connection.
         days: Number of days to look back (default: 30)
 
     Returns:
-        List of active users
+        UsersResponse with list of active users
     """
     try:
         # Create filters using Pydantic models
         status_filter = Filter(field="sg_status_list", operator="is", value="act")
-        login_filter = create_in_last_filter("last_login", days, TimeUnit.DAY)
+        activity_filter = create_in_last_filter("updated_at", days, TimeUnit.DAY)
 
-        filters = [status_filter.to_tuple(), login_filter.to_tuple()]
-        fields = ["id", "name", "login", "email", "last_login"]
-        order = [{"field_name": "last_login", "direction": "desc"}]
+        filters = [status_filter.to_tuple(), activity_filter.to_tuple()]
+        fields = ["id", "name", "login", "email", "updated_at"]
+        order = [{"field_name": "updated_at", "direction": "desc"}]
 
         result = sg.find("HumanUser", filters, fields=fields, order=order, page=1)
 
@@ -545,7 +1096,7 @@ def _find_entities_by_date_range(
     end_date: str,
     additional_filters: Optional[List[Filter]] = None,
     fields: Optional[List[str]] = None,
-) -> List[Dict[str, str]]:
+) -> EntitiesResponse:
     """Find entities within a specific date range.
 
     Args:
@@ -558,7 +1109,7 @@ def _find_entities_by_date_range(
         fields: Fields to return
 
     Returns:
-        List of entities matching the date range
+        EntitiesResponse with list of entities matching the date range
     """
     try:
         # Create date range filter using Pydantic model
@@ -605,26 +1156,30 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     @server.tool("project_find_active")
-    def find_recently_active_projects(days: int = 90) -> List[Dict[str, str]]:
+    def find_recently_active_projects(days: int = 90) -> ProjectsResponse:
         """Find projects that have been active in the last N days.
 
         Args:
             days: Number of days to look back (default: 90)
 
         Returns:
-            List of active projects
+            ProjectsResponse containing list of active projects
         """
         return _find_recently_active_projects(sg, days)
 
     @server.tool("user_find_active")
-    def find_active_users(days: int = 30) -> List[Dict[str, str]]:
+    def find_active_users(days: int = 30) -> UsersResponse:
         """Find users who have been active in the last N days.
+
+        Note: This uses the 'updated_at' field as a proxy for user activity,
+        since HumanUser entities don't have a 'last_login' field in ShotGrid.
+        A user is considered active if their record was updated recently.
 
         Args:
             days: Number of days to look back (default: 30)
 
         Returns:
-            List of active users
+            UsersResponse containing list of active users (status='act' and updated in the last N days)
         """
         return _find_active_users(sg, days)
 
@@ -636,7 +1191,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
         end_date: str,
         additional_filters: Optional[List[Filter]] = None,
         fields: Optional[List[str]] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> EntitiesResponse:
         """Find entities within a specific date range.
 
         Args:
@@ -648,7 +1203,7 @@ def register_helper_functions(server: FastMCPType, sg: Shotgun) -> None:
             fields: Fields to return
 
         Returns:
-            List of entities matching the date range
+            EntitiesResponse containing list of entities matching the date range
         """
         return _find_entities_by_date_range(
             sg, entity_type, date_field, start_date, end_date, additional_filters, fields

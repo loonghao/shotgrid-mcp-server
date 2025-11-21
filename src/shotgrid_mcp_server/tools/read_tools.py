@@ -9,6 +9,7 @@ from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.custom_types import EntityType
+from shotgrid_mcp_server.response_models import SchemaResult
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -29,7 +30,7 @@ def register_read_tools(server: FastMCPType, sg: Shotgun) -> None:
             entity_type: Type of entity to get schema for.
 
         Returns:
-            Dict[str, Any]: Entity schema.
+            Dict[str, Any]: Entity schema with schema resources.
 
         Raises:
             ToolError: If the schema retrieval fails.
@@ -45,7 +46,11 @@ def register_read_tools(server: FastMCPType, sg: Shotgun) -> None:
                 "properties": {"default_value": {"value": entity_type}},
             }
 
-            return {"fields": dict(result)}  # Ensure we return Dict[str, Any]
+            # Return structured result
+            return SchemaResult(
+                entity_type=entity_type,
+                fields=dict(result),
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="get_schema")
             raise  # This is needed to satisfy the type checker
