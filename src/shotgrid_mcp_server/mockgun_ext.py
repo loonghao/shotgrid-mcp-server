@@ -377,11 +377,23 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
         """
         if isinstance(entity, dict):
             if fields:
-                return {field: entity.get(field) for field in fields}
+                # Always include 'type' and 'id' fields (ShotGrid API behavior)
+                result = {field: entity.get(field) for field in fields}
+                if "type" not in result and "type" in entity:
+                    result["type"] = entity["type"]
+                if "id" not in result and "id" in entity:
+                    result["id"] = entity["id"]
+                return result
             return entity.copy()
 
         if fields:
-            return {field: getattr(entity, field, None) for field in fields}
+            # Always include 'type' and 'id' fields (ShotGrid API behavior)
+            result = {field: getattr(entity, field, None) for field in fields}
+            if "type" not in result and hasattr(entity, "type"):
+                result["type"] = getattr(entity, "type")
+            if "id" not in result and hasattr(entity, "id"):
+                result["id"] = getattr(entity, "id")
+            return result
         return {k: v for k, v in vars(entity).items() if not k.startswith("_")}
 
     def _parse_order_item(self, order_item):

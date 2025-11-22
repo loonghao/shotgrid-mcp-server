@@ -49,7 +49,7 @@ def test_find_uses_full_kwargs_for_non_mockgun_connection() -> None:
         filters=[["code", "is", "TEST"]],
         fields=["code"],
         order=[{"field_name": "code", "direction": "asc"}],
-        filter_operator="and",
+        filter_operator="all",
         limit=10,
         retired_only=True,
         page=2,
@@ -66,7 +66,7 @@ def test_find_uses_full_kwargs_for_non_mockgun_connection() -> None:
     kwargs = connection.last_find_call["kwargs"]
     assert kwargs["fields"] == ["code"]
     assert kwargs["order"] == [{"field_name": "code", "direction": "asc"}]
-    assert kwargs["filter_operator"] == "and"
+    assert kwargs["filter_operator"] == "all"
     assert kwargs["retired_only"] is True
     assert kwargs["page"] == 2
     assert kwargs["include_archived_projects"] is False
@@ -86,7 +86,7 @@ def test_find_one_uses_full_kwargs_for_non_mockgun_connection() -> None:
         filters=[["code", "is", "TEST_ONE"]],
         fields=["code"],
         order=None,
-        filter_operator="and",
+        filter_operator="all",
         retired_only=True,
         include_archived_projects=False,
     )
@@ -99,6 +99,6 @@ def test_find_one_uses_full_kwargs_for_non_mockgun_connection() -> None:
     kwargs = connection.last_find_one_call["kwargs"]
     assert kwargs["fields"] == ["code"]
     assert kwargs["order"] is None
-    assert kwargs["filter_operator"] == "and"
+    assert kwargs["filter_operator"] == "all"
     assert kwargs["retired_only"] is True
     assert kwargs["include_archived_projects"] is False

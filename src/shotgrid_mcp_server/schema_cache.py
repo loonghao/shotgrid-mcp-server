@@ -1,7 +1,7 @@
 """Schema caching for ShotGrid MCP Server.
 
 This module provides caching functionality for ShotGrid schema data to improve
-performance and reduce API calls. It uses diskcache for persistent caching.
+performance and reduce API calls. It uses diskcache_rs for persistent caching.
 
 The cache stores:
 - Entity schemas (field definitions, data types, validation rules)
@@ -17,14 +17,16 @@ repeated API calls to ShotGrid.
 """
 
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from diskcache import Cache
+from diskcache_rs import DiskCache
+from platformdirs import user_cache_dir
 
 logger = logging.getLogger(__name__)
 
-# Default cache directory
-DEFAULT_CACHE_DIR = ".cache/shotgrid_schema"
+# Default cache directory using platformdirs
+DEFAULT_CACHE_DIR = Path(user_cache_dir("shotgrid-mcp-server", "loonghao")) / "schema"
 
 # Default TTL for schema data (24 hours)
 DEFAULT_SCHEMA_TTL = 86400
@@ -34,7 +36,7 @@ class SchemaCache:
     """Cache for ShotGrid schema data.
 
     This class provides a simple interface for caching and retrieving
-    ShotGrid schema information using diskcache.
+    ShotGrid schema information using diskcache_rs.
 
     Example:
         >>> cache = SchemaCache()
@@ -42,14 +44,22 @@ class SchemaCache:
         >>> schema = cache.get_entity_schema("Shot")
     """
 
-    def __init__(self, cache_dir: str = DEFAULT_CACHE_DIR, ttl: int = DEFAULT_SCHEMA_TTL):
+    def __init__(self, cache_dir: Path | str = DEFAULT_CACHE_DIR, ttl: int = DEFAULT_SCHEMA_TTL):
         """Initialize the schema cache.
 
         Args:
-            cache_dir: Directory to store cache files
+            cache_dir: Directory to store cache files (Path or str)
             ttl: Time to live for cached items in seconds
         """
-        self.cache = Cache(cache_dir)
+        # Convert to Path if string
+        if isinstance(cache_dir, str):
+            cache_dir = Path(cache_dir)
+
+        # Ensure cache directory exists
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Initialize cache with string path
+        self.cache = DiskCache(str(cache_dir))
         self.ttl = ttl
         logger.info(f"Initialized schema cache at {cache_dir} with TTL={ttl}s")
 

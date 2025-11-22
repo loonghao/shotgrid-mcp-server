@@ -23,41 +23,26 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
     JSON.
     """
 
-    # Local imports to avoid import cycles at collection time
-    from shotgrid_mcp_server.tools import create_tools, playlist_tools, search_tools
-
     arguments: dict[str, Any] = params or {}
     payload: Any | None = None
 
-    # Map tool names to their underlying implementation functions.
-    # These functions are registered with FastMCP via decorators but are still
-    # regular callables we can invoke directly in tests.
-    tool_map: dict[str, Any] = {
-        # Playlist tools
-        "find_playlists": getattr(playlist_tools, "find_playlists", None),
-        "find_project_playlists": getattr(playlist_tools, "find_project_playlists", None),
-        "find_recent_playlists": getattr(playlist_tools, "find_recent_playlists", None),
-        "create_playlist": getattr(playlist_tools, "create_playlist", None),
-        "update_playlist": getattr(playlist_tools, "update_playlist", None),
-        "add_versions_to_playlist": getattr(playlist_tools, "add_versions_to_playlist", None),
-        # Search tools
-        "search_entities": getattr(search_tools, "search_entities", None),
-        "search_entities_with_related": getattr(search_tools, "search_entities_with_related", None),
-        "find_one_entity": getattr(search_tools, "find_one_entity", None),
-        "find_recently_active_projects": getattr(search_tools, "find_recently_active_projects", None),
-        "find_active_users": getattr(search_tools, "find_active_users", None),
-        "find_entities_by_date_range": getattr(search_tools, "find_entities_by_date_range", None),
-        "sg.search.advanced": getattr(search_tools, "sg_search_advanced", None),
-        # Optimized / batch operations
-        "batch_operations": getattr(create_tools, "batch_operations", None),
-        "batch_create_entities": getattr(create_tools, "batch_create_entities", None),
-    }
+    # Use FastMCP's internal tool registry to find the tool
+    # This works with FastMCP 2.x where tools are registered via decorators
+    tool = None
+    try:
+        # get_tool is async in FastMCP 2.x
+        tool = await self.get_tool(tool_name)
+    except (KeyError, AttributeError, TypeError):
+        # Tool not found or get_tool is not async, try direct access
+        if hasattr(self, "_tool_manager") and hasattr(self._tool_manager, "_tools"):
+            tool = self._tool_manager._tools.get(tool_name)
+        elif hasattr(self, "tools"):
+            tool = self.tools.get(tool_name)
 
-    func = tool_map.get(tool_name)
-    if func is not None:
+    if tool is not None:
         # FastMCP v2 tools are usually instances of FunctionTool. In that case
         # we should use their ``run`` method instead of calling them directly.
-        run_method = getattr(func, "run", None)
+        run_method = getattr(tool, "run", None)
         if callable(run_method):
             # FunctionTool.run expects a single ``arguments`` dict parameter and
             # returns a ToolResult or an awaitable that resolves to ToolResult.
@@ -75,8 +60,14 @@ async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None 
         else:
             # Some decorators may wrap the original function; prefer the
             # underlying implementation if ``__wrapped__`` is present.
-            impl = getattr(func, "__wrapped__", func)
-            payload = impl(**arguments)
+            impl = getattr(tool, "__wrapped__", tool)
+            if callable(impl):
+                # Try to call with arguments dict first (Pydantic model case)
+                try:
+                    payload = impl(**arguments)
+                except TypeError:
+                    # If that fails, try calling with arguments as a single parameter
+                    payload = impl(arguments)
 
     def _to_jsonable(value: Any) -> Any:
         """Recursively convert pydantic models and containers into JSON-serializable data."""
