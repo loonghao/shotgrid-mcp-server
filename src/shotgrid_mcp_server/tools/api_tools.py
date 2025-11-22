@@ -205,17 +205,31 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
                     "page parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values."
                 )
 
+            # Build kwargs, only including optional parameters if they have values
+            kwargs: Dict[str, Any] = {
+                "fields": fields,
+                "order": order,
+                "filter_operator": filter_operator,
+                "retired_only": retired_only,
+                "include_archived_projects": include_archived_projects,
+            }
+
+            # Only add limit if it's not None
+            if limit is not None:
+                kwargs["limit"] = limit
+
+            # Only add page if it's not None
+            if page is not None:
+                kwargs["page"] = page
+
+            # Only add additional_filter_presets if it's not None
+            if additional_filter_presets is not None:
+                kwargs["additional_filter_presets"] = additional_filter_presets
+
             result = _get_sg(sg).find(
                 entity_type,
                 filters,
-                fields=fields,
-                order=order,
-                filter_operator=filter_operator,
-                limit=limit,
-                retired_only=retired_only,
-                page=page,
-                include_archived_projects=include_archived_projects,
-                additional_filter_presets=additional_filter_presets,
+                **kwargs,
             )
             return result
         except Exception as err:
