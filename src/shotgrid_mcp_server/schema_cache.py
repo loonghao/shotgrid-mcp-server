@@ -21,12 +21,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from diskcache_rs import DiskCache
-from platformdirs import user_cache_dir
+from platformdirs import PlatformDirs
 
 logger = logging.getLogger(__name__)
 
-# Default cache directory using platformdirs
-DEFAULT_CACHE_DIR = Path(user_cache_dir("shotgrid-mcp-server", "loonghao")) / "schema"
+# Create platform dirs instance (same as logger.py for consistent directory structure)
+_dirs = PlatformDirs("shotgrid-mcp-server")
+
+# Default cache directory - same level as logs
+# Structure: <user_data_dir>/shotgrid-mcp-server/schema
+# This keeps all shotgrid-mcp-server data organized in one place:
+#   - <user_data_dir>/shotgrid-mcp-server/schema  (schema cache)
+#   - <user_log_dir>/shotgrid-mcp-server/         (logs)
+DEFAULT_CACHE_DIR = Path(_dirs.user_data_dir) / "schema"
 
 # Default TTL for schema data (24 hours)
 DEFAULT_SCHEMA_TTL = 86400
