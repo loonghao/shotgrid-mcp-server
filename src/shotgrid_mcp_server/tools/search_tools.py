@@ -719,6 +719,72 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             raise  # This is needed to satisfy the type checker
 
 
+def _convert_filters_to_list_format(filters: List[Any]) -> List[Any]:
+    """Convert filters from dict format to list format for process_filters.
+
+    Args:
+        filters: List of filters in dict or list format
+
+    Returns:
+        List of filters in list format [field, operator, value]
+    """
+    filter_objects: List[Any] = []
+    for filter_item in filters or []:
+        if isinstance(filter_item, dict):
+            # Convert dict format to list format: [field, operator, value]
+            filter_objects.append([filter_item["field"], filter_item["operator"], filter_item["value"]])
+        else:
+            # Already in list format
+            filter_objects.append(filter_item)
+    return filter_objects
+
+
+def _convert_time_filters_to_list_format(time_filters: List[Any]) -> List[Any]:
+    """Convert time filters to list format for process_filters.
+
+    Args:
+        time_filters: List of TimeFilter objects
+
+    Returns:
+        List of filters in list format [field, operator, value]
+    """
+    filter_objects: List[Any] = []
+    for time_filter in time_filters or []:
+        try:
+            filter_obj = time_filter.to_filter()
+            # Convert Filter object to list format: [field, operator, value]
+            filter_objects.append(filter_obj.to_tuple())
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Failed to convert time filter %s: %s", time_filter, exc)
+    return filter_objects
+
+
+def _convert_entities_to_dicts(entities: List[Dict[str, Any]]) -> List[EntityDict]:
+    """Convert raw entity dicts to EntityDict models.
+
+    Args:
+        entities: List of raw entity dictionaries
+
+    Returns:
+        List of EntityDict models
+    """
+    entity_dicts: List[EntityDict] = []
+    for entity in entities:
+        serialized_entity = serialize_entity(entity)
+
+        if "id" not in serialized_entity and entity.get("id"):
+            serialized_entity["id"] = entity["id"]
+
+        try:
+            entity_dicts.append(EntityDict(**serialized_entity))
+        except Exception as exc:
+            logger.warning("Failed to convert entity to EntityDict: %s", exc)
+            if "id" in serialized_entity and "type" in serialized_entity:
+                entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+
+    return entity_dicts
+
+
 def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
     """Register sg.search.advanced tool.
 
@@ -946,26 +1012,13 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
             - Related fields work the same as in `search_entities_with_related`
         """
         try:
-            filter_objects: List[Any] = []
-
             # Convert filters to list format for process_filters
             # AdvancedSearchRequest validator normalizes to dict format, but process_filters expects list format
-            for filter_item in request.filters or []:
-                if isinstance(filter_item, dict):
-                    # Convert dict format to list format: [field, operator, value]
-                    filter_objects.append([filter_item["field"], filter_item["operator"], filter_item["value"]])
-                else:
-                    # Already in list format
-                    filter_objects.append(filter_item)
+            filter_objects = _convert_filters_to_list_format(request.filters or [])
 
             # Convert any time_filters into Filter instances and then to list format
-            for time_filter in request.time_filters or []:
-                try:
-                    filter_obj = time_filter.to_filter()
-                    # Convert Filter object to list format: [field, operator, value]
-                    filter_objects.append(filter_obj.to_tuple())
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.warning("Failed to convert time filter %s: %s", time_filter, exc)
+            time_filter_objects = _convert_time_filters_to_list_format(request.time_filters or [])
+            filter_objects.extend(time_filter_objects)
 
             processed_filters = process_filters(filter_objects)
 
@@ -988,19 +1041,7 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
 
             result = api_client.find(find_request) or []
 
-            entity_dicts: List[EntityDict] = []
-            for entity in result:
-                serialized_entity = serialize_entity(entity)
-
-                if "id" not in serialized_entity and entity.get("id"):
-                    serialized_entity["id"] = entity["id"]
-
-                try:
-                    entity_dicts.append(EntityDict(**serialized_entity))
-                except Exception as exc:
-                    logger.warning("Failed to convert entity to EntityDict: %s", exc)
-                    if "id" in serialized_entity and "type" in serialized_entity:
-                        entity_dicts.append(EntityDict(id=serialized_entity["id"], type=serialized_entity["type"]))
+            entity_dicts = _convert_entities_to_dicts(result)
 
             search_result = SearchEntitiesResult(
                 items=entity_dicts,
