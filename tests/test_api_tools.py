@@ -533,3 +533,100 @@ class TestAPITools:
 
         # Verify result
         assert "matches" in data
+
+    @pytest.mark.asyncio
+    async def test_sg_text_search_minimum_length_validation(self, api_server: FastMCP):
+        """Test that sg_text_search validates minimum text length (3 characters)."""
+        from fastmcp.exceptions import ToolError
+
+        # Test with empty string
+        with pytest.raises(ToolError) as exc_info:
+            await api_server._mcp_call_tool(
+                "sg_text_search",
+                {
+                    "text": "",
+                    "entity_types": ["Shot"],
+                },
+            )
+        assert "at least 3 characters" in str(exc_info.value)
+        assert "0 characters" in str(exc_info.value)
+
+        # Test with 1 character
+        with pytest.raises(ToolError) as exc_info:
+            await api_server._mcp_call_tool(
+                "sg_text_search",
+                {
+                    "text": "a",
+                    "entity_types": ["Shot"],
+                },
+            )
+        assert "at least 3 characters" in str(exc_info.value)
+        assert "1 characters" in str(exc_info.value)
+
+        # Test with 2 characters
+        with pytest.raises(ToolError) as exc_info:
+            await api_server._mcp_call_tool(
+                "sg_text_search",
+                {
+                    "text": "ab",
+                    "entity_types": ["Shot"],
+                },
+            )
+        assert "at least 3 characters" in str(exc_info.value)
+        assert "2 characters" in str(exc_info.value)
+
+        # Test with whitespace only
+        with pytest.raises(ToolError) as exc_info:
+            await api_server._mcp_call_tool(
+                "sg_text_search",
+                {
+                    "text": "  ",
+                    "entity_types": ["Shot"],
+                },
+            )
+        assert "at least 3 characters" in str(exc_info.value)
+        assert "0 characters" in str(exc_info.value)  # Whitespace is stripped
+
+    @pytest.mark.asyncio
+    async def test_sg_text_search_valid_minimum_length(
+        self, api_server: FastMCP, mock_sg: Shotgun
+    ):
+        """Test that sg_text_search accepts exactly 3 characters."""
+        import json
+
+        # Create test data
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Min Length Test",
+                "code": "min_test",
+                "sg_status": "Active",
+            },
+        )
+
+        shot = mock_sg.create(
+            "Shot",
+            {
+                "code": "ABC",
+                "project": project,
+            },
+        )
+
+        # Test with exactly 3 characters (should succeed)
+        result = await api_server._mcp_call_tool(
+            "sg_text_search",
+            {
+                "text": "ABC",
+                "entity_types": ["Shot"],
+            },
+        )
+
+        # Parse the result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+
+        # Should succeed (not an error)
+        assert "isError" not in data or data["isError"] is False
+        assert "matches" in data
