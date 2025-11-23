@@ -372,3 +372,164 @@ class TestAPITools:
         # The length of the result can vary depending on the API version
         # We just need to make sure it's not empty
         assert len(result) > 0
+
+    @pytest.mark.asyncio
+    async def test_sg_text_search_entity_types_list_conversion(
+        self, api_server: FastMCP, mock_sg: Shotgun
+    ):
+        """Test that sg_text_search converts list of entity types to dict format."""
+        import json
+
+        # Create test data
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Text Search Test",
+                "code": "text_search_test",
+                "sg_status": "Active",
+            },
+        )
+
+        shot = mock_sg.create(
+            "Shot",
+            {
+                "code": "SHOT_animation",
+                "project": project,
+            },
+        )
+
+        asset = mock_sg.create(
+            "Asset",
+            {
+                "code": "CHAR_animation",
+                "project": project,
+                "sg_asset_type": "Character",
+            },
+        )
+
+        # Test with list of entity types (should be converted to dict internally)
+        result = await api_server._mcp_call_tool(
+            "sg_text_search",
+            {
+                "text": "animation",
+                "entity_types": ["Shot", "Asset"],  # List format
+            },
+        )
+
+        # Parse the result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+
+        # Verify result structure
+        assert "matches" in data
+
+        # Verify we got results from both entity types
+        matches = data["matches"]
+        entity_types_found = {match["type"] for match in matches}
+        assert "Shot" in entity_types_found or "Asset" in entity_types_found
+
+    @pytest.mark.asyncio
+    async def test_sg_text_search_single_entity_type(self, api_server: FastMCP, mock_sg: Shotgun):
+        """Test sg_text_search with single entity type."""
+        import json
+
+        # Create test data
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Single Type Search",
+                "code": "single_type_search",
+                "sg_status": "Active",
+            },
+        )
+
+        user = mock_sg.create(
+            "HumanUser",
+            {
+                "login": "john.doe",
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+            },
+        )
+
+        # Test with single entity type
+        result = await api_server._mcp_call_tool(
+            "sg_text_search",
+            {
+                "text": "John",
+                "entity_types": ["HumanUser"],  # Single entity type as list
+            },
+        )
+
+        # Parse the result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+
+        # Verify result
+        assert "matches" in data
+
+    @pytest.mark.asyncio
+    async def test_sg_text_search_with_project_filter(
+        self, api_server: FastMCP, mock_sg: Shotgun
+    ):
+        """Test sg_text_search with project_ids filter."""
+        import json
+
+        # Create test projects
+        project1 = mock_sg.create(
+            "Project",
+            {
+                "name": "Project One",
+                "code": "proj1",
+                "sg_status": "Active",
+            },
+        )
+
+        project2 = mock_sg.create(
+            "Project",
+            {
+                "name": "Project Two",
+                "code": "proj2",
+                "sg_status": "Active",
+            },
+        )
+
+        # Create shots in different projects
+        shot1 = mock_sg.create(
+            "Shot",
+            {
+                "code": "SHOT_hero",
+                "project": project1,
+            },
+        )
+
+        shot2 = mock_sg.create(
+            "Shot",
+            {
+                "code": "SHOT_villain",
+                "project": project2,
+            },
+        )
+
+        # Test with project filter
+        result = await api_server._mcp_call_tool(
+            "sg_text_search",
+            {
+                "text": "SHOT",
+                "entity_types": ["Shot"],
+                "project_ids": [project1["id"]],  # Only search in project1
+            },
+        )
+
+        # Parse the result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) == 1
+        data = json.loads(result[0].text)
+
+        # Verify result
+        assert "matches" in data

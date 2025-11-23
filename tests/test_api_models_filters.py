@@ -28,11 +28,16 @@ class TestSearchEntitiesRequestFilterValidation:
         assert request.filters[1] == ["project", "is", {"type": "Project", "id": 123}]
 
     def test_valid_time_filter(self):
-        """Test valid time-based filter."""
+        """Test valid time-based filter.
+
+        Note: 4-element time filters are automatically normalized to 3-element format.
+        ["field", "operator", count, unit] -> ["field", "operator", [count, unit]]
+        """
         request = SearchEntitiesRequest(
             entity_type="Version", filters=[["created_at", "in_last", 7, "DAY"]], fields=["code"]
         )
-        assert request.filters == [["created_at", "in_last", 7, "DAY"]]
+        # The 4-element format is normalized to 3-element format
+        assert request.filters == [["created_at", "in_last", [7, "DAY"]]]
 
     def test_empty_filters(self):
         """Test empty filters list."""

@@ -732,3 +732,111 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
                 raise ShotgunError(f"Batch operation failed: {str(err)}") from err
 
         return results
+
+    def text_search(
+        self,
+        text: str,
+        entity_types: Dict[str, List[Any]],
+        project_ids: Optional[List[int]] = None,
+        limit: Optional[int] = None,
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Perform a text search across multiple entity types.
+
+        Args:
+            text: The text to search for.
+            entity_types: Dictionary mapping entity types to filter lists.
+                         Format: {"EntityType": [filters], ...}
+            project_ids: Optional list of project IDs to limit search scope.
+            limit: Optional maximum number of results per entity type.
+
+        Returns:
+            Dictionary with "matches" key containing list of matching entities.
+            Format: {"matches": [{"type": "EntityType", "id": 123, ...}, ...]}
+        """
+        matches = []
+        text_lower = text.lower()
+
+        for entity_type in entity_types:
+            if entity_type not in self._db:
+                continue
+
+            entity_matches = self._search_entities_by_text(entity_type, text_lower, project_ids, limit)
+            matches.extend(entity_matches)
+
+        return {"matches": matches}
+
+    def _search_entities_by_text(
+        self,
+        entity_type: str,
+        text_lower: str,
+        project_ids: Optional[List[int]],
+        limit: Optional[int],
+    ) -> List[Dict[str, Any]]:
+        """Search entities of a specific type by text.
+
+        Args:
+            entity_type: Type of entity to search.
+            text_lower: Lowercase text to search for.
+            project_ids: Optional list of project IDs to filter by.
+            limit: Optional maximum number of results.
+
+        Returns:
+            List of matching entities.
+        """
+        entity_matches = []
+        for _entity_id, entity in self._db[entity_type].items():
+            # Skip deleted entities
+            if entity.get("__retired"):
+                continue
+
+            # Check project filter if specified
+            if not self._matches_project_filter(entity, project_ids):
+                continue
+
+            # Search in common text fields
+            if self._matches_text_search(entity, text_lower):
+                entity_matches.append(entity.copy())
+
+                # Apply limit if specified
+                if limit and len(entity_matches) >= limit:
+                    break
+
+        return entity_matches
+
+    def _matches_project_filter(self, entity: Dict[str, Any], project_ids: Optional[List[int]]) -> bool:
+        """Check if entity matches project filter.
+
+        Args:
+            entity: Entity to check.
+            project_ids: Optional list of project IDs to filter by.
+
+        Returns:
+            True if entity matches filter or no filter specified.
+        """
+        if project_ids is None:
+            return True
+
+        project = entity.get("project")
+        if not project:
+            return False
+
+        project_id = project.get("id") if isinstance(project, dict) else project
+        return project_id in project_ids
+
+    def _matches_text_search(self, entity: Dict[str, Any], text_lower: str) -> bool:
+        """Check if entity matches text search.
+
+        Args:
+            entity: Entity to check.
+            text_lower: Lowercase text to search for.
+
+        Returns:
+            True if entity contains the search text.
+        """
+        searchable_fields = ["code", "name", "description", "content", "login", "email"]
+        for field in searchable_fields:
+            if field in entity:
+                value = entity[field]
+                if isinstance(value, str) and text_lower in value.lower():
+                    return True
+        return False

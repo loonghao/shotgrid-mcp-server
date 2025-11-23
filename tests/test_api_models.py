@@ -601,3 +601,80 @@ def test_search_entities_filters_datetime_normalization():
     assert request.filters == [
         ["created_at", "is", "2025-11-23T00:00:00Z"],
     ]
+
+
+def test_search_entities_time_filter_4_element_normalization():
+    """Test that 4-element time filters are normalized to 3-element format."""
+    # User passes: ["updated_at", "in_last", 1, "DAY"]
+    # Should be normalized to: ["updated_at", "in_last", [1, "DAY"]]
+    filters = [
+        ["updated_at", "in_last", 1, "DAY"],
+    ]
+
+    request = SearchEntitiesRequest(entity_type="Task", filters=filters, fields=["id"])
+
+    assert request.filters == [
+        ["updated_at", "in_last", [1, "DAY"]],
+    ]
+
+
+def test_search_entities_time_filter_all_operators():
+    """Test all time operators are normalized correctly."""
+    test_cases = [
+        (["created_at", "in_last", 7, "DAY"], ["created_at", "in_last", [7, "DAY"]]),
+        (["updated_at", "not_in_last", 2, "WEEK"], ["updated_at", "not_in_last", [2, "WEEK"]]),
+        (["due_date", "in_next", 1, "MONTH"], ["due_date", "in_next", [1, "MONTH"]]),
+        (["start_date", "not_in_next", 3, "YEAR"], ["start_date", "not_in_next", [3, "YEAR"]]),
+    ]
+
+    for input_filter, expected_filter in test_cases:
+        request = SearchEntitiesRequest(entity_type="Task", filters=[input_filter], fields=["id"])
+        assert request.filters == [expected_filter]
+
+
+def test_search_entities_time_filter_already_normalized():
+    """Test that already normalized 3-element time filters pass through unchanged."""
+    filters = [
+        ["updated_at", "in_last", [7, "DAY"]],
+    ]
+
+    request = SearchEntitiesRequest(entity_type="Task", filters=filters, fields=["id"])
+
+    assert request.filters == [
+        ["updated_at", "in_last", [7, "DAY"]],
+    ]
+
+
+def test_search_entities_non_time_filter_4_elements():
+    """Test that 4-element filters with non-time operators are not modified."""
+    # This is an edge case - a filter with 4 elements but not a time operator
+    # Should keep all 4 elements (though this may be invalid for ShotGrid API)
+    filters = [
+        ["code", "is", "value", "extra"],
+    ]
+
+    request = SearchEntitiesRequest(entity_type="Task", filters=filters, fields=["id"])
+
+    # Non-time operators should not be normalized
+    assert request.filters == [
+        ["code", "is", "value", "extra"],
+    ]
+
+
+def test_search_entities_mixed_filters_with_time():
+    """Test mixed filters including time filters are all normalized correctly."""
+    filters = [
+        ["code", "is", "SHOT_001"],
+        ["updated_at", "in_last", 7, "DAY"],
+        ["created_at", "greater_than", "2025-11-23"],
+        ["due_date", "not_in_next", 2, "WEEK"],
+    ]
+
+    request = SearchEntitiesRequest(entity_type="Task", filters=filters, fields=["id"])
+
+    assert request.filters == [
+        ["code", "is", "SHOT_001"],
+        ["updated_at", "in_last", [7, "DAY"]],
+        ["created_at", "greater_than", "2025-11-23T00:00:00Z"],
+        ["due_date", "not_in_next", [2, "WEEK"]],
+    ]
