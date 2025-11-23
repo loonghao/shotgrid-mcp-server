@@ -7,7 +7,7 @@ using cached schema data.
 import logging
 from typing import Any, Dict, List, Optional, Set
 
-from shotgrid_mcp_server.schema_cache import get_schema_cache
+from shotgrid_mcp_server.schema_cache import SchemaCache, get_schema_cache
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +15,13 @@ logger = logging.getLogger(__name__)
 class SchemaValidator:
     """Validator for ShotGrid entity fields using schema data."""
 
-    def __init__(self):
-        """Initialize the schema validator."""
-        self.cache = get_schema_cache()
+    def __init__(self, cache: Optional[SchemaCache] = None):
+        """Initialize the schema validator.
+
+        Args:
+            cache: Optional SchemaCache instance. If None, uses global cache.
+        """
+        self.cache = cache if cache is not None else get_schema_cache()
 
     def validate_fields(
         self,
