@@ -8,6 +8,7 @@ from shotgrid_mcp_server.api_models import (
     BatchRequest,
     FindOneEntityRequest,
     SearchEntitiesRequest,
+    _normalize_datetime_value,
 )
 
 
@@ -511,3 +512,92 @@ def test_find_one_entity_filter_invalid_type():
 
     error_message = str(exc_info.value)
     assert "must be a list" in error_message or "must be a dict" in error_message
+
+
+# Datetime normalization tests
+
+
+def test_normalize_datetime_value_with_space_separator():
+    """Test that datetime with space separator is converted to ISO 8601."""
+    result = _normalize_datetime_value("2025-11-23 00:00:00")
+    assert result == "2025-11-23T00:00:00Z"
+
+
+def test_normalize_datetime_value_with_date_only():
+    """Test that date-only string is converted to ISO 8601 with time."""
+    result = _normalize_datetime_value("2025-11-23")
+    assert result == "2025-11-23T00:00:00Z"
+
+
+def test_normalize_datetime_value_already_iso8601():
+    """Test that ISO 8601 datetime is not modified."""
+    # With Z suffix
+    result = _normalize_datetime_value("2025-11-23T00:00:00Z")
+    assert result == "2025-11-23T00:00:00Z"
+
+    # With timezone offset
+    result = _normalize_datetime_value("2025-11-23T00:00:00+08:00")
+    assert result == "2025-11-23T00:00:00+08:00"
+
+
+def test_normalize_datetime_value_non_string():
+    """Test that non-string values are returned unchanged."""
+    assert _normalize_datetime_value(123) == 123
+    assert _normalize_datetime_value(None) is None
+    assert _normalize_datetime_value({"type": "Project", "id": 1}) == {"type": "Project", "id": 1}
+
+
+def test_normalize_datetime_value_invalid_format():
+    """Test that invalid datetime formats are returned unchanged."""
+    result = _normalize_datetime_value("not a date")
+    assert result == "not a date"
+
+
+def test_advanced_search_filters_datetime_normalization():
+    """Test that datetime values in filters are automatically normalized."""
+    # List format with datetime
+    filters = [
+        ["updated_at", "greater_than", "2025-11-23 00:00:00"],
+    ]
+
+    request = AdvancedSearchRequest(**_make_base_advanced_search_kwargs(filters=filters))
+
+    assert request.filters == [
+        {
+            "field": "updated_at",
+            "operator": "greater_than",
+            "value": "2025-11-23T00:00:00Z",
+        }
+    ]
+
+
+def test_advanced_search_filters_dict_datetime_normalization():
+    """Test that datetime values in dict-format filters are normalized."""
+    # Dict format with datetime
+    filters = [
+        {"field": "updated_at", "operator": "greater_than", "value": "2025-11-23 00:00:00"},
+    ]
+
+    request = AdvancedSearchRequest(**_make_base_advanced_search_kwargs(filters=filters))
+
+    assert request.filters == [
+        {
+            "field": "updated_at",
+            "operator": "greater_than",
+            "value": "2025-11-23T00:00:00Z",
+        }
+    ]
+
+
+def test_search_entities_filters_datetime_normalization():
+    """Test that SearchEntitiesRequest also normalizes datetime values."""
+    filters = [
+        ["created_at", "is", "2025-11-23"],
+    ]
+
+    request = SearchEntitiesRequest(entity_type="Task", filters=filters, fields=["id"])
+
+    # SearchEntitiesRequest keeps list format but normalizes datetime values
+    assert request.filters == [
+        ["created_at", "is", "2025-11-23T00:00:00Z"],
+    ]

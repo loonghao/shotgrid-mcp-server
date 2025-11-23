@@ -7,12 +7,54 @@ All models follow the official ShotGrid Python API conventions:
 https://developers.shotgridsoftware.com/python-api/reference.html
 """
 
+import re
+from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.models import TimeFilter
+
+
+def _normalize_datetime_value(value: Any) -> Any:
+    """Normalize datetime values to ISO 8601 format required by ShotGrid API.
+
+    ShotGrid API requires datetime values in ISO 8601 format:
+    - With timezone: "2025-11-23T00:00:00Z" or "2025-11-23T00:00:00+08:00"
+    - Without timezone: "2025-11-23T00:00:00Z" (assumes UTC)
+
+    This function converts common datetime formats to ISO 8601:
+    - "2025-11-23 00:00:00" -> "2025-11-23T00:00:00Z"
+    - "2025-11-23" -> "2025-11-23T00:00:00Z"
+
+    Args:
+        value: Value to normalize (can be string, datetime, or any other type)
+
+    Returns:
+        Normalized value in ISO 8601 format if it's a datetime string, otherwise unchanged
+    """
+    if not isinstance(value, str):
+        return value
+
+    # Pattern for datetime without timezone: "YYYY-MM-DD HH:MM:SS"
+    datetime_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$")
+    # Pattern for date only: "YYYY-MM-DD"
+    date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+    # If already in ISO 8601 format (contains 'T' or timezone), return as is
+    if "T" in value or "+" in value or value.endswith("Z"):
+        return value
+
+    # Convert "YYYY-MM-DD HH:MM:SS" to "YYYY-MM-DDTHH:MM:SSZ"
+    if datetime_pattern.match(value):
+        return value.replace(" ", "T") + "Z"
+
+    # Convert "YYYY-MM-DD" to "YYYY-MM-DDT00:00:00Z"
+    if date_pattern.match(value):
+        return value + "T00:00:00Z"
+
+    return value
 
 
 class BaseAPIRequest(BaseModel):
@@ -438,13 +480,15 @@ class SearchEntitiesRequest(BaseAPIRequest):
         Accepts list/tuple format: ["field", "operator", value]
 
         Note: Detailed validation and normalization is handled by shotgrid-query's process_filters().
-        This validator only performs basic structure checks.
+        This validator performs basic structure checks and datetime normalization.
         """
         # Allow empty filters list - ShotGrid API allows this to return all entities
         if not v:
             return v
 
-        # Basic structure validation - just ensure it's a list of lists/tuples
+        normalized_filters = []
+
+        # Basic structure validation and datetime normalization
         for i, filter_item in enumerate(v):
             if not isinstance(filter_item, (list, tuple)):
                 raise ValueError(
@@ -455,8 +499,12 @@ class SearchEntitiesRequest(BaseAPIRequest):
                     f"Filter {i} must have at least 3 elements [field, operator, value], got {len(filter_item)}"
                 )
 
-        # Return filters as-is for processing by shotgrid-query
-        return v
+            # Normalize datetime values in the filter
+            filter_list = list(filter_item)
+            filter_list[2] = _normalize_datetime_value(filter_list[2])
+            normalized_filters.append(filter_list)
+
+        return normalized_filters
 
 
 class SearchEntitiesWithRelatedRequest(SearchEntitiesRequest):
@@ -628,11 +676,15 @@ class AdvancedSearchRequest(BaseAPIRequest):
                     raise ValueError(
                         f"Filter {i} in list format must have at least 3 elements [field, operator, value], got {len(filter_item)}"
                     )
+                # Normalize datetime values in filter value
+                value = filter_item[2] if len(filter_item) == 3 else filter_item[2:]
+                value = _normalize_datetime_value(value)
+
                 normalized_filters.append(
                     {
                         "field": filter_item[0],
                         "operator": filter_item[1],
-                        "value": filter_item[2] if len(filter_item) == 3 else filter_item[2:],
+                        "value": value,
                     }
                 )
                 continue
@@ -652,6 +704,8 @@ class AdvancedSearchRequest(BaseAPIRequest):
 
             # Already in internal style
             if all(key in working_filter for key in ("field", "operator", "value")):
+                # Normalize datetime values
+                working_filter["value"] = _normalize_datetime_value(working_filter["value"])
                 normalized_filters.append(working_filter)
                 continue
 
@@ -665,6 +719,9 @@ class AdvancedSearchRequest(BaseAPIRequest):
                 value = values
                 if isinstance(values, list) and len(values) == 1 and relation in ("is", "is_not"):
                     value = values[0]
+
+                # Normalize datetime values
+                value = _normalize_datetime_value(value)
 
                 normalized_filters.append({"field": path, "operator": relation, "value": value})
                 continue
