@@ -1,3 +1,31 @@
+## v0.13.0 (2025-11-23)
+
+### Feat
+
+- improve MCP tool documentation and add missing ShotGrid API coverage
+- add text_search minimum length validation and improve filter docs
+- add user-friendly API improvements and comprehensive tests
+- add automatic datetime format normalization for filters
+- implement MockgunExt.update method and improve test coverage
+- migrate from diskcache to diskcache_rs for improved performance
+
+### Fix
+
+- resolve test failures in search tools
+- update dependencies to resolve security vulnerabilities
+- only pass page parameter to sg.find when it has a value
+- unify ruff version and fix import sorting
+- normalize line endings to LF for Python files
+- add __all__ to models.py to re-export TimeFilter
+- add shotgrid-query to requirements-dev.txt
+- reduce complexity of register_create_tools and fix TimeFilter import
+- simplify filter validation and fix return type mismatches
+
+### Refactor
+
+- reduce complexity of register_advanced_search_tool
+- organize schema cache directory alongside logs
+
 ## v0.12.0 (2025-11-19)
 
 ### Feat
