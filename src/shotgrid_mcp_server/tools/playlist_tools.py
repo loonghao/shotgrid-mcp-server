@@ -157,19 +157,25 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
     ) -> Dict[str, Any]:
         """Find playlists in ShotGrid using filters and field selection.
 
-        Use this tool to search for playlists across projects or with specific criteria.
-        Playlists are used for organizing versions for review, dailies, and approvals.
-
-        Common use cases:
-        - Find playlists in a specific project
-        - Find playlists created by a specific user
-        - Find playlists created within a date range
+        **When to use this tool:**
+        - Search for playlists with specific criteria (project, creator, date range)
         - Find playlists containing specific versions
         - Search for playlists by name pattern
+        - Get playlists with custom field selection
+        - Apply complex filtering logic (AND/OR operators)
 
-        For finding recent playlists, use `find_recent_playlists` instead (simpler).
-        For finding playlists in a specific project, use `find_project_playlists` instead.
-        For creating new playlists, use `create_playlist`.
+        **When NOT to use this tool:**
+        - To find recent playlists only - Use `find_recent_playlists` instead (simpler)
+        - To find playlists in a specific project only - Use `find_project_playlists` instead
+        - To create new playlists - Use `create_playlist` instead
+        - To update playlists - Use `update_entity` with entity_type="Playlist" instead
+        - To delete playlists - Use `delete_entity` with entity_type="Playlist" instead
+
+        **Common use cases:**
+        - Find dailies playlists: Filter by code containing "dailies"
+        - Find playlists for review: Filter by project and date range
+        - Find user's playlists: Filter by created_by user ID
+        - Find playlists with specific versions: Filter by versions field
 
         Args:
             filters: Optional list of filter conditions.
@@ -361,17 +367,63 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
     ) -> Dict[str, Any]:
         """Find playlists in a specific project.
 
+        **When to use this tool:**
+        - You know the project ID and want all playlists in that project
+        - You want to find recent playlists in a specific project
+        - You need a simple way to get project playlists without complex filters
+
+        **When NOT to use this tool:**
+        - To search across multiple projects - Use `find_playlists` instead
+        - To find recent playlists across all projects - Use `find_recent_playlists` instead
+        - To apply complex filtering - Use `find_playlists` instead
+
+        **Common use cases:**
+        - Get all playlists in project 123
+        - Get playlists created in last 7 days in project 123
+        - Get latest 10 playlists in a project
+
         Args:
             project_id: ID of project to find playlists for.
+                       Must be a valid project ID.
+
+                       Example: 123
+
             fields: Optional list of fields to return.
+                   If not provided, returns default fields.
+
+                   Example: ["code", "description", "versions"]
+
             days: Optional number of days to look back.
+                 If provided, only returns playlists created in the last N days.
+
+                 Example: 7 (last 7 days)
+
             limit: Optional limit on number of playlists to return.
+                  Useful for getting just the most recent playlists.
+
+                  Example: 10
 
         Returns:
-            List[Dict[str, str]]: List of playlists found.
+            Dictionary containing:
+            - playlists: List of playlists found
+            - total_count: Number of playlists found
+            - message: Summary message
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If the find operation fails or project_id is invalid.
+
+        Examples:
+            Get all playlists in project 123:
+            {
+                "project_id": 123
+            }
+
+            Get playlists from last 7 days in project 123:
+            {
+                "project_id": 123,
+                "days": 7,
+                "limit": 20
+            }
         """
         try:
             # Build filters
@@ -407,17 +459,73 @@ def register_playlist_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: 
     ) -> Dict[str, Any]:
         """Find recent playlists in ShotGrid.
 
+        **When to use this tool:**
+        - You want to find playlists created recently (last N days)
+        - You need a quick way to get recent playlists without complex filters
+        - You want to see what playlists were created this week
+        - You want to find recent playlists across all projects or in a specific project
+
+        **When NOT to use this tool:**
+        - To find playlists with complex criteria - Use `find_playlists` instead
+        - To find all playlists in a project (not just recent) - Use `find_project_playlists` instead
+        - To search by playlist name or other fields - Use `find_playlists` instead
+
+        **Common use cases:**
+        - Get playlists from last 7 days (default)
+        - Get playlists from last 30 days in project 123
+        - Get latest 10 playlists across all projects
+
         Args:
             days: Number of days to look back (default: 7).
+                 Playlists created within this time period will be returned.
+
+                 Examples:
+                 - 7 (last week, default)
+                 - 30 (last month)
+                 - 1 (today)
+
             project_id: Optional project ID to filter playlists by.
+                       If not provided, searches across all projects.
+
+                       Example: 123
+
             limit: Optional limit on number of playlists to return (default: 20).
+                  Useful for getting just the most recent playlists.
+
+                  Example: 10
+
             fields: Optional list of fields to return.
+                   If not provided, returns default fields.
+
+                   Example: ["code", "description", "versions"]
 
         Returns:
-            List[Dict[str, str]]: List of playlists found.
+            Dictionary containing:
+            - playlists: List of recent playlists found (sorted newest first)
+            - total_count: Number of playlists found
+            - message: Summary message
 
         Raises:
             ToolError: If the find operation fails.
+
+        Examples:
+            Get playlists from last 7 days:
+            {
+                "days": 7
+            }
+
+            Get playlists from last 30 days in project 123:
+            {
+                "days": 30,
+                "project_id": 123,
+                "limit": 50
+            }
+
+            Get latest 10 playlists across all projects:
+            {
+                "days": 90,
+                "limit": 10
+            }
         """
         try:
             # Build filters

@@ -26,19 +26,30 @@ def register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
     def delete_entity(entity_type: EntityType, entity_id: int) -> Dict[str, Any]:
         """Delete (retire) an entity in ShotGrid.
 
-        Use this tool to soft-delete an entity. In ShotGrid, deletion is typically a
-        "soft delete" (retirement) - the entity is marked as retired but not permanently
-        removed from the database.
+        **IMPORTANT: This operation cannot be easily undone through the API.**
+        Retired entities can only be restored through the ShotGrid web interface.
 
-        Common use cases:
+        **When to use this tool:**
+        - You need to remove a shot that is no longer needed
+        - You want to delete a task that was created by mistake
+        - You need to retire a version that should not be visible
+        - You want to clean up test data
+        - You need to soft-delete an entity (mark as retired)
+
+        **When NOT to use this tool:**
+        - To update an entity - Use `update_entity` instead
+        - To delete multiple entities at once - Use `batch_operations` instead
+        - Entity type cannot be deleted (e.g., Project, HumanUser)
+        - You're not sure if deletion is needed - Ask for confirmation first
+
+        **Common use cases:**
         - Remove a shot that is no longer needed
         - Delete a task that was created by mistake
         - Retire a version that should not be visible
         - Clean up test data
 
-        IMPORTANT: This operation cannot be easily undone through the API.
-        Retired entities can only be restored through the ShotGrid web interface.
-
+        **Note:** In ShotGrid, deletion is typically a "soft delete" (retirement) -
+        the entity is marked as retired but not permanently removed from the database.
         For batch deletions, use `batch_operations` instead.
 
         Args:

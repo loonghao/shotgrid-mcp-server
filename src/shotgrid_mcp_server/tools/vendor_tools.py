@@ -150,6 +150,67 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
     ) -> Dict[str, Any]:
         """Find vendor (external) users in ShotGrid.
 
+        **When to use this tool:**
+        - You need to find external/vendor users in the system
+        - You want to see which vendors are working on a project
+        - You need to get contact information for vendor users
+        - You want to filter vendor users by active status
+
+        **When NOT to use this tool:**
+        - To find internal users - Use `search_entities` with entity_type="HumanUser" instead
+        - To find all users (internal + vendor) - Use `search_entities` instead
+        - To find vendor versions - Use `find_vendor_versions` instead
+
+        **Common use cases:**
+        - Get all active vendor users
+        - Get vendor users working on project 123
+        - Get vendor user contact information (email, login)
+
+        Args:
+            project_id: Optional project ID to filter vendor users by.
+                       If provided, only returns vendors associated with this project.
+
+                       Example: 123
+
+            fields: Optional list of fields to return.
+                   If not provided, returns default fields:
+                   ["id", "name", "login", "email", "groups", "sg_status_list", "sg_vendor"]
+
+                   Example: ["name", "email", "login"]
+
+            active_only: Whether to return only active users (default: True).
+                        If False, returns all vendor users including inactive ones.
+
+                        Example: True
+
+        Returns:
+            Dictionary containing:
+            - users: List of vendor users found
+            - total_count: Number of vendor users found
+            - message: Summary message
+
+        Raises:
+            ToolError: If the find operation fails.
+
+        Examples:
+            Get all active vendor users:
+            {
+                "active_only": true
+            }
+
+            Get vendor users in project 123:
+            {
+                "project_id": 123,
+                "active_only": true
+            }
+
+        Note:
+            - Vendor users are identified by sg_vendor field, group membership, or email domain
+            - Default fields include vendor-specific information
+            - Results are sorted by name
+        """
+        """Find vendor (external) users in ShotGrid.
+
         Args:
             project_id: Optional project ID to filter users by.
             fields: Optional list of fields to return.
@@ -213,21 +274,109 @@ def register_vendor_tools(server: FastMCPType, sg: Shotgun) -> None:  # noqa: C9
     ) -> Dict[str, Any]:
         """Find versions created by vendor users in ShotGrid.
 
+        **When to use this tool:**
+        - You need to find versions submitted by external/vendor users
+        - You want to review vendor deliverables in a project
+        - You need to track vendor work progress
+        - You want to filter vendor versions by status or date range
+
+        **When NOT to use this tool:**
+        - To find all versions (internal + vendor) - Use `search_entities` with entity_type="Version" instead
+        - To find vendor users - Use `find_vendor_users` instead
+        - To find versions by specific criteria (not vendor-related) - Use `search_entities` instead
+
+        **Common use cases:**
+        - Get all vendor versions in project 123
+        - Get vendor versions from last 7 days
+        - Get vendor versions with status "rev" (in review)
+        - Get vendor versions for a specific shot or asset
+
         Args:
             project_id: Project ID to filter versions by.
-            vendor_user_ids: Optional list of vendor user IDs. If not provided, all vendor users will be considered.
+                       Required - all versions must belong to a project.
+
+                       Example: 123
+
+            vendor_user_ids: Optional list of vendor user IDs.
+                            If not provided, finds versions from all vendor users in the project.
+                            If provided, only finds versions from these specific vendor users.
+
+                            Example: [42, 43, 44]
+
             days: Optional number of days to look back.
+                 If provided, only returns versions created in the last N days.
+
+                 Example: 7 (last 7 days)
+
             status: Optional status to filter versions by.
+                   Common statuses: "rev" (review), "apr" (approved), "ip" (in progress)
+
+                   Example: "rev"
+
             entity_type: Optional entity type to filter versions by.
+                        Use with entity_id to find versions for a specific entity.
+
+                        Example: "Shot"
+
             entity_id: Optional entity ID to filter versions by.
+                      Use with entity_type to find versions for a specific entity.
+
+                      Example: 1234
+
             fields: Optional list of fields to return.
+                   If not provided, returns default fields:
+                   ["id", "code", "description", "created_at", "updated_at", "user",
+                    "created_by", "entity", "project", "sg_status_list",
+                    "sg_path_to_movie", "sg_path_to_frames"]
+
+                   Example: ["code", "sg_status_list", "created_at"]
+
             limit: Optional limit on number of versions to return.
+                  Useful for getting just the most recent vendor versions.
+
+                  Example: 50
 
         Returns:
-            List[Dict[str, str]]: List of versions found.
+            Dictionary containing:
+            - versions: List of vendor versions found (sorted newest first)
+            - total_count: Number of vendor versions found
+            - message: Summary message
 
         Raises:
-            ToolError: If the find operation fails.
+            ToolError: If the find operation fails or project_id is invalid.
+
+        Examples:
+            Get all vendor versions in project 123:
+            {
+                "project_id": 123
+            }
+
+            Get vendor versions from last 7 days with status "rev":
+            {
+                "project_id": 123,
+                "days": 7,
+                "status": "rev",
+                "limit": 50
+            }
+
+            Get vendor versions for a specific shot:
+            {
+                "project_id": 123,
+                "entity_type": "Shot",
+                "entity_id": 1234
+            }
+
+            Get versions from specific vendor users:
+            {
+                "project_id": 123,
+                "vendor_user_ids": [42, 43],
+                "days": 30
+            }
+
+        Note:
+            - If vendor_user_ids is not provided, automatically finds all vendor users in the project
+            - Results are sorted by creation date (newest first)
+            - Vendor users are identified by sg_vendor field, group membership, or email domain
         """
         try:
             # Default fields if none provided

@@ -98,28 +98,19 @@ def register_search_entities(server: FastMCPType, sg: Shotgun) -> None:
                     Common types: "Shot", "Asset", "Task", "Version", "Note", "PublishedFile"
 
                 filters: List of filter conditions (optional).
+                    **IMPORTANT**: filters is a simple list of [field, operator, value] triplets.
+                    To use AND/OR logic, set filter_operator parameter separately (NOT inside filters).
+
                     If omitted, returns all entities of the specified type.
 
                     Simple filter (single condition):
                     ["sg_status_list", "is", "ip"]
 
-                    Multiple filters with AND logic:
-                    {
-                        "filter_operator": "all",
-                        "filters": [
-                            ["sg_status_list", "is", "ip"],
-                            ["project", "is", {"type": "Project", "id": 123}]
-                        ]
-                    }
-
-                    Multiple filters with OR logic:
-                    {
-                        "filter_operator": "any",
-                        "filters": [
-                            ["sg_status_list", "is", "ip"],
-                            ["sg_status_list", "is", "wtg"]
-                        ]
-                    }
+                    Multiple filters (default AND logic):
+                    [
+                        ["sg_status_list", "is", "ip"],
+                        ["project", "is", {"type": "Project", "id": 123}]
+                    ]
 
                     Time-based filter:
                     ["updated_at", "in_last", 7, "DAY"]
@@ -386,13 +377,29 @@ def register_search_with_related(server: FastMCPType, sg: Shotgun) -> None:
                     Example: [{"field_name": "code", "direction": "asc"}]
 
                 filter_operator: Logical operator for combining filters (optional).
+                    **IMPORTANT**: This is a TOP-LEVEL parameter in the request object, NOT nested inside filters!
+
                     Values: "all" (AND logic, default) or "any" (OR logic)
 
-                    IMPORTANT: Use "all" or "any", NOT "and" or "or"
+                    **CORRECT usage** (filter_operator at top level):
+                    {
+                        "entity_type": "Note",
+                        "filters": [
+                            ["user", "is", {"type": "HumanUser", "id": 121}],
+                            ["addressings_to", "is", {"type": "HumanUser", "id": 121}]
+                        ],
+                        "filter_operator": "any",  # <-- Top-level parameter!
+                        "fields": ["id", "subject", "content"]
+                    }
 
-                    Examples:
-                    - "all" (default): All filters must match (AND logic)
-                    - "any": Any filter can match (OR logic)
+                    **WRONG usage** (DO NOT nest filter_operator inside filters):
+                    {
+                        "entity_type": "Note",
+                        "filters": {  # <-- WRONG! filters should be a list, not a dict
+                            "filter_operator": "any",
+                            "filters": [...]
+                        }
+                    }
 
                 limit: Maximum number of results (optional).
                     Example: 100
@@ -570,6 +577,8 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
                     Common types: "Shot", "Asset", "Task", "Version", "Note"
 
                 filters: Filter conditions to identify the entity.
+                    **IMPORTANT**: filters is a simple list of [field, operator, value] triplets.
+                    To use AND/OR logic, set filter_operator parameter separately (NOT inside filters).
 
                     Find by ID:
                     [["id", "is", 1234]]
@@ -577,14 +586,11 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
                     Find by unique code:
                     [["code", "is", "SH001"]]
 
-                    Find by multiple conditions:
-                    {
-                        "filter_operator": "all",
-                        "filters": [
-                            ["code", "is", "SH001"],
-                            ["project", "is", {"type": "Project", "id": 123}]
-                        ]
-                    }
+                    Find by multiple conditions (AND logic):
+                    [
+                        ["code", "is", "SH001"],
+                        ["project", "is", {"type": "Project", "id": 123}]
+                    ]
 
                 fields: List of field names to return (optional).
                     If omitted, returns default fields.
@@ -903,13 +909,31 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
                     Example: [{"field_name": "updated_at", "direction": "desc"}]
 
                 filter_operator: Logical operator for combining filters (optional).
+                    **IMPORTANT**: This is a TOP-LEVEL parameter in the request object, NOT nested inside filters!
+
                     Values: "all" (AND logic, default) or "any" (OR logic)
 
-                    IMPORTANT: Use "all" or "any", NOT "and" or "or"
+                    **CORRECT usage** (filter_operator at top level):
+                    {
+                        "entity_type": "Version",
+                        "filters": [
+                            ["sg_status_list", "is", "rev"],
+                            ["sg_status_list", "is", "apr"]
+                        ],
+                        "filter_operator": "any",  # <-- Top-level parameter!
+                        "time_filters": [
+                            {"field": "created_at", "operator": "in_last", "count": 7, "unit": "DAY"}
+                        ]
+                    }
 
-                    Examples:
-                    - "all" (default): All filters must match (AND logic)
-                    - "any": Any filter can match (OR logic)
+                    **WRONG usage** (DO NOT nest filter_operator inside filters):
+                    {
+                        "entity_type": "Version",
+                        "filters": {  # <-- WRONG! filters should be a list, not a dict
+                            "filter_operator": "any",
+                            "filters": [...]
+                        }
+                    }
 
                 limit: Maximum number of results (optional).
                     Example: 100
