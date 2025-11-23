@@ -64,9 +64,10 @@ class TestSearchEntitiesRequestFilterValidation:
             )
 
     def test_tuple_format_accepted(self):
-        """Test that tuple format is accepted."""
+        """Test that tuple format is accepted and converted to list."""
         request = SearchEntitiesRequest(entity_type="Task", filters=[("sg_status_list", "is", "ip")], fields=["id"])
-        assert request.filters == [("sg_status_list", "is", "ip")]
+        # Tuples are converted to lists during validation
+        assert request.filters == [["sg_status_list", "is", "ip"]]
 
     def test_filter_with_entity_reference(self):
         """Test filter with entity reference."""
