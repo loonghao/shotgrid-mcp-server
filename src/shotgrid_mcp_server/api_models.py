@@ -479,8 +479,21 @@ class SearchEntitiesRequest(BaseAPIRequest):
         Accepts list/tuple format: ["field", "operator", value]
 
         Auto-normalizes for AI model convenience:
-        - 4-element time filters: ["field", "in_last", 1, "DAY"] -> ["field", "in_last", [1, "DAY"]]
-        - Datetime formats: "2025-11-23" -> "2025-11-23T00:00:00Z"
+
+        1. Time filters with 4 elements -> 3 elements (for specific operators):
+           - Operators: "in_last", "not_in_last", "in_next", "not_in_next"
+           - Format: ["field", "in_last", 1, "DAY"] -> ["field", "in_last", [1, "DAY"]]
+           - Units: "HOUR", "DAY", "WEEK", "MONTH", "YEAR"
+
+        2. Calendar operators (NO conversion needed - already 3 elements):
+           - Operators: "in_calendar_day", "in_calendar_week", "in_calendar_month", "in_calendar_year"
+           - Format: ["field", "in_calendar_day", 0] (0=today, 1=tomorrow, -1=yesterday)
+           - These use integer offset, NOT [count, unit] format
+
+        3. Datetime value normalization:
+           - "2025-11-23" -> "2025-11-23T00:00:00Z"
+           - "2025-11-23 14:30:00" -> "2025-11-23T14:30:00Z"
+           - Applied to all filter values
 
         Note: Detailed validation is handled by shotgrid-query's process_filters().
         """

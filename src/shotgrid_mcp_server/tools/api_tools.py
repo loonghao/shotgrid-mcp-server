@@ -731,8 +731,15 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
               required by ShotGrid API: {"EntityType": []} with empty filter lists
             - This allows AI models to pass simple lists like ["Shot", "Asset"]
               instead of the more complex {"Shot": [], "Asset": []} format
+            - Text length is validated to meet ShotGrid's minimum requirement (3 characters)
         """
         try:
+            # Validate text length - ShotGrid requires at least 3 characters
+            if not text or len(text.strip()) < 3:
+                raise ValueError(
+                    f"Text search requires at least 3 characters. Got: '{text}' ({len(text.strip())} characters)"
+                )
+
             # Convert list of entity types to dictionary format required by ShotGrid API
             # ShotGrid text_search expects: {"EntityType": [filters], ...}
             # We provide empty filter lists for each entity type
