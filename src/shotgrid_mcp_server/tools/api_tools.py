@@ -610,6 +610,8 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             entity_types: List of entity types to search within.
                          Must provide at least one entity type.
+                         This will be automatically converted to the dictionary format
+                         required by ShotGrid API (with empty filter lists for each type).
 
                          Common types:
                          - "Shot": Shots in sequences
@@ -723,11 +725,18 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             - The search looks in predefined searchable fields (not all fields)
             - For exact field matching, use `search_entities` with filters instead
             - Empty results for an entity type are omitted from the response
+            - The entity_types list is automatically converted to the dictionary format
+              required by ShotGrid API: {"EntityType": []} with empty filter lists
         """
         try:
+            # Convert list of entity types to dictionary format required by ShotGrid API
+            # ShotGrid text_search expects: {"EntityType": [filters], ...}
+            # We provide empty filter lists for each entity type
+            entity_types_dict = {entity_type: [] for entity_type in entity_types}
+
             result = _get_sg(sg).text_search(
                 text,
-                entity_types,
+                entity_types_dict,
                 project_ids=project_ids,
                 limit=limit,
             )

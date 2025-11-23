@@ -8,7 +8,6 @@ https://developers.shotgridsoftware.com/python-api/reference.html
 """
 
 import re
-from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -487,6 +486,7 @@ class SearchEntitiesRequest(BaseAPIRequest):
             return v
 
         normalized_filters = []
+        TIME_OPERATORS = ["in_last", "not_in_last", "in_next", "not_in_next"]
 
         # Basic structure validation and datetime normalization
         for i, filter_item in enumerate(v):
@@ -499,8 +499,14 @@ class SearchEntitiesRequest(BaseAPIRequest):
                     f"Filter {i} must have at least 3 elements [field, operator, value], got {len(filter_item)}"
                 )
 
-            # Normalize datetime values in the filter
             filter_list = list(filter_item)
+
+            # Normalize 4-element time filters to 3-element format
+            # ["field", "in_last", 1, "DAY"] -> ["field", "in_last", [1, "DAY"]]
+            if len(filter_list) == 4 and filter_list[1] in TIME_OPERATORS:
+                filter_list = [filter_list[0], filter_list[1], [filter_list[2], filter_list[3]]]
+
+            # Normalize datetime values in the filter
             filter_list[2] = _normalize_datetime_value(filter_list[2])
             normalized_filters.append(filter_list)
 

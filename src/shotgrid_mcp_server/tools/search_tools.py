@@ -1157,8 +1157,15 @@ def _find_entities_by_date_range(
         EntitiesResponse with list of entities matching the date range
     """
     try:
+        # Import datetime normalization function
+        from shotgrid_mcp_server.api_models import _normalize_datetime_value
+
+        # Normalize date values to ISO 8601 format required by ShotGrid API
+        normalized_start = _normalize_datetime_value(start_date)
+        normalized_end = _normalize_datetime_value(end_date)
+
         # Create date range filter using Pydantic model
-        date_filter = Filter(field=date_field, operator="between", value=[start_date, end_date])
+        date_filter = Filter(field=date_field, operator="between", value=[normalized_start, normalized_end])
 
         filters = [date_filter.to_tuple()]
 
