@@ -478,8 +478,11 @@ class SearchEntitiesRequest(BaseAPIRequest):
 
         Accepts list/tuple format: ["field", "operator", value]
 
-        Note: Detailed validation and normalization is handled by shotgrid-query's process_filters().
-        This validator performs basic structure checks and datetime normalization.
+        Auto-normalizes for AI model convenience:
+        - 4-element time filters: ["field", "in_last", 1, "DAY"] -> ["field", "in_last", [1, "DAY"]]
+        - Datetime formats: "2025-11-23" -> "2025-11-23T00:00:00Z"
+
+        Note: Detailed validation is handled by shotgrid-query's process_filters().
         """
         # Allow empty filters list - ShotGrid API allows this to return all entities
         if not v:
@@ -488,7 +491,7 @@ class SearchEntitiesRequest(BaseAPIRequest):
         normalized_filters = []
         TIME_OPERATORS = ["in_last", "not_in_last", "in_next", "not_in_next"]
 
-        # Basic structure validation and datetime normalization
+        # Basic structure validation and normalization
         for i, filter_item in enumerate(v):
             if not isinstance(filter_item, (list, tuple)):
                 raise ValueError(
@@ -501,12 +504,12 @@ class SearchEntitiesRequest(BaseAPIRequest):
 
             filter_list = list(filter_item)
 
-            # Normalize 4-element time filters to 3-element format
+            # Auto-normalize 4-element time filters to 3-element format for AI convenience
             # ["field", "in_last", 1, "DAY"] -> ["field", "in_last", [1, "DAY"]]
             if len(filter_list) == 4 and filter_list[1] in TIME_OPERATORS:
                 filter_list = [filter_list[0], filter_list[1], [filter_list[2], filter_list[3]]]
 
-            # Normalize datetime values in the filter
+            # Auto-normalize datetime values in the filter
             filter_list[2] = _normalize_datetime_value(filter_list[2])
             normalized_filters.append(filter_list)
 
