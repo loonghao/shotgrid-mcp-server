@@ -13,3 +13,4 @@ shotgrid-query>=0.1.0
 python-slugify>=8.0.4,<9.0.0
 pendulum>=3.1.0,<4.0.0
 tenacity>=9.1.2,<10.0.0
+diskcache_rs>=0.4.4

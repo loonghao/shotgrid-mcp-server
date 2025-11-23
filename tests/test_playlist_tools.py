@@ -82,12 +82,12 @@ class TestPlaylistTools:
         response_dict = json.loads(response_text)
 
         # Verify the parsed response
-        assert "data" in response_dict
-        assert isinstance(response_dict["data"], list)
-        assert len(response_dict["data"]) >= 2
+        assert "playlists" in response_dict
+        assert isinstance(response_dict["playlists"], list)
+        assert len(response_dict["playlists"]) >= 2
 
         # Verify URL fields exist on at least one playlist
-        first_playlist = response_dict["data"][0]
+        first_playlist = response_dict["playlists"][0]
         assert "sg_url" in first_playlist
         assert "sg_urls" in first_playlist
 
@@ -160,10 +160,10 @@ class TestPlaylistTools:
         response_dict = json.loads(response_text)
 
         # Verify the parsed response
-        assert "data" in response_dict
-        assert isinstance(response_dict["data"], list)
-        assert len(response_dict["data"]) == 1
-        assert response_dict["data"][0]["code"] == "Project 1 Playlist"
+        assert "playlists" in response_dict
+        assert isinstance(response_dict["playlists"], list)
+        assert len(response_dict["playlists"]) == 1
+        assert response_dict["playlists"][0]["code"] == "Project 1 Playlist"
 
     @pytest.mark.asyncio
     async def test_find_recent_playlists(self, playlist_server: FastMCP, mock_sg: Shotgun):
@@ -230,9 +230,9 @@ class TestPlaylistTools:
         response_dict = json.loads(response_text)
 
         # Verify the parsed response
-        assert "data" in response_dict
-        assert isinstance(response_dict["data"], list)
-        # Note: We're not asserting the exact length or content of the data array
+        assert "playlists" in response_dict
+        assert isinstance(response_dict["playlists"], list)
+        # Note: We're not asserting the exact length or content of the playlists array
         # because the test environment might have different data
 
     @pytest.mark.asyncio
@@ -277,26 +277,27 @@ class TestPlaylistTools:
         response_dict = json.loads(response_text)
 
         # Verify the parsed response
-        assert "data" in response_dict
-        assert response_dict["data"]["code"] == "New Playlist"
-        assert response_dict["data"]["description"] == "New playlist description"
-        assert "sg_url" in response_dict["data"]
-        assert "id" in response_dict["data"]
+        assert "playlists" in response_dict
+        assert len(response_dict["playlists"]) == 1
+        playlist_data = response_dict["playlists"][0]
+        assert playlist_data["code"] == "New Playlist"
+        assert playlist_data["description"] == "New playlist description"
+        assert "sg_url" in playlist_data
+        assert "id" in playlist_data
 
         # Verify versions
-        assert "versions" in response_dict["data"]
-        assert len(response_dict["data"]["versions"]) == 1
+        assert "versions" in playlist_data
+        assert len(playlist_data["versions"]) == 1
 
         # Verify playlist URL format and top-level URL
-        playlist_id = response_dict["data"]["id"]
+        playlist_id = playlist_data["id"]
         expected_url = (
             f"{mock_sg.base_url.rstrip('/')}/page/screening_room?" f"entity_type=Playlist&entity_id={playlist_id}"
         )
-        assert response_dict["data"]["sg_url"] == expected_url
-        assert response_dict.get("url") == expected_url
+        assert playlist_data["sg_url"] == expected_url
 
         # Verify all URL variants are available
-        urls = response_dict["data"]["sg_urls"]
+        urls = playlist_data["sg_urls"]
         assert urls["screening_room"] == expected_url
         detail_url = f"{mock_sg.base_url.rstrip('/')}/detail/Playlist/{playlist_id}"
         assert urls["detail"] == detail_url
@@ -412,7 +413,7 @@ class TestPlaylistTools:
         # Parse JSON payload
         response_text = result[0].text
         response_dict = json.loads(response_text)
-        playlists = response_dict["data"]
+        playlists = response_dict["playlists"]
 
         # Find the playlist we just created
         target = next(p for p in playlists if p["code"] == "No Project Playlist")

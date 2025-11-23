@@ -276,7 +276,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "sg.search.advanced",
+            "sg_search_advanced",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -327,7 +327,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "sg.search.advanced",
+            "sg_search_advanced",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -404,7 +404,7 @@ class TestSearchTools:
         related_fields = {"created_by": ["name", "email"]}
 
         result = await search_server._mcp_call_tool(
-            "sg.search.advanced",
+            "sg_search_advanced",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -453,7 +453,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "find_one_entity",
+            "entity_find_one",
             {
                 "entity_type": "Shot",
                 "filters": filters,
@@ -483,7 +483,7 @@ class TestSearchTools:
 
         # Call the tool
         result = await search_server._mcp_call_tool(
-            "find_one_entity",
+            "entity_find_one",
             {
                 "entity_type": "Shot",
                 "filters": filters,

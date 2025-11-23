@@ -270,6 +270,33 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
 
         return entity
 
+    def update(self, entity_type: EntityType, entity_id: int, data: Dict[str, ShotGridValue]) -> Entity:  # type: ignore[return-value]
+        """Update an entity in the mock database.
+
+        Args:
+            entity_type: Type of entity to update.
+            entity_id: ID of the entity to update.
+            data: Entity data to update.
+
+        Returns:
+            Dict[str, Any]: Updated entity data.
+
+        Raises:
+            ShotgunError: If entity is not found or validation fails.
+        """
+        # Check if entity exists
+        if not self._validate_entity_exists(entity_type, entity_id):
+            raise ShotgunError(f"Entity {entity_type} with ID {entity_id} not found")
+
+        # Validate data
+        self._validate_entity_data(entity_type, data)
+
+        # Update entity
+        entity = self._db[entity_type][entity_id]
+        entity.update(data)
+
+        return entity
+
     def delete(self, entity_type: str, entity_id: int) -> None:
         """Delete an entity from the mock database.
 
@@ -390,9 +417,9 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             # Always include 'type' and 'id' fields (ShotGrid API behavior)
             result = {field: getattr(entity, field, None) for field in fields}
             if "type" not in result and hasattr(entity, "type"):
-                result["type"] = getattr(entity, "type")
+                result["type"] = entity.type
             if "id" not in result and hasattr(entity, "id"):
-                result["id"] = getattr(entity, "id")
+                result["id"] = entity.id
             return result
         return {k: v for k, v in vars(entity).items() if not k.startswith("_")}
 
