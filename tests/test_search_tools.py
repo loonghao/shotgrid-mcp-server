@@ -59,22 +59,20 @@ class TestSearchTools:
             },
         )
 
-        # Create test filters
+        # Create test filters (ShotGrid native format: [field, operator, value])
         filters = [
-            {
-                "field": "project",
-                "operator": "is",
-                "value": {"type": "Project", "id": project["id"]},
-            }
+            ["project", "is", {"type": "Project", "id": project["id"]}]
         ]
 
         # Call the tool
         result = await search_server._mcp_call_tool(
             "search_entities",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "fields": ["code", "project"],
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                }
             },
         )
 
@@ -101,21 +99,19 @@ class TestSearchTools:
             },
         )
 
-        # Create test filters with non-matching criteria
+        # Create test filters with non-matching criteria (ShotGrid native format)
         filters = [
-            {
-                "field": "code",
-                "operator": "is",
-                "value": "NON_EXISTENT_SHOT",
-            }
+            ["code", "is", "NON_EXISTENT_SHOT"]
         ]
 
         # Call the tool
         result = await search_server._mcp_call_tool(
             "search_entities",
             {
-                "entity_type": "Shot",
-                "filters": filters,
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                }
             },
         )
 
@@ -220,23 +216,21 @@ class TestSearchTools:
                 },
             )
 
-        # Create test filters
+        # Create test filters (ShotGrid native format)
         filters = [
-            {
-                "field": "project",
-                "operator": "is",
-                "value": {"type": "Project", "id": project["id"]},
-            }
+            ["project", "is", {"type": "Project", "id": project["id"]}]
         ]
 
         # Call the tool with limit
         result = await search_server._mcp_call_tool(
             "search_entities",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "fields": ["code"],
-                "limit": 3,
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code"],
+                    "limit": 3,
+                }
             },
         )
 
@@ -278,9 +272,11 @@ class TestSearchTools:
         result = await search_server._mcp_call_tool(
             "sg_search_advanced",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "fields": ["code", "project"],
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                }
             },
         )
 
@@ -329,9 +325,11 @@ class TestSearchTools:
         result = await search_server._mcp_call_tool(
             "sg_search_advanced",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "fields": ["code", "project"],
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                }
             },
         )
 
@@ -406,11 +404,13 @@ class TestSearchTools:
         result = await search_server._mcp_call_tool(
             "sg_search_advanced",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "time_filters": time_filters,
-                "fields": ["code"],
-                "related_fields": related_fields,
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "time_filters": time_filters,
+                    "fields": ["code"],
+                    "related_fields": related_fields,
+                }
             },
         )
 
@@ -455,9 +455,11 @@ class TestSearchTools:
         result = await search_server._mcp_call_tool(
             "entity_find_one",
             {
-                "entity_type": "Shot",
-                "filters": filters,
-                "fields": ["code", "project"],
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                    "fields": ["code", "project"],
+                }
             },
         )
 
@@ -485,8 +487,10 @@ class TestSearchTools:
         result = await search_server._mcp_call_tool(
             "entity_find_one",
             {
-                "entity_type": "Shot",
-                "filters": filters,
+                "request": {
+                    "entity_type": "Shot",
+                    "filters": filters,
+                }
             },
         )
 

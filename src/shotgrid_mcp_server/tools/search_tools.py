@@ -660,8 +660,19 @@ def register_find_one_entity(server: FastMCPType, sg: Shotgun) -> None:
             - Filters are automatically normalized (field_name → field)
         """
         try:
+            # Convert filters to list format for process_filters
+            # FindOneEntityRequest validator normalizes to dict format, but process_filters expects list format
+            filter_objects: List[Any] = []
+            for filter_item in request.filters or []:
+                if isinstance(filter_item, dict):
+                    # Convert dict format to list format: [field, operator, value]
+                    filter_objects.append([filter_item["field"], filter_item["operator"], filter_item["value"]])
+                else:
+                    # Already in list format
+                    filter_objects.append(filter_item)
+
             # Use the shared filter processing pipeline
-            processed_filters = process_filters(request.filters or [])
+            processed_filters = process_filters(filter_objects)
 
             # Create FindOneRequest for API client
             find_one_request = FindOneRequest(
@@ -937,15 +948,22 @@ def register_advanced_search_tool(server: FastMCPType, sg: Shotgun) -> None:
         try:
             filter_objects: List[Any] = []
 
-            # Standard filters are passed through to process_filters as
-            # dictionaries to reuse existing normalization logic.
-            filter_objects.extend(request.filters or [])
+            # Convert filters to list format for process_filters
+            # AdvancedSearchRequest validator normalizes to dict format, but process_filters expects list format
+            for filter_item in request.filters or []:
+                if isinstance(filter_item, dict):
+                    # Convert dict format to list format: [field, operator, value]
+                    filter_objects.append([filter_item["field"], filter_item["operator"], filter_item["value"]])
+                else:
+                    # Already in list format
+                    filter_objects.append(filter_item)
 
-            # Convert any time_filters into Filter instances so they can be
-            # processed in the same way as other filters.
+            # Convert any time_filters into Filter instances and then to list format
             for time_filter in request.time_filters or []:
                 try:
-                    filter_objects.append(time_filter.to_filter())
+                    filter_obj = time_filter.to_filter()
+                    # Convert Filter object to list format: [field, operator, value]
+                    filter_objects.append(filter_obj.to_tuple())
                 except Exception as exc:  # pragma: no cover - defensive
                     logger.warning("Failed to convert time filter %s: %s", time_filter, exc)
 
