@@ -725,8 +725,12 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             - The search looks in predefined searchable fields (not all fields)
             - For exact field matching, use `search_entities` with filters instead
             - Empty results for an entity type are omitted from the response
+
+        AI Model Convenience:
             - The entity_types list is automatically converted to the dictionary format
               required by ShotGrid API: {"EntityType": []} with empty filter lists
+            - This allows AI models to pass simple lists like ["Shot", "Asset"]
+              instead of the more complex {"Shot": [], "Asset": []} format
         """
         try:
             # Convert list of entity types to dictionary format required by ShotGrid API

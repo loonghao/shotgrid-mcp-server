@@ -1148,8 +1148,8 @@ def _find_entities_by_date_range(
         sg: ShotGrid connection.
         entity_type: Type of entity to find
         date_field: Field name containing the date to filter on
-        start_date: Start date in YYYY-MM-DD format
-        end_date: End date in YYYY-MM-DD format
+        start_date: Start date (auto-normalized to ISO 8601, e.g., "2025-11-23" -> "2025-11-23T00:00:00Z")
+        end_date: End date (auto-normalized to ISO 8601, e.g., "2025-11-23" -> "2025-11-23T00:00:00Z")
         additional_filters: Additional filters to apply
         fields: Fields to return
 
@@ -1160,7 +1160,7 @@ def _find_entities_by_date_range(
         # Import datetime normalization function
         from shotgrid_mcp_server.api_models import _normalize_datetime_value
 
-        # Normalize date values to ISO 8601 format required by ShotGrid API
+        # Auto-normalize date values to ISO 8601 format for AI convenience
         normalized_start = _normalize_datetime_value(start_date)
         normalized_end = _normalize_datetime_value(end_date)
 
