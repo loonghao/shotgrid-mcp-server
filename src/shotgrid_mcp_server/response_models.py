@@ -53,6 +53,10 @@ class EntityResponse(BaseResponse[Dict[str, Any]]):
 class EntitiesResponse(BaseResponse[List[Dict[str, Any]]]):
     """Response model for multiple entities."""
 
+    total_count: Optional[int] = None
+    page: Optional[int] = None
+    page_size: Optional[int] = None
+
 
 class SearchEntitiesResult(BaseModel):
     """Structured payload for entity search results.
