@@ -1,5 +1,5 @@
 # Multi-stage build for ShotGrid MCP Server
-FROM python:3.10-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv pip install --system --no-cache .
 
 # Final stage
-FROM python:3.10-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 

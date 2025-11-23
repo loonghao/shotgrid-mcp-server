@@ -3,7 +3,7 @@ name = "shotgrid-mcp-server"
 version = "0.12.0"
 description = "A Model Context Protocol (MCP) server implementation using fastmcp"
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastmcp>=2.13.0",
     "mcp>=1.10.0",  # Fix CVE-2025-53365, CVE-2025-53366
