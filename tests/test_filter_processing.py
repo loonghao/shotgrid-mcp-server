@@ -72,10 +72,10 @@ class TestFilterProcessingIntegration:
         assert len(processed) == 4
         # All should be tuples
         assert all(isinstance(f, tuple) for f in processed)
-        # Verify values are preserved
+        # Verify values are preserved (dates are normalized to ISO 8601)
         assert processed[0][2] == ["wtg", "rdy", "ip", "rev"]
         assert processed[1][2] == {"type": "HumanUser", "id": 42}
-        assert processed[2][2] == "2025-01-01"
+        assert processed[2][2] == "2025-01-01T00:00:00Z"  # Date normalized to ISO 8601
         assert processed[3][2] == "animation"
 
     def test_tuple_input_processing(self):
