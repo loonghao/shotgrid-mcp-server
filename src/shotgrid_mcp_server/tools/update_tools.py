@@ -34,10 +34,21 @@ def register_update_tools(server: FastMCPType, sg: Shotgun) -> None:
     ) -> Dict[str, Any]:
         """Update an existing entity in ShotGrid.
 
-        Use this tool to modify field values on an existing entity.
-        Only the fields specified in `data` will be updated; other fields remain unchanged.
+        **When to use this tool:**
+        - You need to modify field values on an existing entity
+        - You want to update task status or assignment
+        - You need to change shot/asset properties
+        - You want to update version status or description
+        - You need to link entities together
+        - You want to clear field values
 
-        Common use cases:
+        **When NOT to use this tool:**
+        - To create a new entity - Use `create_entity` instead
+        - To update multiple entities at once - Use `batch_operations` instead
+        - To delete an entity - Use `delete_entity` instead
+        - Entity doesn't exist yet - Use `create_entity` first
+
+        **Common use cases:**
         - Update task status to "In Progress" or "Complete"
         - Assign a task to a different artist
         - Update shot description or frame range
@@ -45,6 +56,7 @@ def register_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         - Update entity links (e.g., link a version to a different shot)
         - Clear field values by setting them to None
 
+        **Note:** Only the fields specified in `data` will be updated; other fields remain unchanged.
         For updating multiple entities at once, use `batch_operations` instead.
 
         Args:

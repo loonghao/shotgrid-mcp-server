@@ -49,6 +49,15 @@ def register_api_tools(server: FastMCPType, sg: Shotgun) -> None:
     # Register activity stream tools
     register_activity_stream_tools(server, sg)
 
+    # Register note thread tools
+    register_note_thread_tools(server, sg)
+
+    # Register project tools
+    register_project_tools(server, sg)
+
+    # Register preferences tools
+    register_preferences_tools(server, sg)
+
 
 def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
     """Register find tools with the server.
@@ -73,19 +82,26 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
     ) -> List[Dict[str, Any]]:
         """Find entities in ShotGrid using the native ShotGrid API find method.
 
-        Use this tool for direct access to ShotGrid's find API with full control over all parameters.
-        This is a low-level tool that provides maximum flexibility.
+        **When to use this tool:**
+        - You need retired_only parameter to find deleted entities
+        - You need include_archived_projects parameter
+        - You need additional_filter_presets for complex filtering
+        - You need precise control over pagination (page parameter)
+        - Other search tools don't provide the needed parameters
+        - You need direct access to ShotGrid API without field name normalization
 
-        Common use cases:
-        - When you need retired_only or include_archived_projects parameters
-        - When you need additional_filter_presets
-        - When you need precise control over pagination
-        - When other search tools don't provide the needed parameters
+        **When NOT to use this tool:**
+        - For basic searches - Use `search_entities` instead (simpler, auto-corrects field names)
+        - For searches with related entity data - Use `search_entities_with_related` instead
+        - For time-based filtering - Use `sg_search_advanced` instead
+        - For full-text search - Use `sg_text_search` instead
+        - For finding a single entity - Use `find_one_entity` instead
 
-        For most searches, use `search_entities` instead (simpler, auto-corrects field names).
-        For searches with related fields, use `search_entities_with_related`.
-        For time-based searches, use `sg_search_advanced`.
-        For text searches, use `sg_text_search`.
+        **Common use cases:**
+        - Find retired (deleted) entities: Set retired_only=True
+        - Exclude archived projects: Set include_archived_projects=False
+        - Paginate through large result sets: Use limit and page parameters
+        - Apply complex filter presets: Use additional_filter_presets
 
         Args:
             entity_type: Type of entity to find.
@@ -248,15 +264,27 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
     ) -> Optional[Dict[str, Any]]:
         """Find a single entity in ShotGrid using the native ShotGrid API find_one method.
 
-        Use this tool to find exactly one entity matching the filters.
-        Returns the first matching entity, or None if no match is found.
+        **When to use this tool:**
+        - You need to find exactly one entity matching the filters
+        - You want to find a specific entity by unique identifier (code, name)
+        - You need to find the most recent entity matching criteria (with order)
+        - You need retired_only or include_archived_projects parameters
+        - You need precise control over which entity is returned
+        - You need low-level direct access to the ShotGrid API
 
-        Common use cases:
+        **When NOT to use this tool:**
+        - For most single entity searches - Use `find_one_entity` instead (simpler, auto-corrects field names)
+        - To find multiple entities - Use `search_entities` or `sg_find` instead
+        - To search by text - Use `sg_text_search` instead
+        - To get related entity data - Use `search_entities_with_related` instead
+
+        **Common use cases:**
         - Find a specific entity by unique identifier (code, name)
         - Find the most recent entity matching criteria (with order)
         - When you need retired_only or include_archived_projects parameters
         - When you need precise control over which entity is returned
 
+        **Note:** Returns the first matching entity, or None if no match is found.
         For most single entity searches, use `find_one_entity` instead (simpler, auto-corrects field names).
         For finding multiple entities, use `search_entities` or `sg_find`.
 
@@ -369,17 +397,32 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         data: Dict[str, Any],
         return_fields: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Create an entity in ShotGrid.
+        """Create an entity in ShotGrid using the native ShotGrid API create method.
 
-        This is a direct wrapper around the ShotGrid API's create method.
+        **When to use this tool:**
+        - You need low-level direct access to the ShotGrid API
+        - You want the raw API response without additional processing
+        - You're implementing custom logic that requires native API behavior
+
+        **When NOT to use this tool:**
+        - For most use cases - Use `create_entity` instead (better validation and error handling)
+        - To create multiple entities - Use `batch_create_entities` or `batch_operations` instead
+
+        **Note:** This is a direct wrapper around the ShotGrid API's create method.
+        For most use cases, prefer using `create_entity` instead.
 
         Args:
             entity_type: Type of entity to create.
+                        Example: "Shot"
+
             data: Data for the new entity.
+                 Example: {"code": "SH001", "project": {"type": "Project", "id": 123}}
+
             return_fields: Optional list of fields to return.
+                          Example: ["code", "sg_status_list"]
 
         Returns:
-            Created entity.
+            Created entity with raw ShotGrid API response.
         """
         try:
             result = _get_sg(sg).create(entity_type, data, return_fields=return_fields)
@@ -395,18 +438,34 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         data: Dict[str, Any],
         multi_entity_update_mode: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Update an entity in ShotGrid.
+        """Update an entity in ShotGrid using the native ShotGrid API update method.
 
-        This is a direct wrapper around the ShotGrid API's update method.
+        **When to use this tool:**
+        - You need low-level direct access to the ShotGrid API
+        - You want the raw API response without additional processing
+        - You need multi_entity_update_mode parameter
+
+        **When NOT to use this tool:**
+        - For most use cases - Use `update_entity` instead (better validation and error handling)
+        - To update multiple entities - Use `batch_operations` instead
+
+        **Note:** This is a direct wrapper around the ShotGrid API's update method.
+        For most use cases, prefer using `update_entity` instead.
 
         Args:
             entity_type: Type of entity to update.
+                        Example: "Shot"
+
             entity_id: ID of entity to update.
+                      Example: 1234
+
             data: Data to update.
+                 Example: {"sg_status_list": "ip"}
+
             multi_entity_update_mode: Optional mode for multi-entity updates.
 
         Returns:
-            Updated entity.
+            Updated entity with raw ShotGrid API response.
         """
         try:
             result = _get_sg(sg).update(
@@ -431,13 +490,24 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("sg_delete")
     def sg_delete(entity_type: EntityType, entity_id: int) -> bool:
-        """Delete an entity in ShotGrid.
+        """Delete an entity in ShotGrid using the native ShotGrid API delete method.
 
-        This is a direct wrapper around the ShotGrid API's delete method.
+        **When to use this tool:**
+        - You need low-level direct access to the ShotGrid API
+        - You want the raw API response (boolean)
+
+        **When NOT to use this tool:**
+        - For most use cases - Use `delete_entity` instead (better error handling and response format)
+
+        **Note:** This is a direct wrapper around the ShotGrid API's delete method.
+        For most use cases, prefer using `delete_entity` instead.
 
         Args:
             entity_type: Type of entity to delete.
+                        Example: "Shot"
+
             entity_id: ID of entity to delete.
+                      Example: 1234
 
         Returns:
             True if successful, False otherwise.
@@ -451,13 +521,24 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("sg_revive")
     def sg_revive(entity_type: EntityType, entity_id: int) -> bool:
-        """Revive a deleted entity in ShotGrid.
+        """Revive a deleted (retired) entity in ShotGrid using the native ShotGrid API revive method.
 
-        This is a direct wrapper around the ShotGrid API's revive method.
+        **When to use this tool:**
+        - You need to restore a deleted/retired entity
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - Entity is not deleted - No need to revive
+
+        **Note:** This is a direct wrapper around the ShotGrid API's revive method.
+        Revives entities that were previously deleted (retired).
 
         Args:
             entity_type: Type of entity to revive.
+                        Example: "Shot"
+
             entity_id: ID of entity to revive.
+                      Example: 1234
 
         Returns:
             True if successful, False otherwise.
@@ -480,15 +561,32 @@ def _register_batch_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("sg_batch")
     def sg_batch(requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Perform a batch operation in ShotGrid.
+        """Perform a batch operation in ShotGrid using the native ShotGrid API batch method.
 
-        This is a direct wrapper around the ShotGrid API's batch method.
+        **When to use this tool:**
+        - You need to perform multiple operations (create/update/delete) in a single API call
+        - You need low-level direct access to the ShotGrid API batch method
+        - You want to mix different operation types (create + update + delete)
+
+        **When NOT to use this tool:**
+        - To create multiple entities of same type - Use `batch_create_entities` instead (simpler)
+        - For most use cases - Use `batch_operations` instead (better validation and error handling)
+
+        **Note:** This is a direct wrapper around the ShotGrid API's batch method.
+        For most use cases, prefer using `batch_operations` instead.
 
         Args:
             requests: List of batch requests.
+                     Each request is a dictionary with request_type, entity_type, and data.
+
+                     Example:
+                     [
+                         {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+                         {"request_type": "update", "entity_type": "Shot", "entity_id": 1234, "data": {"sg_status_list": "ip"}}
+                     ]
 
         Returns:
-            List of results from the batch operation.
+            List of results from the batch operation (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).batch(requests)
@@ -535,20 +633,46 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
         grouping: Optional[List[Dict[str, Any]]] = None,
         include_archived_projects: bool = True,
     ) -> Dict[str, Any]:
-        """Summarize data in ShotGrid.
+        """Summarize data in ShotGrid using the native ShotGrid API summarize method.
 
-        This is a direct wrapper around the ShotGrid API's summarize method.
+        **When to use this tool:**
+        - You need to calculate aggregates (count, sum, average, min, max) on entities
+        - You want to group entities and get statistics per group
+        - You need low-level direct access to the ShotGrid API summarize method
+
+        **When NOT to use this tool:**
+        - To get individual entities - Use `search_entities` instead
+        - For simple counting - Use `search_entities` and check total_count
+
+        **Common use cases:**
+        - Count shots by status
+        - Calculate average frame count per sequence
+        - Sum total hours on tasks by artist
+
+        **Note:** This is a direct wrapper around the ShotGrid API's summarize method.
 
         Args:
             entity_type: Type of entity to summarize.
+                        Example: "Shot"
+
             filters: List of filters to apply.
+                    Example: [["project.id", "is", 123]]
+
             summary_fields: List of fields to summarize.
-            filter_operator: Optional filter operator.
+                           Each definition specifies field and aggregation type.
+
+                           Example: [{"field": "id", "type": "count"}]
+
+            filter_operator: Optional filter operator ("all" or "any").
+                           Default: "all"
+
             grouping: Optional grouping.
-            include_archived_projects: Whether to include archived projects.
+                     Example: [{"field": "sg_status_list", "type": "exact", "direction": "asc"}]
+
+            include_archived_projects: Whether to include archived projects (default: True).
 
         Returns:
-            Summarized data.
+            Summarized data (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).summarize(
@@ -573,22 +697,30 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
     ) -> Dict[str, List[Dict[str, Any]]]:
         """Perform a full-text search across multiple entity types in ShotGrid.
 
-        Use this tool when you need to search for text across multiple entity types
-        or when you don't know which specific entity type contains the data you're
-        looking for. This is ShotGrid's global search functionality.
+        **IMPORTANT: Text must be at least 3 characters long. Shorter text will cause an error.**
 
-        Common use cases:
-        - Search for a shot/asset/task by name across all entity types
-        - Find all entities mentioning a specific keyword
-        - Search across multiple projects
+        **When to use this tool:**
+        - Search for text across multiple entity types when you don't know which type contains the data
+        - Find all entities mentioning a specific keyword (e.g., "explosion", "hero")
         - Quick lookup when entity type is unknown
-        - Search for user-entered text (like a search bar)
+        - Search for user-entered text (like a global search bar)
+        - Search across multiple projects simultaneously
 
-        For structured searches with filters, use `search_entities` instead.
-        For searches with related data, use `search_entities_with_related` instead.
-        For time-based searches, use `sg_search_advanced` instead.
+        **When NOT to use this tool:**
+        - Text is less than 3 characters - Will fail with error. Use `search_entities` with specific filters instead
+        - You know the exact entity type - Use `search_entities` instead (more efficient)
+        - You need structured filtering (status, dates, etc.) - Use `search_entities` instead
+        - You need related entity data - Use `search_entities_with_related` instead
+        - You need time-based filtering - Use `sg_search_advanced` instead
+        - You need exact field matching - Use `search_entities` with field filters instead
 
-        How Text Search Works:
+        **Common use cases:**
+        - Search for "SH001" across Shots, Assets, and Tasks
+        - Find all entities mentioning "animation" keyword
+        - Look up entities related to user "John Doe"
+        - Search for "explosion" across all entity types in a project
+
+        **How Text Search Works:**
             ShotGrid's text search looks for matches in key text fields across
             entity types, including:
             - code: Entity code/name
@@ -600,13 +732,20 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         Args:
             text: The text to search for.
+                 **MUST be at least 3 characters long** (ShotGrid requirement).
                  Can be a partial match (e.g., "anim" will match "animation").
                  Case-insensitive.
 
-                 Examples:
-                 - "SH001" - Find entities with code containing SH001
-                 - "animation" - Find entities mentioning animation
-                 - "John" - Find entities related to user John
+                 Valid examples:
+                 - "SH001" - Find entities with code containing SH001 (5 chars, OK)
+                 - "animation" - Find entities mentioning animation (9 chars, OK)
+                 - "John" - Find entities related to user John (4 chars, OK)
+                 - "abc" - Minimum valid length (3 chars, OK)
+
+                 Invalid examples:
+                 - "ab" - Too short (2 chars, will fail)
+                 - "姓名" - Too short if only 2 characters (will fail)
+                 - "SH" - Too short (2 chars, will fail)
 
             entity_types: List of entity types to search within.
                          Must provide at least one entity type.
@@ -681,35 +820,42 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             }
 
         Raises:
+            ValueError: If text is less than 3 characters long.
             ToolError: If entity_types is empty, contains invalid types, or the
                       ShotGrid API returns an error.
 
         Examples:
-            Search for "animation" across shots and tasks:
+            Search for "animation" across shots and tasks (valid - 9 chars):
             {
                 "text": "animation",
                 "entity_types": ["Shot", "Task"]
             }
 
-            Search for shot "SH001" in specific project:
+            Search for shot "SH001" in specific project (valid - 5 chars):
             {
                 "text": "SH001",
                 "entity_types": ["Shot"],
                 "project_ids": [123]
             }
 
-            Search for user "John" across multiple types:
+            Search for user "John" across multiple types (valid - 4 chars):
             {
                 "text": "John",
                 "entity_types": ["HumanUser", "Task", "Version"],
                 "limit": 20
             }
 
-            Quick search across all common types:
+            Quick search across all common types (valid - 4 chars):
             {
                 "text": "hero",
                 "entity_types": ["Shot", "Asset", "Task", "Version", "PublishedFile"],
                 "limit": 10
+            }
+
+            INVALID - Text too short (will fail with ValueError):
+            {
+                "text": "SH",  # Only 2 characters - ERROR!
+                "entity_types": ["Shot"]
             }
 
         Performance Considerations:
@@ -719,19 +865,17 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             - Use project_ids to limit scope and improve performance
 
         Note:
+            - **CRITICAL: Text must be at least 3 characters** - This is enforced by ShotGrid API
+            - Text length is validated before making the API call
+            - If text is too short, a ValueError is raised with a clear error message
             - This is a wrapper around ShotGrid's native text_search API
             - Results are grouped by entity type
             - Each entity type can return up to `limit` results
             - The search looks in predefined searchable fields (not all fields)
             - For exact field matching, use `search_entities` with filters instead
             - Empty results for an entity type are omitted from the response
-
-        AI Model Convenience:
             - The entity_types list is automatically converted to the dictionary format
               required by ShotGrid API: {"EntityType": []} with empty filter lists
-            - This allows AI models to pass simple lists like ["Shot", "Asset"]
-              instead of the more complex {"Shot": [], "Asset": []} format
-            - Text length is validated to meet ShotGrid's minimum requirement (3 characters)
         """
         try:
             # Validate text length - ShotGrid requires at least 3 characters
@@ -767,12 +911,21 @@ def register_schema_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("sg_schema_entity_read")
     def sg_schema_entity_read() -> Dict[str, Dict[str, Any]]:
-        """Read entity schema from ShotGrid.
+        """Read entity schema from ShotGrid using the native ShotGrid API schema_entity_read method.
 
-        This is a direct wrapper around the ShotGrid API's schema_entity_read method.
+        **When to use this tool:**
+        - You need to get all entity types available in ShotGrid
+        - You want to see entity type properties and metadata
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - To get field schema for a specific entity - Use `schema_get` or `sg_schema_field_read` instead
+        - For cached schema information - Check MCP resources first
+
+        **Note:** This is a direct wrapper around the ShotGrid API's schema_entity_read method.
 
         Returns:
-            Entity schema.
+            Entity schema dictionary (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).schema_entity_read()
@@ -786,16 +939,32 @@ def register_schema_tools(server: FastMCPType, sg: Shotgun) -> None:
         entity_type: EntityType,
         field_name: Optional[str] = None,
     ) -> Dict[str, Dict[str, Any]]:
-        """Read field schema from ShotGrid.
+        """Read field schema from ShotGrid using the native ShotGrid API schema_field_read method.
 
-        This is a direct wrapper around the ShotGrid API's schema_field_read method.
+        **When to use this tool:**
+        - You need to get field schema for a specific entity type
+        - You want to see field properties and data types
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - For most use cases - Use `schema_get` instead (better response format)
+        - To get all entity types - Use `sg_schema_entity_read` instead
+        - For cached schema information - Check MCP resources first
+
+        **Note:** This is a direct wrapper around the ShotGrid API's schema_field_read method.
+        For most use cases, prefer using `schema_get` instead.
 
         Args:
             entity_type: Type of entity to read schema for.
+                        Example: "Shot"
+
             field_name: Optional name of field to read schema for.
+                       If not provided, returns all fields.
+
+                       Example: "sg_status_list"
 
         Returns:
-            Field schema.
+            Field schema dictionary (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).schema_field_read(entity_type, field_name=field_name)
@@ -822,20 +991,42 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
         display_name: Optional[str] = None,
         tag_list: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Upload a file to ShotGrid.
+        """Upload a file to ShotGrid using the native ShotGrid API upload method.
 
-        This is a direct wrapper around the ShotGrid API's upload method.
+        **When to use this tool:**
+        - You need to upload a movie or file to an entity
+        - You want to attach files to versions
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - To upload thumbnails - Use thumbnail tools instead
+
+        **Common use cases:**
+        - Upload movie to a version
+        - Upload reference file to a shot
+        - Attach document to a note
+
+        **Note:** This is a direct wrapper around the ShotGrid API's upload method.
 
         Args:
             entity_type: Type of entity to upload to.
+                        Example: "Version"
+
             entity_id: ID of entity to upload to.
+                      Example: 1234
+
             path: Path to file to upload.
-            field_name: Name of field to upload to.
+                 Example: "C:/movies/shot_001_v001.mov"
+
+            field_name: Name of field to upload to (default: "sg_uploaded_movie").
+                       Example: "sg_uploaded_movie"
+
             display_name: Optional display name for the file.
+
             tag_list: Optional list of tags for the file.
 
         Returns:
-            Upload result.
+            Upload result (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).upload(
@@ -856,13 +1047,28 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
         attachment: Dict[str, Any],
         file_path: Optional[str] = None,
     ) -> str:
-        """Download an attachment from ShotGrid.
+        """Download an attachment from ShotGrid using the native ShotGrid API download_attachment method.
 
-        This is a direct wrapper around the ShotGrid API's download_attachment method.
+        **When to use this tool:**
+        - You need to download an attachment from an entity
+        - You have an attachment dictionary from a query
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - To download thumbnails - Use thumbnail tools instead
+
+        **Note:** This is a direct wrapper around the ShotGrid API's download_attachment method.
 
         Args:
-            attachment: Attachment to download.
+            attachment: Attachment dictionary to download.
+                       Usually obtained from entity query results.
+
+                       Example: {"url": "https://...", "name": "file.pdf"}
+
             file_path: Optional path to save the file to.
+                      If not provided, saves to temp directory.
+
+                      Example: "C:/downloads/file.pdf"
 
         Returns:
             Path to downloaded file.
@@ -882,6 +1088,17 @@ def register_activity_stream_tools(server: FastMCPType, sg: Shotgun) -> None:
         server: FastMCP server instance.
         sg: ShotGrid connection.
     """
+    _register_activity_stream_read(server, sg)
+    _register_follow_tools(server, sg)
+
+
+def _register_activity_stream_read(server: FastMCPType, sg: Shotgun) -> None:
+    """Register activity stream read tool.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
 
     @server.tool("sg_activity_stream_read")
     def sg_activity_stream_read(
@@ -891,19 +1108,40 @@ def register_activity_stream_tools(server: FastMCPType, sg: Shotgun) -> None:
         max_id: Optional[int] = None,
         min_id: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Read activity stream from ShotGrid.
+        """Read activity stream from ShotGrid using the native ShotGrid API activity_stream_read method.
 
-        This is a direct wrapper around the ShotGrid API's activity_stream_read method.
+        **When to use this tool:**
+        - You need to get activity history for an entity
+        - You want to see who made changes and when
+        - You need to track entity updates over time
+        - You need low-level direct access to the ShotGrid API
+
+        **When NOT to use this tool:**
+        - To get current entity data - Use `search_entities` or `find_one_entity` instead
+
+        **Common use cases:**
+        - Get recent activity for a shot
+        - Track changes to a version
+        - See who updated a task
+
+        **Note:** This is a direct wrapper around the ShotGrid API's activity_stream_read method.
 
         Args:
             entity_type: Type of entity to read activity stream for.
+                        Example: "Shot"
+
             entity_id: ID of entity to read activity stream for.
+                      Example: 1234
+
             limit: Optional limit on number of activities to return.
-            max_id: Optional maximum activity ID to return.
-            min_id: Optional minimum activity ID to return.
+                  Example: 50
+
+            max_id: Optional maximum activity ID to return (for pagination).
+
+            min_id: Optional minimum activity ID to return (for pagination).
 
         Returns:
-            Activity stream data.
+            Activity stream data (raw ShotGrid API response).
         """
         try:
             result = _get_sg(sg).activity_stream_read(
@@ -916,4 +1154,308 @@ def register_activity_stream_tools(server: FastMCPType, sg: Shotgun) -> None:
             return result
         except Exception as err:
             handle_error(err, operation="sg.activity_stream_read")
+            raise
+
+
+def _register_follow_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register follow/unfollow tools.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
+    @server.tool("sg_follow")
+    def sg_follow(
+        entity_type: EntityType,
+        entity_id: int,
+        user_id: Optional[int] = None,
+    ) -> bool:
+        """Follow an entity in ShotGrid using the native ShotGrid API follow method.
+
+        **When to use this tool:**
+        - User wants to follow an entity to receive updates
+        - Subscribe to changes on a specific entity
+        - Enable notifications for entity updates
+
+        **When NOT to use this tool:**
+        - To get current followers - Use `sg_followers` instead
+        - To get entities a user is following - Use `sg_following` instead
+
+        **Common use cases:**
+        - Follow a shot to get notified of status changes
+        - Subscribe to a version for review updates
+        - Track changes to a task
+
+        Args:
+            entity_type: Type of entity to follow.
+                        Example: "Shot", "Version", "Task"
+
+            entity_id: ID of entity to follow.
+                      Example: 1234
+
+            user_id: Optional user ID. If not provided, uses the current user.
+                    Example: 42
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            result = _get_sg(sg).follow(entity_type, entity_id, user_id=user_id)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.follow")
+            raise
+
+    @server.tool("sg_unfollow")
+    def sg_unfollow(
+        entity_type: EntityType,
+        entity_id: int,
+        user_id: Optional[int] = None,
+    ) -> bool:
+        """Unfollow an entity in ShotGrid using the native ShotGrid API unfollow method.
+
+        **When to use this tool:**
+        - User wants to stop following an entity
+        - Unsubscribe from entity updates
+        - Disable notifications for an entity
+
+        **When NOT to use this tool:**
+        - To get current followers - Use `sg_followers` instead
+        - To get entities a user is following - Use `sg_following` instead
+
+        **Common use cases:**
+        - Stop receiving notifications for a completed shot
+        - Unsubscribe from a version after review
+        - Stop tracking a task
+
+        Args:
+            entity_type: Type of entity to unfollow.
+                        Example: "Shot", "Version", "Task"
+
+            entity_id: ID of entity to unfollow.
+                      Example: 1234
+
+            user_id: Optional user ID. If not provided, uses the current user.
+                    Example: 42
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            result = _get_sg(sg).unfollow(entity_type, entity_id, user_id=user_id)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.unfollow")
+            raise
+
+    @server.tool("sg_followers")
+    def sg_followers(
+        entity_type: EntityType,
+        entity_id: int,
+    ) -> List[Dict[str, Any]]:
+        """Get followers of an entity in ShotGrid using the native ShotGrid API followers method.
+
+        **When to use this tool:**
+        - Get list of users following an entity
+        - See who is subscribed to entity updates
+        - Check notification recipients for an entity
+
+        **When NOT to use this tool:**
+        - To follow an entity - Use `sg_follow` instead
+        - To get entities a user is following - Use `sg_following` instead
+
+        **Common use cases:**
+        - See who is following a shot
+        - Check subscribers for a version
+        - List users tracking a task
+
+        Args:
+            entity_type: Type of entity to get followers for.
+                        Example: "Shot", "Version", "Task"
+
+            entity_id: ID of entity to get followers for.
+                      Example: 1234
+
+        Returns:
+            List of user dictionaries with follower information.
+        """
+        try:
+            result = _get_sg(sg).followers(entity_type, entity_id)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.followers")
+            raise
+
+    @server.tool("sg_following")
+    def sg_following(
+        user_id: Optional[int] = None,
+        entity_type: Optional[EntityType] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get entities followed by a user in ShotGrid using the native ShotGrid API following method.
+
+        **When to use this tool:**
+        - Get list of entities a user is following
+        - See what a user is subscribed to
+        - Check user's notification subscriptions
+
+        **When NOT to use this tool:**
+        - To follow an entity - Use `sg_follow` instead
+        - To get followers of an entity - Use `sg_followers` instead
+
+        **Common use cases:**
+        - See all shots a user is following
+        - Check what versions a user is subscribed to
+        - List tasks a user is tracking
+
+        Args:
+            user_id: Optional user ID. If not provided, uses the current user.
+                    Example: 42
+
+            entity_type: Optional entity type to filter by.
+                        If provided, only returns entities of this type.
+                        Example: "Shot", "Version", "Task"
+
+        Returns:
+            List of entity dictionaries that the user is following.
+        """
+        try:
+            result = _get_sg(sg).following(user_id=user_id, entity_type=entity_type)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.following")
+            raise
+
+
+def register_note_thread_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register note thread tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
+    @server.tool("sg_note_thread_read")
+    def sg_note_thread_read(note_id: int) -> Dict[str, Any]:
+        """Read a note thread from ShotGrid using the native ShotGrid API note_thread_read method.
+
+        **When to use this tool:**
+        - Get the full conversation thread for a note
+        - Read all replies to a note
+        - Get attachments associated with a note thread
+        - View complete note history with all responses
+
+        **When NOT to use this tool:**
+        - To get basic note information - Use `shotgrid_note_read` instead
+        - To create a note - Use `shotgrid_note_create` instead
+        - To update a note - Use `shotgrid_note_update` instead
+
+        **Common use cases:**
+        - Read all feedback on a version review
+        - Get complete conversation history for a note
+        - View all replies and attachments in a note thread
+
+        **Note:** This returns the full note thread including the original note,
+        all replies, and attachments.
+
+        Args:
+            note_id: ID of the note to read the thread for.
+                    Example: 1234
+
+        Returns:
+            Dictionary containing the note thread data with structure:
+            {
+                "note": {...},  # Original note
+                "replies": [...],  # List of reply notes
+                "attachments": [...]  # List of attachments
+            }
+        """
+        try:
+            result = _get_sg(sg).note_thread_read(note_id)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.note_thread_read")
+            raise
+
+
+def register_project_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register project-related tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
+    @server.tool("sg_update_project_last_accessed")
+    def sg_update_project_last_accessed(project_id: int) -> bool:
+        """Update project last accessed time using the native ShotGrid API update_project_last_accessed method.
+
+        **When to use this tool:**
+        - Mark a project as recently accessed by the current user
+        - Update the "last accessed" timestamp for a project
+        - Track project usage for the current user
+
+        **When NOT to use this tool:**
+        - To update other project fields - Use `update_entity` instead
+        - To get project information - Use `search_entities` or `find_one_entity` instead
+
+        **Common use cases:**
+        - User opens a project in the application
+        - Track which projects a user is actively working on
+        - Update project access history
+
+        **Note:** This updates the last_accessed_by_current_user field for the project.
+
+        Args:
+            project_id: ID of the project to update.
+                       Example: 123
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            result = _get_sg(sg).update_project_last_accessed(project_id)
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.update_project_last_accessed")
+            raise
+
+
+def register_preferences_tools(server: FastMCPType, sg: Shotgun) -> None:
+    """Register preferences tools with the server.
+
+    Args:
+        server: FastMCP server instance.
+        sg: ShotGrid connection.
+    """
+
+    @server.tool("sg_preferences_read")
+    def sg_preferences_read() -> Dict[str, Any]:
+        """Read site preferences from ShotGrid using the native ShotGrid API preferences_read method.
+
+        **When to use this tool:**
+        - Get site-wide preference settings
+        - Check configuration values
+        - Read system settings
+
+        **When NOT to use this tool:**
+        - To update preferences - Not supported via API
+        - To get user-specific settings - Use user entity fields instead
+
+        **Common use cases:**
+        - Check site timezone settings
+        - Get default status list values
+        - Read system configuration
+
+        **Note:** This returns a subset of site preferences that are accessible via the API.
+        Not all preferences are exposed.
+
+        Returns:
+            Dictionary containing site preferences.
+        """
+        try:
+            result = _get_sg(sg).preferences_read()
+            return result
+        except Exception as err:
+            handle_error(err, operation="sg.preferences_read")
             raise

@@ -29,20 +29,26 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
     async def create_note_tool(request: NoteCreateRequest) -> NoteCreateResponse:
         """Create a new note in ShotGrid for feedback, comments, and communication.
 
-        Use this tool to create notes for providing feedback, tracking issues, or
-        communicating about entities (shots, assets, versions, tasks, etc.).
-
-        Common use cases:
+        **When to use this tool:**
         - Add feedback on a version during review
-        - Create task notes for artists
+        - Create task notes for artists with instructions
         - Document issues or bugs on shots/assets
         - Add client feedback to versions
-        - Create general project notes
-        - Link notes to multiple entities
+        - Create general project notes or announcements
+        - Link notes to specific entities (shots, assets, versions, tasks)
+        - Send notifications to specific users about the note
 
-        For reading existing notes, use `shotgrid_note_read`.
-        For updating notes, use `shotgrid_note_update`.
-        For searching notes, use `search_entities` with entity_type="Note".
+        **When NOT to use this tool:**
+        - To read existing notes - Use `shotgrid_note_read` instead
+        - To update existing notes - Use `shotgrid_note_update` instead
+        - To search for notes - Use `search_entities` with entity_type="Note" instead
+        - To delete notes - Use `delete_entity` with entity_type="Note" instead
+
+        **Common use cases:**
+        - Review feedback: "Animation looks great, approved for final"
+        - Task instructions: "Please focus on facial expressions in this shot"
+        - Bug reports: "Missing texture on character's left arm"
+        - Client feedback: "Client wants the lighting warmer in this sequence"
 
         Args:
             request: NoteCreateRequest containing:
@@ -187,18 +193,23 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
     async def read_note_tool(note_id: int) -> NoteReadResponse:
         """Read a note from ShotGrid to view its content and metadata.
 
-        Use this tool to retrieve the full details of a specific note by its ID.
+        **When to use this tool:**
+        - You have a note ID and need to view its full content
+        - You need to check who created the note and when
+        - You need to see which entities the note is linked to
+        - You need to view note recipients (addressings_to, addressings_cc)
+        - You need to retrieve note details for display or processing
 
-        Common use cases:
-        - View note content and feedback
-        - Check who created the note and when
-        - See which entities the note is linked to
-        - View note recipients (addressings_to, addressings_cc)
-        - Retrieve note details for display or processing
+        **When NOT to use this tool:**
+        - To create new notes - Use `shotgrid_note_create` instead
+        - To update existing notes - Use `shotgrid_note_update` instead
+        - To search for notes by criteria - Use `search_entities` with entity_type="Note" instead
+        - To find notes on a specific entity - Use `search_entities` with filters instead
 
-        For creating new notes, use `shotgrid_note_create`.
-        For updating notes, use `shotgrid_note_update`.
-        For searching multiple notes, use `search_entities` with entity_type="Note".
+        **Common use cases:**
+        - View feedback on a version: Read note ID 5678 to see review comments
+        - Check note recipients: See who was addressed in the note
+        - Retrieve note for display: Get full note details for UI display
 
         Args:
             note_id: ID of the note to read.
@@ -261,17 +272,24 @@ def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
     async def update_note_tool(request: NoteUpdateRequest) -> NoteUpdateResponse:
         """Update an existing note in ShotGrid to modify its content or recipients.
 
-        Use this tool to update note content, subject, or change who the note is addressed to.
-
-        Common use cases:
+        **When to use this tool:**
         - Correct typos or errors in note content
-        - Update note subject
-        - Add or remove note recipients
-        - Add or remove CC recipients
+        - Update note subject to reflect changes
+        - Add or remove note recipients (addressings_to)
+        - Add or remove CC recipients (addressings_cc)
         - Modify feedback based on new information
+        - Update note content after further review
 
-        For creating new notes, use `shotgrid_note_create`.
-        For reading notes, use `shotgrid_note_read`.
+        **When NOT to use this tool:**
+        - To create new notes - Use `shotgrid_note_create` instead
+        - To read note content - Use `shotgrid_note_read` instead
+        - To delete notes - Use `delete_entity` with entity_type="Note" instead
+        - To search for notes - Use `search_entities` with entity_type="Note" instead
+
+        **Common use cases:**
+        - Fix typo: Update note content to correct spelling errors
+        - Add recipient: Add user ID 45 to addressings_to list
+        - Update feedback: Change "needs work" to "approved" after revision
 
         Args:
             request: NoteUpdateRequest containing:

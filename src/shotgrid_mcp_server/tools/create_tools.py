@@ -190,17 +190,90 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     @server.tool("batch_entity_create")
     def batch_create_entities(entity_type: EntityType, data_list: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Create multiple entities in ShotGrid.
+        """Create multiple entities of the same type in ShotGrid in a single batch operation.
+
+        **When to use this tool:**
+        - You need to create multiple entities of the same type (e.g., 10 shots)
+        - You want to create entities efficiently in a single API call
+        - You have a list of entity data ready to create
+        - You want to minimize API calls for better performance
+
+        **When NOT to use this tool:**
+        - To create a single entity - Use `create_entity` instead (simpler)
+        - To create entities of different types - Use `batch_operations` instead
+        - To update existing entities - Use `update_entity` or `batch_operations` instead
+
+        **Common use cases:**
+        - Create 10 shots in a sequence at once
+        - Create multiple tasks for a shot
+        - Create multiple assets in a project
+        - Bulk import entities from a spreadsheet
 
         Args:
             entity_type: Type of entity to create.
-            data_list: List of entity data.
+                        All entities in the batch must be of the same type.
+
+                        Example: "Shot"
+
+            data_list: List of entity data dictionaries.
+                      Each dictionary contains the field values for one entity.
+
+                      Example:
+                      [
+                          {"code": "SH001", "project": {"type": "Project", "id": 123}},
+                          {"code": "SH002", "project": {"type": "Project", "id": 123}},
+                          {"code": "SH003", "project": {"type": "Project", "id": 123}}
+                      ]
 
         Returns:
-            Dict[str, Any]: Batch operation results with statistics.
+            Dictionary containing:
+            - results: List of created entities with their IDs
+            - total_count: Total number of entities processed
+            - success_count: Number of successfully created entities
+            - failure_count: Number of failed creations
+            - message: Summary message
+
+            Example:
+            {
+                "results": [
+                    {"type": "Shot", "id": 1234, "code": "SH001"},
+                    {"type": "Shot", "id": 1235, "code": "SH002"},
+                    {"type": "Shot", "id": 1236, "code": "SH003"}
+                ],
+                "total_count": 3,
+                "success_count": 3,
+                "failure_count": 0,
+                "message": "Successfully created 3 Shot entities"
+            }
 
         Raises:
-            ToolError: If any create operation fails.
+            ToolError: If any create operation fails or entity_type is invalid.
+
+        Examples:
+            Create multiple shots:
+            {
+                "entity_type": "Shot",
+                "data_list": [
+                    {"code": "SH001", "project": {"type": "Project", "id": 123}},
+                    {"code": "SH002", "project": {"type": "Project", "id": 123}},
+                    {"code": "SH003", "project": {"type": "Project", "id": 123}}
+                ]
+            }
+
+            Create multiple tasks:
+            {
+                "entity_type": "Task",
+                "data_list": [
+                    {"content": "Animation", "entity": {"type": "Shot", "id": 1234}, "project": {"type": "Project", "id": 123}},
+                    {"content": "Lighting", "entity": {"type": "Shot", "id": 1234}, "project": {"type": "Project", "id": 123}}
+                ]
+            }
+
+        Note:
+            - All entities must be of the same type
+            - Batch operations are more efficient than creating entities one by one
+            - If any entity fails to create, the entire batch may fail
+            - Use `batch_operations` for mixed entity types or mixed operations (create/update/delete)
         """
         try:
             # Create batch requests
