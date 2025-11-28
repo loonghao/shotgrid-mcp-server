@@ -10,7 +10,7 @@ https://developers.shotgridsoftware.com/python-api/reference.html
 import re
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.models import TimeFilter
@@ -63,10 +63,7 @@ class BaseAPIRequest(BaseModel):
     validation and configuration across all ShotGrid API operations.
     """
 
-    class Config:
-        """Pydantic configuration."""
-
-        extra = "forbid"  # Prevent extra fields to catch typos early
+    model_config = ConfigDict(extra="forbid")  # Prevent extra fields to catch typos early
 
 
 class FindRequest(BaseAPIRequest):
