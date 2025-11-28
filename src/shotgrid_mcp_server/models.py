@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 # Import core models from shotgrid-query
 from shotgrid_query import (
@@ -85,12 +85,11 @@ class ShotGridDataType(str, Enum):
 class EntityRef(BaseModel):
     """ShotGrid entity reference (MCP-specific)."""
 
+    model_config = ConfigDict(extra="allow")  # Allow extra fields
+
     type: str
     id: int
     name: Optional[str] = None
-
-    class Config:
-        extra = "allow"  # Allow extra fields
 
 
 # Note: Filter, FilterOperator, TimeUnit, TimeFilter are now imported from shotgrid-query
@@ -155,6 +154,8 @@ class DateRangeFilter(BaseModel):
 class ProjectDict(BaseModel):
     """ShotGrid project dictionary."""
 
+    model_config = ConfigDict(extra="allow")  # Allow extra fields
+
     id: int
     type: str
     name: str
@@ -162,12 +163,11 @@ class ProjectDict(BaseModel):
     updated_at: Optional[str] = None
     updated_by: Optional[EntityRef] = None
 
-    class Config:
-        extra = "allow"  # Allow extra fields
-
 
 class UserDict(BaseModel):
     """ShotGrid user dictionary."""
+
+    model_config = ConfigDict(extra="allow")  # Allow extra fields
 
     id: int
     type: str
@@ -177,12 +177,11 @@ class UserDict(BaseModel):
     last_login: Optional[str] = None
     sg_status_list: Optional[str] = None
 
-    class Config:
-        extra = "allow"  # Allow extra fields
-
 
 class EntityDict(BaseModel):
     """ShotGrid entity dictionary."""
+
+    model_config = ConfigDict(extra="allow")  # Allow extra fields
 
     id: int
     type: str
@@ -191,9 +190,6 @@ class EntityDict(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     sg_status_list: Optional[str] = None
-
-    class Config:
-        extra = "allow"  # Allow extra fields
 
 
 class ProjectsResponse(BaseModel):
