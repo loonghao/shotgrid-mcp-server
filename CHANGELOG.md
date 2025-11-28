@@ -1,3 +1,9 @@
+## v0.13.1 (2025-11-28)
+
+### Fix
+
+- replace deprecated class-based Config with ConfigDict for Pydantic V2 compatibility
+
 ## v0.13.0 (2025-11-23)
 
 ### Feat
