@@ -86,6 +86,109 @@ async def call_tool(
         else:
             return [MockResponse(None)]
 
+    # Handle sg_ prefixed tools (underscore naming convention)
+    if tool_name.startswith("sg_"):
+        if tool_name == "sg_upload":
+            # Return structured UploadResult
+            import os
+
+            file_path = params.get("path", "test_file.mov")
+            file_name = os.path.basename(file_path)
+            file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 18000
+
+            # Format file size for display
+            if file_size >= 1024 * 1024:
+                size_display = f"{file_size / (1024 * 1024):.1f} MB"
+            elif file_size >= 1024:
+                size_display = f"{file_size / 1024:.1f} KB"
+            else:
+                size_display = f"{file_size} bytes"
+
+            data = {
+                "attachment_id": 639,
+                "success": True,
+                "entity_type": params.get("entity_type", "Version"),
+                "entity_id": params.get("entity_id", 1),
+                "field_name": params.get("field_name", "sg_uploaded_movie"),
+                "file_name": file_name,
+                "file_size_bytes": file_size,
+                "file_size_display": size_display,
+                "display_name": params.get("display_name", file_name),
+                "status": "completed",
+                "message": f"Successfully uploaded '{file_name}' ({size_display}) to {params.get('entity_type', 'Version')} ID {params.get('entity_id', 1)}. Attachment ID: 639",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_delete":
+            # Return structured DeleteResult
+            data = {
+                "success": True,
+                "entity_type": params.get("entity_type", "Shot"),
+                "entity_id": params.get("entity_id", 1),
+                "message": f"Successfully deleted {params.get('entity_type', 'Shot')} with ID {params.get('entity_id', 1)}",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_revive":
+            # Return structured ReviveResult
+            data = {
+                "success": True,
+                "entity_type": params.get("entity_type", "Shot"),
+                "entity_id": params.get("entity_id", 1),
+                "message": f"Successfully revived {params.get('entity_type', 'Shot')} with ID {params.get('entity_id', 1)}",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_download_attachment":
+            # Return structured DownloadResult
+            import os
+            file_path = params.get("file_path", "/tmp/downloaded_file.jpg")
+            file_name = os.path.basename(file_path)
+            file_size = 1024 * 50  # 50KB mock size
+            data = {
+                "success": True,
+                "file_path": file_path,
+                "file_name": file_name,
+                "file_size_bytes": file_size,
+                "file_size_display": f"{file_size / 1024:.1f} KB",
+                "attachment_id": params.get("attachment", {}).get("id", 1),
+                "status": "completed",
+                "message": f"Successfully downloaded '{file_name}' ({file_size / 1024:.1f} KB) to {file_path}",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_follow":
+            # Return structured FollowResult
+            data = {
+                "success": True,
+                "action": "follow",
+                "entity_type": params.get("entity_type", "Task"),
+                "entity_id": params.get("entity_id", 1),
+                "user_id": params.get("user_id"),
+                "message": f"Successfully started following {params.get('entity_type', 'Task')} with ID {params.get('entity_id', 1)}",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_unfollow":
+            # Return structured FollowResult
+            data = {
+                "success": True,
+                "action": "unfollow",
+                "entity_type": params.get("entity_type", "Task"),
+                "entity_id": params.get("entity_id", 1),
+                "user_id": params.get("user_id"),
+                "message": f"Successfully stopped following {params.get('entity_type', 'Task')} with ID {params.get('entity_id', 1)}",
+            }
+            return [MockResponse(data)]
+        elif tool_name == "sg_update_project_last_accessed":
+            # Return structured ProjectAccessResult
+            data = {
+                "success": True,
+                "project_id": params.get("project_id", 1),
+                "message": f"Successfully updated last accessed time for Project ID {params.get('project_id', 1)}",
+            }
+            return [MockResponse(data)]
+        elif tool_name in ["sg_find", "sg_find_one", "sg_create", "sg_update", "sg_batch"]:
+            # For other sg_ tools, fall through to sg. handling below
+            pass
+        else:
+            return [MockResponse({})]
+
     if tool_name.startswith("sg."):
         # For ShotGrid API tools, return a mock result
         if tool_name == "sg.find":

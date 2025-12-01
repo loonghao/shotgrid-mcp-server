@@ -630,3 +630,283 @@ class TestAPITools:
         # Should succeed (not an error)
         assert "isError" not in data or data["isError"] is False
         assert "matches" in data
+
+    @pytest.mark.asyncio
+    async def test_sg_upload(self, api_server: FastMCP, mock_sg: Shotgun, tmp_path):
+        """Test sg.upload tool returns structured UploadResult."""
+        # Create a test file
+        test_file = tmp_path / "test_movie.mov"
+        test_file.write_bytes(b"fake movie content" * 1000)  # ~18KB file
+
+        # Create test project and version
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Upload Test Project",
+                "code": "upload_test",
+                "sg_status": "Active",
+            },
+        )
+
+        version = mock_sg.create(
+            "Version",
+            {
+                "code": "upload_test_v001",
+                "project": {"type": "Project", "id": project["id"]},
+            },
+        )
+
+        # Call the upload tool
+        result = await call_tool(
+            api_server,
+            "sg_upload",
+            {
+                "entity_type": "Version",
+                "entity_id": version["id"],
+                "path": str(test_file),
+                "field_name": "sg_uploaded_movie",
+                "display_name": "Test Movie",
+            },
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured UploadResult fields
+        assert isinstance(response_data, dict)
+        assert "attachment_id" in response_data
+        assert isinstance(response_data["attachment_id"], int)
+        assert response_data["success"] is True
+        assert response_data["entity_type"] == "Version"
+        assert response_data["entity_id"] == version["id"]
+        assert response_data["field_name"] == "sg_uploaded_movie"
+        assert response_data["file_name"] == "test_movie.mov"
+        assert response_data["file_size_bytes"] > 0
+        assert "file_size_display" in response_data
+        assert response_data["status"] == "completed"
+        assert "message" in response_data
+        assert "Successfully uploaded" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_delete_structured_response(self, api_server: FastMCP, mock_sg: Shotgun):
+        """Test sg_delete tool returns structured DeleteResult."""
+        # Create test project and shot
+        project = mock_sg.create(
+            "Project",
+            {"name": "Delete Test Project", "code": "delete_test", "sg_status": "Active"},
+        )
+        shot = mock_sg.create(
+            "Shot",
+            {"code": "DELETE_SHOT", "project": {"type": "Project", "id": project["id"]}},
+        )
+
+        # Call the delete tool
+        result = await call_tool(
+            api_server,
+            "sg_delete",
+            {"entity_type": "Shot", "entity_id": shot["id"]},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured DeleteResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["entity_type"] == "Shot"
+        assert response_data["entity_id"] == shot["id"]
+        assert "message" in response_data
+        assert "Successfully deleted" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_revive_structured_response(self, api_server: FastMCP, mock_sg: Shotgun):
+        """Test sg_revive tool returns structured ReviveResult."""
+        # Create test project and shot
+        project = mock_sg.create(
+            "Project",
+            {"name": "Revive Test Project", "code": "revive_test", "sg_status": "Active"},
+        )
+        shot = mock_sg.create(
+            "Shot",
+            {"code": "REVIVE_SHOT", "project": {"type": "Project", "id": project["id"]}},
+        )
+
+        # Call the revive tool
+        result = await call_tool(
+            api_server,
+            "sg_revive",
+            {"entity_type": "Shot", "entity_id": shot["id"]},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured ReviveResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["entity_type"] == "Shot"
+        assert response_data["entity_id"] == shot["id"]
+        assert "message" in response_data
+        assert "Successfully revived" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_download_attachment_structured_response(self, api_server: FastMCP, tmp_path):
+        """Test sg_download_attachment tool returns structured DownloadResult."""
+        # Create a mock attachment reference
+        attachment = {"type": "Attachment", "id": 123, "name": "test_image.jpg"}
+        download_path = str(tmp_path / "downloaded_image.jpg")
+
+        # Call the download attachment tool
+        result = await call_tool(
+            api_server,
+            "sg_download_attachment",
+            {"attachment": attachment, "file_path": download_path},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured DownloadResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["file_path"] == download_path
+        assert "file_name" in response_data
+        assert "file_size_bytes" in response_data
+        assert "file_size_display" in response_data
+        assert response_data["status"] == "completed"
+        assert "message" in response_data
+        assert "Successfully downloaded" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_follow_structured_response(self, api_server: FastMCP, mock_sg: Shotgun):
+        """Test sg_follow tool returns structured FollowResult."""
+        # Create test project and task
+        project = mock_sg.create(
+            "Project",
+            {"name": "Follow Test Project", "code": "follow_test", "sg_status": "Active"},
+        )
+        task = mock_sg.create(
+            "Task",
+            {"content": "Test Task", "project": {"type": "Project", "id": project["id"]}},
+        )
+
+        # Call the follow tool
+        result = await call_tool(
+            api_server,
+            "sg_follow",
+            {"entity_type": "Task", "entity_id": task["id"]},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured FollowResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["action"] == "follow"
+        assert response_data["entity_type"] == "Task"
+        assert response_data["entity_id"] == task["id"]
+        assert "message" in response_data
+        assert "Successfully started following" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_unfollow_structured_response(self, api_server: FastMCP, mock_sg: Shotgun):
+        """Test sg_unfollow tool returns structured FollowResult."""
+        # Create test project and task
+        project = mock_sg.create(
+            "Project",
+            {"name": "Unfollow Test Project", "code": "unfollow_test", "sg_status": "Active"},
+        )
+        task = mock_sg.create(
+            "Task",
+            {"content": "Test Task", "project": {"type": "Project", "id": project["id"]}},
+        )
+
+        # Call the unfollow tool
+        result = await call_tool(
+            api_server,
+            "sg_unfollow",
+            {"entity_type": "Task", "entity_id": task["id"]},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured FollowResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["action"] == "unfollow"
+        assert response_data["entity_type"] == "Task"
+        assert response_data["entity_id"] == task["id"]
+        assert "message" in response_data
+        assert "Successfully stopped following" in response_data["message"]
+
+    @pytest.mark.asyncio
+    async def test_sg_update_project_last_accessed_structured_response(
+        self, api_server: FastMCP, mock_sg: Shotgun
+    ):
+        """Test sg_update_project_last_accessed tool returns structured ProjectAccessResult."""
+        # Create test project
+        project = mock_sg.create(
+            "Project",
+            {"name": "Access Test Project", "code": "access_test", "sg_status": "Active"},
+        )
+
+        # Call the update project last accessed tool
+        result = await call_tool(
+            api_server,
+            "sg_update_project_last_accessed",
+            {"project_id": project["id"]},
+        )
+
+        # Verify result
+        assert result is not None
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Parse the JSON response
+        response_text = result[0].text
+        response_data = json.loads(response_text)
+
+        # Verify structured ProjectAccessResult fields
+        assert isinstance(response_data, dict)
+        assert response_data["success"] is True
+        assert response_data["project_id"] == project["id"]
+        assert "message" in response_data
+        assert "Successfully updated last accessed time" in response_data["message"]

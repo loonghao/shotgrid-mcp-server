@@ -489,12 +489,12 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     @server.tool("sg_delete")
-    def sg_delete(entity_type: EntityType, entity_id: int) -> bool:
+    def sg_delete(entity_type: EntityType, entity_id: int) -> Dict[str, Any]:
         """Delete an entity in ShotGrid using the native ShotGrid API delete method.
 
         **When to use this tool:**
         - You need low-level direct access to the ShotGrid API
-        - You want the raw API response (boolean)
+        - You want to delete an entity directly
 
         **When NOT to use this tool:**
         - For most use cases - Use `delete_entity` instead (better error handling and response format)
@@ -510,17 +510,30 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
                       Example: 1234
 
         Returns:
-            True if successful, False otherwise.
+            Dictionary with delete operation result including:
+            - success: Whether the delete was successful
+            - entity_type: The type of entity deleted
+            - entity_id: The ID of the deleted entity
+            - message: AI-friendly status message
         """
+        from shotgrid_mcp_server.response_models import DeleteResult
+
         try:
             result = _get_sg(sg).delete(entity_type, entity_id)
-            return result
+            return DeleteResult(
+                success=bool(result),
+                entity_type=entity_type,
+                entity_id=entity_id,
+                message=f"Successfully deleted {entity_type} with ID {entity_id}"
+                if result
+                else f"Failed to delete {entity_type} with ID {entity_id}",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="sg.delete")
             raise
 
     @server.tool("sg_revive")
-    def sg_revive(entity_type: EntityType, entity_id: int) -> bool:
+    def sg_revive(entity_type: EntityType, entity_id: int) -> Dict[str, Any]:
         """Revive a deleted (retired) entity in ShotGrid using the native ShotGrid API revive method.
 
         **When to use this tool:**
@@ -541,11 +554,24 @@ def _register_delete_tools(server: FastMCPType, sg: Shotgun) -> None:
                       Example: 1234
 
         Returns:
-            True if successful, False otherwise.
+            Dictionary with revive operation result including:
+            - success: Whether the revive was successful
+            - entity_type: The type of entity revived
+            - entity_id: The ID of the revived entity
+            - message: AI-friendly status message
         """
+        from shotgrid_mcp_server.response_models import ReviveResult
+
         try:
             result = _get_sg(sg).revive(entity_type, entity_id)
-            return result
+            return ReviveResult(
+                success=bool(result),
+                entity_type=entity_type,
+                entity_id=entity_id,
+                message=f"Successfully revived {entity_type} with ID {entity_id}"
+                if result
+                else f"Failed to revive {entity_type} with ID {entity_id}",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="sg.revive")
             raise
@@ -1007,6 +1033,8 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
         - Attach document to a note
 
         **Note:** This is a direct wrapper around the ShotGrid API's upload method.
+        Returns structured information including attachment ID, file details, and
+        a human-readable status message suitable for AI progress reporting.
 
         Args:
             entity_type: Type of entity to upload to.
@@ -1026,10 +1054,26 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
             tag_list: Optional list of tags for the file.
 
         Returns:
-            Upload result (raw ShotGrid API response).
+            Structured upload result containing:
+            - attachment_id: The ShotGrid Attachment ID
+            - entity_type, entity_id, field_name: Target entity info
+            - file_name, file_size_bytes, file_size_display: File details
+            - status, message: Human-readable status for AI reporting
         """
+        import mimetypes
+        import os
+
+        from shotgrid_mcp_server.response_models import UploadResult, format_file_size
+
         try:
-            result = _get_sg(sg).upload(
+            # Get file information before upload
+            file_name = os.path.basename(path)
+            file_size_bytes = os.path.getsize(path) if os.path.exists(path) else 0
+            file_size_display = format_file_size(file_size_bytes)
+            content_type, _ = mimetypes.guess_type(path)
+
+            # Perform the upload
+            attachment_id = _get_sg(sg).upload(
                 entity_type,
                 entity_id,
                 path,
@@ -1037,7 +1081,30 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
                 display_name=display_name,
                 tag_list=tag_list,
             )
-            return result
+
+            # Create AI-friendly success message
+            message = (
+                f"Successfully uploaded '{file_name}' ({file_size_display}) "
+                f"to {entity_type} ID {entity_id}. Attachment ID: {attachment_id}"
+            )
+
+            # Return structured result
+            return UploadResult(
+                attachment_id=attachment_id,
+                success=True,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                field_name=field_name,
+                file_name=file_name,
+                file_size_bytes=file_size_bytes,
+                file_size_display=file_size_display,
+                display_name=display_name or file_name,
+                status="completed",
+                message=message,
+                content_type=content_type,
+                tag_list=tag_list,
+            ).model_dump()
+
         except Exception as err:
             handle_error(err, operation="sg.upload")
             raise
@@ -1046,7 +1113,7 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
     def sg_download_attachment(
         attachment: Dict[str, Any],
         file_path: Optional[str] = None,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Download an attachment from ShotGrid using the native ShotGrid API download_attachment method.
 
         **When to use this tool:**
@@ -1063,7 +1130,7 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
             attachment: Attachment dictionary to download.
                        Usually obtained from entity query results.
 
-                       Example: {"url": "https://...", "name": "file.pdf"}
+                       Example: {"url": "https://...", "name": "file.pdf", "id": 123}
 
             file_path: Optional path to save the file to.
                       If not provided, saves to temp directory.
@@ -1071,11 +1138,47 @@ def register_file_tools(server: FastMCPType, sg: Shotgun) -> None:
                       Example: "C:/downloads/file.pdf"
 
         Returns:
-            Path to downloaded file.
+            Dictionary with download result including:
+            - success: Whether the download was successful
+            - file_path: Path where file was saved
+            - file_name: Name of the downloaded file
+            - file_size_bytes: Size of the downloaded file
+            - file_size_display: Human-readable file size
+            - message: AI-friendly status message
         """
+        import os
+
+        from shotgrid_mcp_server.response_models import DownloadResult, format_file_size
+
         try:
-            result = _get_sg(sg).download_attachment(attachment, file_path=file_path)
-            return result
+            # Perform download
+            downloaded_path = _get_sg(sg).download_attachment(attachment, file_path=file_path)
+
+            # Get file information
+            file_size_bytes = os.path.getsize(downloaded_path) if os.path.exists(downloaded_path) else 0
+            file_size_display = format_file_size(file_size_bytes)
+            file_name = os.path.basename(downloaded_path)
+
+            # Extract attachment info if available
+            attachment_id = attachment.get("id")
+            attachment_name = attachment.get("name")
+
+            message = (
+                f"Successfully downloaded '{attachment_name or file_name}' ({file_size_display}) "
+                f"to '{downloaded_path}'"
+            )
+
+            return DownloadResult(
+                success=True,
+                file_path=downloaded_path,
+                file_name=file_name,
+                file_size_bytes=file_size_bytes,
+                file_size_display=file_size_display,
+                attachment_id=attachment_id,
+                attachment_name=attachment_name,
+                message=message,
+            ).model_dump()
+
         except Exception as err:
             handle_error(err, operation="sg.download_attachment")
             raise
@@ -1170,7 +1273,7 @@ def _register_follow_tools(server: FastMCPType, sg: Shotgun) -> None:
         entity_type: EntityType,
         entity_id: int,
         user_id: Optional[int] = None,
-    ) -> bool:
+    ) -> Dict[str, Any]:
         """Follow an entity in ShotGrid using the native ShotGrid API follow method.
 
         **When to use this tool:**
@@ -1198,11 +1301,27 @@ def _register_follow_tools(server: FastMCPType, sg: Shotgun) -> None:
                     Example: 42
 
         Returns:
-            True if successful, False otherwise.
+            Dictionary with follow operation result including:
+            - success: Whether the operation was successful
+            - action: 'follow'
+            - entity_type: The type of entity
+            - entity_id: The ID of the entity
+            - message: AI-friendly status message
         """
+        from shotgrid_mcp_server.response_models import FollowResult
+
         try:
             result = _get_sg(sg).follow(entity_type, entity_id, user_id=user_id)
-            return result
+            return FollowResult(
+                success=bool(result),
+                action="follow",
+                entity_type=entity_type,
+                entity_id=entity_id,
+                user_id=user_id,
+                message=f"Successfully started following {entity_type} with ID {entity_id}"
+                if result
+                else f"Failed to follow {entity_type} with ID {entity_id}",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="sg.follow")
             raise
@@ -1212,7 +1331,7 @@ def _register_follow_tools(server: FastMCPType, sg: Shotgun) -> None:
         entity_type: EntityType,
         entity_id: int,
         user_id: Optional[int] = None,
-    ) -> bool:
+    ) -> Dict[str, Any]:
         """Unfollow an entity in ShotGrid using the native ShotGrid API unfollow method.
 
         **When to use this tool:**
@@ -1240,11 +1359,27 @@ def _register_follow_tools(server: FastMCPType, sg: Shotgun) -> None:
                     Example: 42
 
         Returns:
-            True if successful, False otherwise.
+            Dictionary with unfollow operation result including:
+            - success: Whether the operation was successful
+            - action: 'unfollow'
+            - entity_type: The type of entity
+            - entity_id: The ID of the entity
+            - message: AI-friendly status message
         """
+        from shotgrid_mcp_server.response_models import FollowResult
+
         try:
             result = _get_sg(sg).unfollow(entity_type, entity_id, user_id=user_id)
-            return result
+            return FollowResult(
+                success=bool(result),
+                action="unfollow",
+                entity_type=entity_type,
+                entity_id=entity_id,
+                user_id=user_id,
+                message=f"Successfully stopped following {entity_type} with ID {entity_id}"
+                if result
+                else f"Failed to unfollow {entity_type} with ID {entity_id}",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="sg.unfollow")
             raise
@@ -1387,7 +1522,7 @@ def register_project_tools(server: FastMCPType, sg: Shotgun) -> None:
     """
 
     @server.tool("sg_update_project_last_accessed")
-    def sg_update_project_last_accessed(project_id: int) -> bool:
+    def sg_update_project_last_accessed(project_id: int) -> Dict[str, Any]:
         """Update project last accessed time using the native ShotGrid API update_project_last_accessed method.
 
         **When to use this tool:**
@@ -1411,11 +1546,22 @@ def register_project_tools(server: FastMCPType, sg: Shotgun) -> None:
                        Example: 123
 
         Returns:
-            True if successful, False otherwise.
+            Dictionary with operation result including:
+            - success: Whether the operation was successful
+            - project_id: The project ID that was updated
+            - message: AI-friendly status message
         """
+        from shotgrid_mcp_server.response_models import ProjectAccessResult
+
         try:
             result = _get_sg(sg).update_project_last_accessed(project_id)
-            return result
+            return ProjectAccessResult(
+                success=bool(result),
+                project_id=project_id,
+                message=f"Successfully updated last accessed time for Project ID {project_id}"
+                if result
+                else f"Failed to update last accessed time for Project ID {project_id}",
+            ).model_dump()
         except Exception as err:
             handle_error(err, operation="sg.update_project_last_accessed")
             raise

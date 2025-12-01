@@ -28,6 +28,25 @@ def get_default_schema_resources() -> Dict[str, str]:
     }
 
 
+def format_file_size(size_bytes: int) -> str:
+    """Format file size in human-readable format.
+
+    Args:
+        size_bytes: File size in bytes.
+
+    Returns:
+        Human-readable file size string (e.g., '15.2 MB').
+    """
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+
+
 class ResponseMetadata(BaseModel):
     """Metadata for a response."""
 
@@ -159,6 +178,110 @@ class BatchOperationsResult(BaseModel):
     success_count: int
     failure_count: int
     message: Optional[str] = None
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class UploadResult(BaseModel):
+    """Structured payload for file upload results.
+
+    This model provides AI-friendly information about the upload operation,
+    including file details and progress information that can be used for
+    reporting to users.
+    """
+
+    # Core result fields
+    attachment_id: int = Field(..., description="The ShotGrid Attachment entity ID created for the uploaded file")
+    success: bool = Field(default=True, description="Whether the upload completed successfully")
+
+    # Entity context
+    entity_type: EntityType = Field(..., description="The entity type the file was uploaded to")
+    entity_id: int = Field(..., gt=0, description="The entity ID the file was uploaded to")
+    field_name: str = Field(..., description="The field name the file was uploaded to")
+
+    # File information (AI-friendly for progress reporting)
+    file_name: str = Field(..., description="Original file name")
+    file_size_bytes: int = Field(..., ge=0, description="File size in bytes")
+    file_size_display: str = Field(..., description="Human-readable file size (e.g., '15.2 MB')")
+    display_name: Optional[str] = Field(None, description="Display name used for the file in ShotGrid")
+
+    # Progress information (useful for AI to report)
+    status: str = Field(default="completed", description="Upload status: 'completed', 'failed'")
+    message: str = Field(..., description="Human-readable status message for AI to report to users")
+
+    # Optional metadata
+    content_type: Optional[str] = Field(None, description="MIME type of the uploaded file")
+    tag_list: Optional[List[str]] = Field(None, description="Tags applied to the uploaded file")
+
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class DeleteResult(BaseModel):
+    """Structured payload for delete operation results.
+
+    Provides AI-friendly information about the delete operation result.
+    """
+
+    success: bool = Field(..., description="Whether the delete operation was successful")
+    entity_type: EntityType = Field(..., description="The type of entity that was deleted")
+    entity_id: int = Field(..., gt=0, description="The ID of the deleted entity")
+    message: str = Field(..., description="Human-readable status message for AI to report")
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class ReviveResult(BaseModel):
+    """Structured payload for revive operation results.
+
+    Provides AI-friendly information about the revive operation result.
+    """
+
+    success: bool = Field(..., description="Whether the revive operation was successful")
+    entity_type: EntityType = Field(..., description="The type of entity that was revived")
+    entity_id: int = Field(..., gt=0, description="The ID of the revived entity")
+    message: str = Field(..., description="Human-readable status message for AI to report")
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class DownloadResult(BaseModel):
+    """Structured payload for download attachment results.
+
+    Provides AI-friendly information about the download operation.
+    """
+
+    success: bool = Field(default=True, description="Whether the download completed successfully")
+    file_path: str = Field(..., description="Path where the file was saved")
+    file_name: str = Field(..., description="Name of the downloaded file")
+    file_size_bytes: int = Field(..., ge=0, description="File size in bytes")
+    file_size_display: str = Field(..., description="Human-readable file size")
+    attachment_id: Optional[int] = Field(None, description="ShotGrid Attachment ID if available")
+    attachment_name: Optional[str] = Field(None, description="Original attachment name from ShotGrid")
+    message: str = Field(..., description="Human-readable status message for AI to report")
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class FollowResult(BaseModel):
+    """Structured payload for follow/unfollow operation results.
+
+    Provides AI-friendly information about the follow operation.
+    """
+
+    success: bool = Field(..., description="Whether the operation was successful")
+    action: str = Field(..., description="Action performed: 'follow' or 'unfollow'")
+    entity_type: EntityType = Field(..., description="The type of entity")
+    entity_id: int = Field(..., gt=0, description="The ID of the entity")
+    user_id: Optional[int] = Field(None, description="The user ID if specified")
+    message: str = Field(..., description="Human-readable status message for AI to report")
+    schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
+
+
+class ProjectAccessResult(BaseModel):
+    """Structured payload for project last accessed update results.
+
+    Provides AI-friendly information about the operation.
+    """
+
+    success: bool = Field(..., description="Whether the operation was successful")
+    project_id: int = Field(..., gt=0, description="The project ID that was updated")
+    message: str = Field(..., description="Human-readable status message for AI to report")
     schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
 
 
