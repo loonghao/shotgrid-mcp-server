@@ -326,6 +326,65 @@ class MockgunExt(Shotgun):  # type: ignore[misc]
             return file_path
         return mock_data
 
+    def upload(
+        self,
+        entity_type: EntityType,
+        entity_id: int,
+        path: str,
+        field_name: str = "sg_uploaded_movie",
+        display_name: Optional[str] = None,
+        tag_list: Optional[List[str]] = None,
+    ) -> int:
+        """Upload a file to an entity in the mock database.
+
+        This simulates the ShotGrid API upload method by creating an
+        Attachment entity and linking it to the target entity field.
+
+        Args:
+            entity_type: Type of entity to upload to.
+            entity_id: ID of the entity to upload to.
+            path: Path to the file to upload.
+            field_name: Field name to upload to.
+            display_name: Display name for the file.
+            tag_list: Optional list of tags for the file.
+
+        Returns:
+            int: The Attachment ID (simulated).
+
+        Raises:
+            ShotgunError: If the entity is not found.
+        """
+        # Verify entity exists
+        entity = self.find_one(entity_type, [["id", "is", entity_id]])
+        if not entity:
+            raise ShotgunError(f"Entity {entity_type} with id {entity_id} not found")
+
+        # Generate a mock attachment ID
+        import os
+
+        file_name = os.path.basename(path) if path else "mock_file"
+        attachment_id = len(self._db.get("Attachment", {})) + 1000
+
+        # Create a mock attachment record
+        if "Attachment" not in self._db:
+            self._db["Attachment"] = {}
+
+        self._db["Attachment"][attachment_id] = {
+            "id": attachment_id,
+            "type": "Attachment",
+            "filename": display_name or file_name,
+            "content_type": "application/octet-stream",
+            "tag_list": tag_list or [],
+            "this_file": {"name": file_name, "url": f"https://mock.shotgrid.com/files/{attachment_id}"},
+        }
+
+        # Update the entity with the attachment reference
+        attachment_ref = {"type": "Attachment", "id": attachment_id}
+        if entity_type in self._db and entity_id in self._db[entity_type]:
+            self._db[entity_type][entity_id][field_name] = attachment_ref
+
+        return attachment_id
+
     def _apply_filter(self, entity: Entity, filter_item: Filter) -> bool:  # type: ignore[arg-type]
         """Apply a single filter to an entity.
 
