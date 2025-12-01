@@ -1,3 +1,9 @@
+## v0.13.3 (2025-12-01)
+
+### Fix
+
+- **ci**: use Python 3.12, add FastMCP Cloud support with dedicated entry point
+
 ## v0.13.2 (2025-12-01)
 
 ### Fix
