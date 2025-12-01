@@ -1,3 +1,9 @@
+## v0.13.2 (2025-12-01)
+
+### Fix
+
+- return structured results for API tools instead of primitives
+
 ## v0.13.1 (2025-11-28)
 
 ### Fix
