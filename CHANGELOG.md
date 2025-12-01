@@ -1,3 +1,9 @@
+## v0.13.4 (2025-12-01)
+
+### Fix
+
+- **cloud**: use HTTP ASGI app for FastMCP Cloud multi-site support
+
 ## v0.13.3 (2025-12-01)
 
 ### Fix
