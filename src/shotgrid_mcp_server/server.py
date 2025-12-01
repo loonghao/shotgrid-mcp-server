@@ -1,4 +1,14 @@
-"""ShotGrid MCP server implementation."""
+"""ShotGrid MCP server implementation.
+
+This module provides the FastMCP server for ShotGrid integration.
+
+For FastMCP Cloud deployment, this module exports a module-level `mcp` instance
+that is lazily initialized on first access. The entrypoint should be:
+    src/shotgrid_mcp_server/server.py:mcp
+
+For local development, use the CLI:
+    shotgrid-mcp-server --transport http --port 8000
+"""
 
 # Import built-in modules
 import logging
@@ -130,6 +140,13 @@ def create_server(
     except Exception as err:
         logger.error("Failed to create server: %s", str(err), exc_info=True)
         raise
+
+
+# Module-level MCP instance for FastMCP Cloud deployment
+# FastMCP Cloud looks for 'mcp', 'server', or 'app' in the entrypoint file
+# Using lazy_connection=True to avoid connection errors during import
+# Credentials are provided via environment variables at runtime
+mcp: FastMCP = create_server(lazy_connection=True, preload_schema=False)
 
 
 def main() -> None:

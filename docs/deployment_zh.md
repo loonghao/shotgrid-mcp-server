@@ -181,10 +181,61 @@ shotgrid-mcp-server http --host 0.0.0.0 --port 8000
 
 ### FastMCP Cloud
 
-部署到 FastMCP Cloud 平台：
+[FastMCP Cloud](https://fastmcp.cloud) 是将 MCP 服务器部署到生产环境的最简单方式。
 
-1. 创建 ASGI 应用（参考 `app.py` 示例）
-2. 按照 FastMCP Cloud 部署指南操作：https://gofastmcp.com/deployment/fastmcp-cloud
+#### 快速设置
+
+1. 在 [fastmcp.cloud](https://fastmcp.cloud) **注册**并创建新项目
+2. **连接**您的 GitHub 仓库
+3. **配置**部署设置：
+
+| 设置 | 值 |
+|------|-----|
+| **入口文件 (Entrypoint)** | `fastmcp_entry.py` |
+| **依赖文件 (Requirements File)** | `requirements.txt` |
+
+4. 在 FastMCP Cloud 控制台中**设置环境变量**：
+   - `SHOTGRID_URL`：您的 ShotGrid 服务器 URL
+   - `SHOTGRID_SCRIPT_NAME`：您的脚本名称
+   - `SHOTGRID_SCRIPT_KEY`：您的 API 密钥
+
+5. **部署**并获取服务器 URL（例如：`https://your-project.fastmcp.app/mcp`）
+
+#### 工作原理
+
+服务器导出一个模块级的 `mcp` 实例，FastMCP Cloud 会自动发现它：
+
+```python
+# src/shotgrid_mcp_server/server.py
+from fastmcp import FastMCP
+
+# 用于 FastMCP Cloud 的模块级 MCP 实例
+mcp: FastMCP = create_server(lazy_connection=True, preload_schema=False)
+```
+
+#### 客户端配置
+
+部署完成后，配置您的 MCP 客户端使用云端点：
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-cloud": {
+      "url": "https://your-project.fastmcp.app/mcp",
+      "transport": {
+        "type": "http"
+      }
+    }
+  }
+}
+```
+
+#### 优势
+
+- **零基础设施**：无需管理服务器
+- **自动扩展**：自动处理流量高峰
+- **内置监控**：在控制台查看日志和指标
+- **轻松更新**：推送到 GitHub 自动部署
 
 ### Docker 部署
 

@@ -181,10 +181,61 @@ For each ShotGrid site, configure custom headers in your MCP client:
 
 ### FastMCP Cloud
 
-Deploy to FastMCP Cloud platform:
+[FastMCP Cloud](https://fastmcp.cloud) is the easiest way to deploy your MCP server to production.
 
-1. Create your ASGI app (see `app.py` example)
-2. Follow FastMCP Cloud deployment guide: https://gofastmcp.com/deployment/fastmcp-cloud
+#### Quick Setup
+
+1. **Sign up** at [fastmcp.cloud](https://fastmcp.cloud) and create a new project
+2. **Connect** your GitHub repository
+3. **Configure** your deployment settings:
+
+| Setting | Value |
+|---------|-------|
+| **Entrypoint** | `fastmcp_entry.py` |
+| **Requirements File** | `requirements.txt` |
+
+4. **Set environment variables** in the FastMCP Cloud dashboard:
+   - `SHOTGRID_URL`: Your ShotGrid server URL
+   - `SHOTGRID_SCRIPT_NAME`: Your script name
+   - `SHOTGRID_SCRIPT_KEY`: Your API key
+
+5. **Deploy** and get your server URL (e.g., `https://your-project.fastmcp.app/mcp`)
+
+#### How It Works
+
+The server exports a module-level `mcp` instance that FastMCP Cloud automatically discovers:
+
+```python
+# src/shotgrid_mcp_server/server.py
+from fastmcp import FastMCP
+
+# Module-level MCP instance for FastMCP Cloud
+mcp: FastMCP = create_server(lazy_connection=True, preload_schema=False)
+```
+
+#### Client Configuration
+
+Once deployed, configure your MCP client to use the cloud endpoint:
+
+```json
+{
+  "mcpServers": {
+    "shotgrid-cloud": {
+      "url": "https://your-project.fastmcp.app/mcp",
+      "transport": {
+        "type": "http"
+      }
+    }
+  }
+}
+```
+
+#### Benefits
+
+- **Zero infrastructure**: No servers to manage
+- **Automatic scaling**: Handles traffic spikes automatically
+- **Built-in monitoring**: View logs and metrics in the dashboard
+- **Easy updates**: Push to GitHub and auto-deploy
 
 ### Docker Deployment
 

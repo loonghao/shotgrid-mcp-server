@@ -15,6 +15,42 @@
 
 </div>
 
+## 🏗️ 架构
+
+```mermaid
+flowchart TB
+    subgraph Clients["🤖 MCP 客户端"]
+        direction LR
+        CLAUDE["Claude Desktop"]
+        CURSOR["Cursor"]
+        VSCODE["VS Code"]
+        AI["其他 AI"]
+    end
+
+    subgraph MCP["⚡ ShotGrid MCP Server"]
+        direction LR
+        TOOLS["40+ 工具"]
+        POOL["连接池"]
+        SCHEMA["Schema 缓存"]
+    end
+
+    subgraph ShotGrid["🎬 ShotGrid API"]
+        direction LR
+        P["项目"]
+        S["镜头"]
+        A["资产"]
+        T["任务"]
+        N["备注"]
+    end
+
+    Clients -->|"MCP 协议<br/>stdio / http"| MCP
+    MCP -->|"REST API"| ShotGrid
+
+    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
+    style MCP fill:#3498db,stroke:#2980b9,color:#fff
+    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
+```
+
 ## ✨ 特性
 
 - 🚀 基于fastmcp的高性能实现
@@ -129,11 +165,54 @@ uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
 - 对于 HTTP 传输模式,可以通过 HTTP 头传递凭证,也可以使用环境变量作为默认值
 - 建议在生产环境中使用 HTTPS 以保护 API 密钥的安全
 
+#### 入口点
+
+服务器提供多种入口点以适应不同的部署场景：
+
+| 入口点 | 使用场景 | 命令 |
+|--------|---------|------|
+| **CLI** | 本地开发，与 Claude Desktop 配合 | `shotgrid-mcp-server` 或 `shotgrid-mcp-server stdio` |
+| **HTTP** | 远程访问 / Web 部署 | `shotgrid-mcp-server http --host 0.0.0.0 --port 8000` |
+| **ASGI** | 生产环境，配合 uvicorn/gunicorn | `uvicorn shotgrid_mcp_server.asgi:app` |
+| **FastMCP Cloud** | 托管云部署 | 使用 `fastmcp_entry.py` 作为入口 |
+
+#### FastMCP Cloud（推荐）
+
+最简单的生产环境部署方式：
+
+1. 在 [fastmcp.cloud](https://fastmcp.cloud) 注册并创建新项目
+2. 连接您的 GitHub 仓库（`loonghao/shotgrid-mcp-server`）
+3. 配置部署设置：
+
+   | 设置 | 值 |
+   |------|-----|
+   | **入口文件 (Entrypoint)** | `fastmcp_entry.py` |
+   | **依赖文件 (Requirements File)** | `requirements.txt` |
+
+4. 在控制台添加环境变量：
+   - `SHOTGRID_URL` - 您的 ShotGrid 服务器 URL
+   - `SHOTGRID_SCRIPT_NAME` - 您的脚本名称
+   - `SHOTGRID_SCRIPT_KEY` - 您的 API 密钥
+
+5. 点击部署，获取服务器 URL（例如：`https://your-project.fastmcp.app/mcp`）
+
+6. 配置您的 MCP 客户端：
+   ```json
+   {
+     "mcpServers": {
+       "shotgrid-cloud": {
+         "url": "https://your-project.fastmcp.app/mcp",
+         "transport": { "type": "http" }
+       }
+     }
+   }
+   ```
+
 #### ASGI 部署
 
-对于生产环境部署，您可以使用独立的 ASGI 应用配合任何 ASGI 服务器。
+用于自托管生产环境部署，配合任何 ASGI 服务器：
 
-> **注意**：ASGI 应用使用**延迟初始化** - ShotGrid 连接只在第一个请求到达时创建，而不是在模块导入时。这可以防止 Docker 构建或应用启动时的连接错误。
+> **注意**：ASGI 应用使用**延迟初始化** - ShotGrid 连接只在第一个请求到达时创建，而不是在模块导入时。
 
 ```bash
 # 使用 Uvicorn 开发模式
@@ -142,58 +221,11 @@ uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --reload
 # 生产模式（多进程）
 uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --workers 4
 
-# 使用 Gunicorn 与 Uvicorn workers（生产环境推荐）
-gunicorn shotgrid_mcp_server.asgi:app \
-    -k uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 \
-    --workers 4
-
-# 使用 Hypercorn
-hypercorn shotgrid_mcp_server.asgi:app --bind 0.0.0.0:8000
+# 使用 Gunicorn 与 Uvicorn workers
+gunicorn shotgrid_mcp_server.asgi:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 4
 ```
 
-**自定义 ASGI 应用（带中间件）：**
-
-创建自定义 `app.py` 文件：
-
-```python
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
-from shotgrid_mcp_server.asgi import create_asgi_app
-
-# 为您的域名配置 CORS
-cors_middleware = Middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
-# 创建带中间件的应用
-app = create_asgi_app(
-    middleware=[cors_middleware],
-    path="/mcp"
-)
-```
-
-然后部署：
-```bash
-uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-**云平台部署：**
-
-ASGI 应用可以轻松部署到各种云平台：
-- [FastMCP Cloud](https://gofastmcp.com/deployment/fastmcp-cloud)
-- AWS Lambda（使用 Mangum）
-- Google Cloud Run
-- Azure Container Apps
-- Heroku
-- Railway
-- Render
-
-详细部署说明请参阅 [部署指南](docs/deployment_zh.md)。
+详细部署说明请参阅 [部署指南](docs/deployment_zh.md)，包括 Docker、自定义中间件和其他云平台。
 
 ### 开发环境设置
 
@@ -229,7 +261,7 @@ nox -s type_check
 
 为了获得更好的开发体验，可以使用热重载功能（代码变更时服务器自动重启）：
 ```bash
-uv run fastmcp dev src/shotgrid_mcp_server/server.py:app
+uv run fastmcp dev src/shotgrid_mcp_server/server.py:mcp
 ```
 
 这将在开发模式下启动服务器，并且代码的任何变更都会自动重新加载服务器。

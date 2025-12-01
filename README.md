@@ -16,6 +16,42 @@ A high-performance ShotGrid Model Context Protocol (MCP) server implementation b
 
 </div>
 
+## 🏗️ Architecture
+
+```mermaid
+flowchart TB
+    subgraph Clients["🤖 MCP Clients"]
+        direction LR
+        CLAUDE["Claude Desktop"]
+        CURSOR["Cursor"]
+        VSCODE["VS Code"]
+        AI["Other AI"]
+    end
+
+    subgraph MCP["⚡ ShotGrid MCP Server"]
+        direction LR
+        TOOLS["40+ Tools"]
+        POOL["Connection Pool"]
+        SCHEMA["Schema Cache"]
+    end
+
+    subgraph ShotGrid["🎬 ShotGrid API"]
+        direction LR
+        P["Projects"]
+        S["Shots"]
+        A["Assets"]
+        T["Tasks"]
+        N["Notes"]
+    end
+
+    Clients -->|"MCP Protocol<br/>stdio / http"| MCP
+    MCP -->|"REST API"| ShotGrid
+
+    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
+    style MCP fill:#3498db,stroke:#2980b9,color:#fff
+    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
+```
+
 ## 🎬 Demo
 
 Here's a simple example of querying entities using the ShotGrid MCP server:
@@ -130,11 +166,54 @@ This allows you to configure multiple ShotGrid site instances in the same MCP cl
 - For HTTP transport mode, credentials can be passed via HTTP headers or use environment variables as defaults
 - It's recommended to use HTTPS in production to protect API keys
 
+#### Entry Points
+
+The server provides multiple entry points for different deployment scenarios:
+
+| Entry Point | Use Case | Command |
+|-------------|----------|---------|
+| **CLI** | Local development with Claude Desktop | `shotgrid-mcp-server` or `shotgrid-mcp-server stdio` |
+| **HTTP** | Remote access / Web deployments | `shotgrid-mcp-server http --host 0.0.0.0 --port 8000` |
+| **ASGI** | Production with uvicorn/gunicorn | `uvicorn shotgrid_mcp_server.asgi:app` |
+| **FastMCP Cloud** | Managed cloud deployment | Use `fastmcp_entry.py` as entrypoint |
+
+#### FastMCP Cloud (Recommended)
+
+The easiest way to deploy to production:
+
+1. Sign up at [fastmcp.cloud](https://fastmcp.cloud) and create a new project
+2. Connect your GitHub repository (`loonghao/shotgrid-mcp-server`)
+3. Configure deployment settings:
+
+   | Setting | Value |
+   |---------|-------|
+   | **Entrypoint** | `fastmcp_entry.py` |
+   | **Requirements File** | `requirements.txt` |
+
+4. Add environment variables in the dashboard:
+   - `SHOTGRID_URL` - Your ShotGrid server URL
+   - `SHOTGRID_SCRIPT_NAME` - Your script name
+   - `SHOTGRID_SCRIPT_KEY` - Your API key
+
+5. Click Deploy and get your server URL (e.g., `https://your-project.fastmcp.app/mcp`)
+
+6. Configure your MCP client:
+   ```json
+   {
+     "mcpServers": {
+       "shotgrid-cloud": {
+         "url": "https://your-project.fastmcp.app/mcp",
+         "transport": { "type": "http" }
+       }
+     }
+   }
+   ```
+
 #### ASGI Deployment
 
-For production deployments, you can use the standalone ASGI application with any ASGI server.
+For self-hosted production deployments with any ASGI server:
 
-> **Note**: The ASGI application uses **lazy initialization** - the ShotGrid connection is only created when the first request arrives, not during module import. This prevents connection errors during Docker builds or application startup.
+> **Note**: The ASGI application uses **lazy initialization** - the ShotGrid connection is only created when the first request arrives, not during module import.
 
 ```bash
 # Development mode with Uvicorn
@@ -143,58 +222,11 @@ uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --reload
 # Production mode with multiple workers
 uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000 --workers 4
 
-# Using Gunicorn with Uvicorn workers (recommended for production)
-gunicorn shotgrid_mcp_server.asgi:app \
-    -k uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:8000 \
-    --workers 4
-
-# Using Hypercorn
-hypercorn shotgrid_mcp_server.asgi:app --bind 0.0.0.0:8000
+# Using Gunicorn with Uvicorn workers
+gunicorn shotgrid_mcp_server.asgi:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 4
 ```
 
-**Custom ASGI App with Middleware:**
-
-Create a custom `app.py` file:
-
-```python
-from starlette.middleware import Middleware
-from starlette.middleware.cors import CORSMiddleware
-from shotgrid_mcp_server.asgi import create_asgi_app
-
-# Configure CORS for your domain
-cors_middleware = Middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
-# Create app with middleware
-app = create_asgi_app(
-    middleware=[cors_middleware],
-    path="/mcp"
-)
-```
-
-Then deploy it:
-```bash
-uvicorn app:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-**Cloud Platform Deployment:**
-
-The ASGI application can be easily deployed to cloud platforms like:
-- [FastMCP Cloud](https://gofastmcp.com/deployment/fastmcp-cloud)
-- AWS Lambda (with Mangum)
-- Google Cloud Run
-- Azure Container Apps
-- Heroku
-- Railway
-- Render
-
-See the [Deployment Guide](docs/deployment.md) for detailed instructions.
+See the [Deployment Guide](docs/deployment.md) for more details including Docker, custom middleware, and other cloud platforms.
 
 ### Development Setup
 
@@ -230,7 +262,7 @@ nox -s type_check
 
 For a better development experience with hot reloading (server automatically restarts when code changes):
 ```bash
-uv run fastmcp dev src/shotgrid_mcp_server/server.py:app
+uv run fastmcp dev src/shotgrid_mcp_server/server.py:mcp
 ```
 
 This will start the server in development mode, and any changes to the code will automatically reload the server.
