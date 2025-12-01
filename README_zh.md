@@ -15,41 +15,11 @@
 
 </div>
 
-## 🏗️ 架构
+## 🎬 演示
 
-```mermaid
-flowchart TB
-    subgraph Clients["🤖 MCP 客户端"]
-        direction LR
-        CLAUDE["Claude Desktop"]
-        CURSOR["Cursor"]
-        VSCODE["VS Code"]
-        AI["其他 AI"]
-    end
+这是一个使用 ShotGrid MCP 服务器查询实体的简单示例：
 
-    subgraph MCP["⚡ ShotGrid MCP Server"]
-        direction LR
-        TOOLS["40+ 工具"]
-        POOL["连接池"]
-        SCHEMA["Schema 缓存"]
-    end
-
-    subgraph ShotGrid["🎬 ShotGrid API"]
-        direction LR
-        P["项目"]
-        S["镜头"]
-        A["资产"]
-        T["任务"]
-        N["备注"]
-    end
-
-    Clients -->|"MCP 协议<br/>stdio / http"| MCP
-    MCP -->|"REST API"| ShotGrid
-
-    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
-    style MCP fill:#3498db,stroke:#2980b9,color:#fff
-    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
-```
+![ShotGrid MCP Server Demo](images/sg-mcp.gif)
 
 ## ✨ 特性
 
@@ -559,3 +529,39 @@ MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情。
 ### 🛡️ 工具权限
 
 `alwaysAllow`部分列出了可以无需用户确认即可执行的工具。这些工具经过精心选择，确保操作安全。您可以根据安全需求自定义此列表。
+
+## 🏗️ 架构
+
+```mermaid
+flowchart TB
+    subgraph Clients["🤖 MCP 客户端"]
+        direction LR
+        CLAUDE["Claude Desktop"]
+        CURSOR["Cursor"]
+        VSCODE["VS Code"]
+        AI["其他 AI"]
+    end
+
+    subgraph MCP["⚡ ShotGrid MCP Server"]
+        direction LR
+        TOOLS["40+ 工具"]
+        POOL["连接池"]
+        SCHEMA["Schema 缓存"]
+    end
+
+    subgraph ShotGrid["🎬 ShotGrid API"]
+        direction LR
+        P["项目"]
+        S["镜头"]
+        A["资产"]
+        T["任务"]
+        N["备注"]
+    end
+
+    Clients -->|"MCP 协议<br/>stdio / http"| MCP
+    MCP -->|"REST API"| ShotGrid
+
+    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
+    style MCP fill:#3498db,stroke:#2980b9,color:#fff
+    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
+```

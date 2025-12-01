@@ -16,43 +16,7 @@ A high-performance ShotGrid Model Context Protocol (MCP) server implementation b
 
 </div>
 
-## 🏗️ Architecture
-
-```mermaid
-flowchart TB
-    subgraph Clients["🤖 MCP Clients"]
-        direction LR
-        CLAUDE["Claude Desktop"]
-        CURSOR["Cursor"]
-        VSCODE["VS Code"]
-        AI["Other AI"]
-    end
-
-    subgraph MCP["⚡ ShotGrid MCP Server"]
-        direction LR
-        TOOLS["40+ Tools"]
-        POOL["Connection Pool"]
-        SCHEMA["Schema Cache"]
-    end
-
-    subgraph ShotGrid["🎬 ShotGrid API"]
-        direction LR
-        P["Projects"]
-        S["Shots"]
-        A["Assets"]
-        T["Tasks"]
-        N["Notes"]
-    end
-
-    Clients -->|"MCP Protocol<br/>stdio / http"| MCP
-    MCP -->|"REST API"| ShotGrid
-
-    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
-    style MCP fill:#3498db,stroke:#2980b9,color:#fff
-    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
-```
-
-## 🎬 Demo
+##  Demo
 
 Here's a simple example of querying entities using the ShotGrid MCP server:
 
@@ -560,3 +524,39 @@ In the configuration examples above, replace the following values with your Shot
 ### 🛡️ Tool Permissions
 
 The `alwaysAllow` section lists the tools that can be executed without requiring user confirmation. These tools are carefully selected for safe operations. You can customize this list based on your security requirements.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TB
+    subgraph Clients["🤖 MCP Clients"]
+        direction LR
+        CLAUDE["Claude Desktop"]
+        CURSOR["Cursor"]
+        VSCODE["VS Code"]
+        AI["Other AI"]
+    end
+
+    subgraph MCP["⚡ ShotGrid MCP Server"]
+        direction LR
+        TOOLS["40+ Tools"]
+        POOL["Connection Pool"]
+        SCHEMA["Schema Cache"]
+    end
+
+    subgraph ShotGrid["🎬 ShotGrid API"]
+        direction LR
+        P["Projects"]
+        S["Shots"]
+        A["Assets"]
+        T["Tasks"]
+        N["Notes"]
+    end
+
+    Clients -->|"MCP Protocol<br/>stdio / http"| MCP
+    MCP -->|"REST API"| ShotGrid
+
+    style Clients fill:#2ecc71,stroke:#27ae60,color:#fff
+    style MCP fill:#3498db,stroke:#2980b9,color:#fff
+    style ShotGrid fill:#e74c3c,stroke:#c0392b,color:#fff
+```
