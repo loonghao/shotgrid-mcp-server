@@ -8,7 +8,12 @@ FastMCP Cloud Configuration:
     Entrypoint: fastmcp_entry.py
     Requirements File: requirements.txt
 
-Environment Variables:
+HTTP Headers for Multi-Site Support:
+    X-ShotGrid-URL:         ShotGrid server URL for this request
+    X-ShotGrid-Script-Name: Script name for this request
+    X-ShotGrid-Script-Key:  API key for this request
+
+Environment Variables (fallback):
     SHOTGRID_URL:         Your ShotGrid server URL
     SHOTGRID_SCRIPT_NAME: Your ShotGrid script name
     SHOTGRID_SCRIPT_KEY:  Your ShotGrid script key
@@ -27,11 +32,14 @@ if _src_dir not in sys.path:
 # Now we can import the server module
 from shotgrid_mcp_server.server import create_server
 
-# Module-level MCP instance for FastMCP Cloud
-# FastMCP Cloud looks for 'mcp', 'server', or 'app' in the entrypoint file
+# Create MCP server with lazy connection for HTTP mode
+# Credentials will be provided via HTTP headers or environment variables
 mcp = create_server(lazy_connection=True, preload_schema=False)
 
-# Alternative names that FastMCP Cloud might look for
+# Export the HTTP ASGI app for deployment
+# This enables multi-site support through HTTP headers
+app = mcp.http_app(path="/mcp")
+
+# Alternative name
 server = mcp
-app = mcp
 
