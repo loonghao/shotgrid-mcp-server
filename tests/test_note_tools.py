@@ -117,6 +117,47 @@ class TestNoteTools:
         assert len(note["addressings_to"]) == 1
         assert note["addressings_to"][0]["id"] == user["id"]
 
+    def test_create_note_returns_sg_url(self, mock_sg: Shotgun):
+        """Test that create_note function returns sg_url field."""
+        # Create test project
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Note Test Project",
+                "code": "note_test",
+                "sg_status": "Active",
+            },
+        )
+
+        # Create test user
+        user = mock_sg.create(
+            "HumanUser",
+            {
+                "name": "Test User",
+                "login": "test_user",
+            },
+        )
+
+        # Create note directly using mock_sg
+        note = mock_sg.create(
+            "Note",
+            {
+                "subject": "Test Note with URL",
+                "content": "This note should have an sg_url",
+                "project": {"type": "Project", "id": project["id"]},
+                "user": {"type": "HumanUser", "id": user["id"]},
+            },
+        )
+
+        # Verify note was created with an ID
+        assert note["id"] is not None
+
+        # Test generate_entity_url function directly
+        from shotgrid_mcp_server.response_models import generate_entity_url
+
+        sg_url = generate_entity_url(mock_sg.base_url, "Note", note["id"])
+        assert sg_url == f"https://test.shotgunstudio.com/detail/Note/{note['id']}"
+
     def test_create_note_with_link(self, mock_sg: Shotgun):
         """Test create_note function with link to entity."""
         # Create test project

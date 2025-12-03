@@ -171,6 +171,9 @@ class TestAPITools:
         assert "id" in response_data
         assert response_data["code"] == "API_CREATED_SHOT"
         assert response_data["type"] == "Shot"
+        # Verify sg_url is returned
+        assert "sg_url" in response_data
+        assert response_data["sg_url"] == f"https://test.shotgunstudio.com/detail/Shot/{response_data['id']}"
 
     @pytest.mark.asyncio
     async def test_sg_update(self, api_server: FastMCP, mock_sg: Shotgun):

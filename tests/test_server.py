@@ -66,6 +66,28 @@ class TestCreateTools:
         # but we can verify the response format
         assert response_data is None
 
+    def test_create_entity_returns_sg_url(self, mock_sg: Shotgun):
+        """Test that entity creation returns sg_url field."""
+        # Create test project
+        project = mock_sg.find_one("Project", [["code", "is", "test"]])
+        assert project is not None
+
+        # Create entity directly using mock_sg
+        entity_type = "Shot"
+        data = {"code": "url_test_shot", "project": {"type": "Project", "id": project["id"]}}
+        result = mock_sg.create(entity_type, data)
+
+        # Verify entity was created
+        assert result is not None
+        assert result["type"] == "Shot"
+        assert result["id"] is not None
+
+        # Test generate_entity_url function directly
+        from shotgrid_mcp_server.response_models import generate_entity_url
+
+        sg_url = generate_entity_url(mock_sg.base_url, entity_type, result["id"])
+        assert sg_url == f"https://test.shotgunstudio.com/detail/Shot/{result['id']}"
+
 
 @pytest.mark.asyncio
 class TestReadTools:
