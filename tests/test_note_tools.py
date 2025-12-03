@@ -158,6 +158,53 @@ class TestNoteTools:
         sg_url = generate_entity_url(mock_sg.base_url, "Note", note["id"])
         assert sg_url == f"https://test.shotgunstudio.com/detail/Note/{note['id']}"
 
+    def test_create_note_function_returns_sg_url(self, mock_sg: Shotgun):
+        """Test that create_note function directly returns sg_url field."""
+        from unittest.mock import MagicMock
+
+        from shotgrid_mcp_server.models import NoteCreateRequest
+        from shotgrid_mcp_server.tools.note_tools import create_note
+
+        # Create test project
+        project = mock_sg.create(
+            "Project",
+            {
+                "name": "Note Test Project",
+                "code": "note_test",
+                "sg_status": "Active",
+            },
+        )
+
+        # Create test user
+        user = mock_sg.create(
+            "HumanUser",
+            {
+                "name": "Test User",
+                "login": "test_user",
+            },
+        )
+
+        # Create a mock context with the mock_sg connection
+        mock_context = MagicMock()
+        mock_context.connection = mock_sg
+
+        # Create note request
+        request = NoteCreateRequest(
+            project_id=project["id"],
+            subject="Test Note with URL",
+            content="This note should have an sg_url",
+            user_id=user["id"],
+        )
+
+        # Call create_note function directly
+        result = create_note(request, mock_context)
+
+        # Verify result contains sg_url
+        assert result is not None
+        assert result.id is not None
+        assert result.sg_url is not None
+        assert result.sg_url == f"https://test.shotgunstudio.com/detail/Note/{result.id}"
+
     def test_create_note_with_link(self, mock_sg: Shotgun):
         """Test create_note function with link to entity."""
         # Create test project

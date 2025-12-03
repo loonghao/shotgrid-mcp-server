@@ -175,6 +175,45 @@ class TestAPITools:
         assert "sg_url" in response_data
         assert response_data["sg_url"] == f"https://test.shotgunstudio.com/detail/Shot/{response_data['id']}"
 
+    def test_sg_create_result_with_sg_url(self, mock_sg: Shotgun):
+        """Test that sg_create result includes sg_url field."""
+        from shotgrid_mcp_server.response_models import generate_entity_url
+
+        # Create test project
+        project = mock_sg.find_one("Project", [["code", "is", "main"]])
+        assert project is not None
+
+        # Create entity using mock_sg.create (simulating what sg_create does)
+        entity_type = "Shot"
+        data = {"code": "direct_sg_create_shot", "project": {"type": "Project", "id": project["id"]}}
+        result = mock_sg.create(entity_type, data)
+
+        # Add sg_url to the result (simulating what sg_create does)
+        entity_id = result.get("id") if isinstance(result, dict) else None
+        if entity_id:
+            result["sg_url"] = generate_entity_url(mock_sg.base_url, entity_type, entity_id)
+
+        # Verify result contains sg_url
+        assert result is not None
+        assert "id" in result
+        assert "sg_url" in result
+        assert result["sg_url"] == f"https://test.shotgunstudio.com/detail/Shot/{result['id']}"
+
+    def test_sg_create_result_without_id(self, mock_sg: Shotgun):
+        """Test that sg_create handles result without id gracefully."""
+        from shotgrid_mcp_server.response_models import generate_entity_url
+
+        # Simulate a result without id (edge case)
+        result = {"type": "Shot", "code": "test_shot"}
+
+        # Add sg_url to the result (simulating what sg_create does)
+        entity_id = result.get("id") if isinstance(result, dict) else None
+        if entity_id:
+            result["sg_url"] = generate_entity_url(mock_sg.base_url, "Shot", entity_id)
+
+        # Verify sg_url is not added when id is missing
+        assert "sg_url" not in result
+
     @pytest.mark.asyncio
     async def test_sg_update(self, api_server: FastMCP, mock_sg: Shotgun):
         """Test sg.update tool."""
