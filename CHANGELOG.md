@@ -1,3 +1,9 @@
+## v0.14.0 (2025-12-03)
+
+### Feat
+
+- add sg_url to all entity creation responses
+
 ## v0.13.4 (2025-12-01)
 
 ### Fix
