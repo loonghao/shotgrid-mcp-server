@@ -9,7 +9,10 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from shotgun_api3.lib.mockgun import Shotgun
 
-from shotgrid_mcp_server.tools.create_tools import register_batch_operations
+from shotgrid_mcp_server.tools.create_tools import (
+    format_batch_results_with_url,
+    register_batch_operations,
+)
 from tests.helpers import call_tool
 
 
@@ -235,3 +238,123 @@ class TestBatchOperations:
                     ]
                 },
             )
+
+
+class TestFormatBatchResultsWithUrl:
+    """Tests for format_batch_results_with_url function."""
+
+    def test_format_batch_results_with_url_create_operation(self) -> None:
+        """Test format_batch_results_with_url adds sg_url for create operations."""
+        results = [
+            {"type": "Shot", "id": 123, "code": "SH001"},
+            {"type": "Asset", "id": 456, "code": "ASSET001"},
+        ]
+        operations = [
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+            {"request_type": "create", "entity_type": "Asset", "data": {"code": "ASSET001"}},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 2
+        assert formatted[0]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Shot/123"
+        assert formatted[1]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Asset/456"
+
+    def test_format_batch_results_with_url_update_operation(self) -> None:
+        """Test format_batch_results_with_url does not add sg_url for update operations."""
+        results = [
+            {"type": "Shot", "id": 123, "code": "SH001", "sg_status_list": "ip"},
+        ]
+        operations = [
+            {"request_type": "update", "entity_type": "Shot", "entity_id": 123, "data": {"sg_status_list": "ip"}},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 1
+        assert "sg_url" not in formatted[0]
+
+    def test_format_batch_results_with_url_mixed_operations(self) -> None:
+        """Test format_batch_results_with_url with mixed create and update operations."""
+        results = [
+            {"type": "Shot", "id": 123, "code": "SH001"},
+            {"type": "Shot", "id": 456, "code": "SH002", "sg_status_list": "ip"},
+        ]
+        operations = [
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+            {"request_type": "update", "entity_type": "Shot", "entity_id": 456, "data": {"sg_status_list": "ip"}},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 2
+        # Create operation should have sg_url
+        assert formatted[0]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Shot/123"
+        # Update operation should not have sg_url
+        assert "sg_url" not in formatted[1]
+
+    def test_format_batch_results_with_url_delete_operation(self) -> None:
+        """Test format_batch_results_with_url handles delete operation result (True)."""
+        results = [
+            {"type": "Shot", "id": 123, "code": "SH001"},
+            True,  # Delete result
+        ]
+        operations = [
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+            {"request_type": "delete", "entity_type": "Shot", "entity_id": 789},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 2
+        assert formatted[0]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Shot/123"
+        assert formatted[1] is True
+
+    def test_format_batch_results_with_url_none_result(self) -> None:
+        """Test format_batch_results_with_url handles None result."""
+        results = [None]
+        operations = [
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 1
+        assert formatted[0] is None
+
+    def test_format_batch_results_with_url_empty_results(self) -> None:
+        """Test format_batch_results_with_url with empty results."""
+        results: list = []
+        operations: list = []
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 0
+
+    def test_format_batch_results_with_url_more_results_than_operations(self) -> None:
+        """Test format_batch_results_with_url when results exceed operations length."""
+        # This can happen when thumbnail operations are included
+        results = [
+            {"type": "Shot", "id": 123, "code": "SH001"},
+            {"type": "Shot", "id": 456, "code": "SH002"},
+            {"success": True, "file_path": "/tmp/thumbnail.jpg"},  # Thumbnail result
+        ]
+        operations = [
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
+            {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH002"}},
+        ]
+        base_url = "https://example.shotgrid.autodesk.com"
+
+        formatted = format_batch_results_with_url(results, operations, base_url)
+
+        assert len(formatted) == 3
+        assert formatted[0]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Shot/123"
+        assert formatted[1]["sg_url"] == "https://example.shotgrid.autodesk.com/detail/Shot/456"
+        # Third result (beyond operations length) should not have sg_url added
+        assert formatted[2] == {"success": True, "file_path": "/tmp/thumbnail.jpg"}
