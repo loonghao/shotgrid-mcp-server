@@ -14,6 +14,7 @@ from shotgrid_mcp_server.models import (
     NoteUpdateRequest,
     NoteUpdateResponse,
 )
+from shotgrid_mcp_server.response_models import generate_entity_url
 
 
 def register_note_tools(server: FastMCP, sg: Shotgun) -> None:
@@ -416,6 +417,9 @@ def create_note(request: NoteCreateRequest, context: ShotGridConnectionContext) 
     sg = context.connection
     note = sg.create("Note", note_data)
 
+    # Generate entity URL
+    sg_url = generate_entity_url(sg.base_url, "Note", note["id"]) if note.get("id") else None
+
     # Return response
     return NoteCreateResponse(
         id=note["id"],
@@ -423,6 +427,7 @@ def create_note(request: NoteCreateRequest, context: ShotGridConnectionContext) 
         subject=note["subject"],
         content=note.get("content", ""),
         created_at=note.get("created_at", ""),
+        sg_url=sg_url,
     )
 
 

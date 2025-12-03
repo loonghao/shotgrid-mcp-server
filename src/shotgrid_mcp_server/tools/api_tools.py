@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.custom_types import EntityType
+from shotgrid_mcp_server.response_models import generate_entity_url
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
 
@@ -422,10 +423,15 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
                           Example: ["code", "sg_status_list"]
 
         Returns:
-            Created entity with raw ShotGrid API response.
+            Created entity with raw ShotGrid API response, including sg_url field.
         """
         try:
-            result = _get_sg(sg).create(entity_type, data, return_fields=return_fields)
+            current_sg = _get_sg(sg)
+            result = current_sg.create(entity_type, data, return_fields=return_fields)
+            # Add sg_url to the result
+            entity_id = result.get("id") if isinstance(result, dict) else None
+            if entity_id:
+                result["sg_url"] = generate_entity_url(current_sg.base_url, entity_type, entity_id)
             return result
         except Exception as err:
             handle_error(err, operation="sg.create")

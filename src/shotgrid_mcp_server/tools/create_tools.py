@@ -13,6 +13,7 @@ from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.response_models import (
     BatchOperationsResult,
     EntityCreateResult,
+    generate_entity_url,
 )
 from shotgrid_mcp_server.schema_validator import get_schema_validator
 from shotgrid_mcp_server.tools.base import handle_error, serialize_entity
@@ -58,10 +59,15 @@ def _validate_and_create_entity(sg: Shotgun, entity_type: EntityType, data: Dict
     if result is None:
         raise ToolError(f"Failed to create {entity_type}")
 
+    # Generate entity URL
+    entity_id = result.get("id")
+    sg_url = generate_entity_url(sg.base_url, entity_type, entity_id) if entity_id else None
+
     # Return structured result
     return EntityCreateResult(
         entity=cast(EntityDict, serialize_entity(result)),
         entity_type=entity_type,
+        sg_url=sg_url,
     ).model_dump()
 
 
@@ -286,8 +292,15 @@ def register_create_tools(server: FastMCPType, sg: Shotgun) -> None:
             if not results:
                 raise ToolError("Failed to create entities in batch")
 
-            # Serialize results
-            serialized_results = [cast(EntityDict, serialize_entity(result)) for result in results]
+            # Serialize results and add sg_url
+            serialized_results = []
+            for result in results:
+                serialized = cast(EntityDict, serialize_entity(result))
+                # Add sg_url to each created entity
+                entity_id = result.get("id") if isinstance(result, dict) else None
+                if entity_id:
+                    serialized["sg_url"] = generate_entity_url(sg.base_url, entity_type, entity_id)
+                serialized_results.append(serialized)
 
             # Return structured result
             return BatchOperationsResult(
@@ -569,8 +582,8 @@ def register_batch_operations(server: FastMCPType, sg: Shotgun) -> None:
                     except Exception as download_err:
                         results.append({"error": str(download_err)})
 
-            # Format results
-            return format_batch_results(results)
+            # Format results and add sg_url for create operations
+            return format_batch_results_with_url(results, standard_operations, sg.base_url)
         except Exception as err:
             handle_error(err, operation="batch_operations")
             raise  # This is needed to satisfy the type checker
@@ -620,6 +633,41 @@ def format_batch_results(results: List[Any]) -> List[Dict[str, Any]]:
     for result in results:
         if result is not None and isinstance(result, dict) and "type" in result and "id" in result:
             formatted_results.append(cast(Dict[str, Any], serialize_entity(result)))
+        else:
+            formatted_results.append(result)  # type: ignore[arg-type]
+
+    return formatted_results
+
+
+def format_batch_results_with_url(
+    results: List[Any], operations: List[Dict[str, Any]], base_url: str
+) -> List[Dict[str, Any]]:
+    """Format batch operation results and add sg_url for create operations.
+
+    Args:
+        results: Results from batch operation.
+        operations: List of operations that were executed (excluding thumbnail ops).
+        base_url: ShotGrid base URL for generating entity URLs.
+
+    Returns:
+        List[Dict[str, Any]]: Formatted results with sg_url added for create operations.
+    """
+    formatted_results = []
+
+    for i, result in enumerate(results):
+        if result is not None and isinstance(result, dict) and "type" in result and "id" in result:
+            serialized = cast(Dict[str, Any], serialize_entity(result))
+
+            # Add sg_url for create operations
+            if i < len(operations):
+                op = operations[i]
+                if op.get("request_type") == "create":
+                    entity_type = result.get("type")
+                    entity_id = result.get("id")
+                    if entity_type and entity_id:
+                        serialized["sg_url"] = generate_entity_url(base_url, entity_type, entity_id)
+
+            formatted_results.append(serialized)
         else:
             formatted_results.append(result)  # type: ignore[arg-type]
 

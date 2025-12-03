@@ -451,6 +451,7 @@ class NoteCreateResponse(BaseModel):
     subject: str
     content: str
     created_at: str
+    sg_url: Optional[str] = None
 
 
 class NoteReadResponse(BaseModel):
