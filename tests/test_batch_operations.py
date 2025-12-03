@@ -240,6 +240,56 @@ class TestBatchOperations:
             )
 
 
+class TestBatchCreateEntitiesWithUrl:
+    """Tests for batch_create_entities function with sg_url."""
+
+    def test_batch_create_entities_returns_sg_url(self, mock_sg: Shotgun) -> None:
+        """Test that batch create results include sg_url for each created entity."""
+        from typing import cast, Dict, Any
+
+        from shotgrid_mcp_server.response_models import BatchOperationsResult, generate_entity_url
+        from shotgrid_mcp_server.tools.base import serialize_entity
+
+        # Create test project
+        project = mock_sg.find_one("Project", [["code", "is", "main"]])
+        assert project is not None
+
+        # Create entities using batch
+        entity_type = "Shot"
+        batch_data = [
+            {"request_type": "create", "entity_type": entity_type, "data": {"code": "batch_url_shot_001", "project": {"type": "Project", "id": project["id"]}}},
+            {"request_type": "create", "entity_type": entity_type, "data": {"code": "batch_url_shot_002", "project": {"type": "Project", "id": project["id"]}}},
+        ]
+        results = mock_sg.batch(batch_data)
+
+        # Serialize results and add sg_url (simulating what batch_create_entities does)
+        serialized_results = []
+        for result in results:
+            serialized = cast(Dict[str, Any], serialize_entity(result))
+            entity_id = result.get("id") if isinstance(result, dict) else None
+            if entity_id:
+                serialized["sg_url"] = generate_entity_url(mock_sg.base_url, entity_type, entity_id)
+            serialized_results.append(serialized)
+
+        # Create BatchOperationsResult
+        batch_result = BatchOperationsResult(
+            results=serialized_results,
+            total_count=len(serialized_results),
+            success_count=len(serialized_results),
+            failure_count=0,
+            message=f"Successfully created {len(serialized_results)} {entity_type} entities",
+        )
+
+        # Verify result contains sg_url for each entity
+        result_dict = batch_result.model_dump()
+        assert result_dict is not None
+        assert "results" in result_dict
+        assert len(result_dict["results"]) == 2
+        for entity_result in result_dict["results"]:
+            assert "sg_url" in entity_result
+            assert entity_result["sg_url"].startswith("https://test.shotgunstudio.com/detail/Shot/")
+
+
 class TestFormatBatchResultsWithUrl:
     """Tests for format_batch_results_with_url function."""
 

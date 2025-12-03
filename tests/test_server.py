@@ -88,6 +88,71 @@ class TestCreateTools:
         sg_url = generate_entity_url(mock_sg.base_url, entity_type, result["id"])
         assert sg_url == f"https://test.shotgunstudio.com/detail/Shot/{result['id']}"
 
+    def test_entity_create_result_with_sg_url(self, mock_sg: Shotgun):
+        """Test that EntityCreateResult model includes sg_url field."""
+        from shotgrid_mcp_server.response_models import EntityCreateResult, generate_entity_url
+        from shotgrid_mcp_server.tools.base import serialize_entity
+
+        # Create test project
+        project = mock_sg.find_one("Project", [["code", "is", "test"]])
+        assert project is not None
+
+        # Create entity directly using mock_sg
+        entity_type = "Shot"
+        data = {"code": "validate_create_shot", "project": {"type": "Project", "id": project["id"]}}
+        result = mock_sg.create(entity_type, data)
+
+        # Generate sg_url
+        sg_url = generate_entity_url(mock_sg.base_url, entity_type, result["id"])
+
+        # Create EntityCreateResult with sg_url
+        entity_result = EntityCreateResult(
+            entity=serialize_entity(result),
+            entity_type=entity_type,
+            sg_url=sg_url,
+        )
+
+        # Verify result contains sg_url
+        assert entity_result.sg_url is not None
+        assert entity_result.sg_url == f"https://test.shotgunstudio.com/detail/Shot/{result['id']}"
+
+        # Verify model_dump includes sg_url
+        result_dict = entity_result.model_dump()
+        assert "sg_url" in result_dict
+        assert result_dict["sg_url"] == f"https://test.shotgunstudio.com/detail/Shot/{result['id']}"
+
+    def test_validate_and_create_entity_with_mocked_validator(self, mock_sg: Shotgun):
+        """Test _validate_and_create_entity with mocked schema validator."""
+        from unittest.mock import MagicMock, patch
+
+        from shotgrid_mcp_server.tools.create_tools import _validate_and_create_entity
+
+        # Create test project
+        project = mock_sg.find_one("Project", [["code", "is", "test"]])
+        assert project is not None
+
+        # Mock the schema validator
+        mock_validator = MagicMock()
+        mock_validator.validate_fields.return_value = {
+            "valid": ["code", "project"],
+            "invalid": [],
+            "warnings": [],
+        }
+
+        with patch("shotgrid_mcp_server.tools.create_tools.get_schema_validator", return_value=mock_validator):
+            # Create entity using _validate_and_create_entity
+            entity_type = "Shot"
+            data = {"code": "validate_create_shot", "project": {"type": "Project", "id": project["id"]}}
+            result = _validate_and_create_entity(mock_sg, entity_type, data)
+
+            # Verify result contains sg_url
+            assert result is not None
+            assert "entity" in result
+            assert "sg_url" in result
+            assert result["entity"]["type"] == "Shot"
+            assert result["entity"]["id"] is not None
+            assert result["sg_url"] == f"https://test.shotgunstudio.com/detail/Shot/{result['entity']['id']}"
+
 
 @pytest.mark.asyncio
 class TestReadTools:
