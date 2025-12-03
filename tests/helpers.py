@@ -200,7 +200,13 @@ async def call_tool(
             # Return a single response to match test expectations
             return [MockResponse(data)]
         elif tool_name == "sg.create":
-            data = {"id": 1, "type": "Shot", "code": "API_CREATED_SHOT", "project": {"id": 1, "type": "Project"}}
+            data = {
+                "id": 1,
+                "type": "Shot",
+                "code": "API_CREATED_SHOT",
+                "project": {"id": 1, "type": "Project"},
+                "sg_url": "https://test.shotgunstudio.com/detail/Shot/1",
+            }
             # Return a single response to match test expectations
             return [MockResponse(data)]
         elif tool_name == "sg.update":
