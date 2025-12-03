@@ -115,6 +115,7 @@ class EntityCreateResult(BaseModel):
 
     entity: EntityDict
     entity_type: EntityType
+    sg_url: Optional[str] = Field(default=None, description="ShotGrid URL to view the created entity")
     schema_resources: Dict[str, str] = Field(default_factory=get_default_schema_resources)
 
 
@@ -418,6 +419,28 @@ def create_playlist_response(
         metadata=ResponseMetadata(status="success", message=message),
         url=url,
     )
+
+
+def generate_entity_url(base_url: str, entity_type: str, entity_id: int) -> str:
+    """Generate ShotGrid URL for any entity.
+
+    This returns the detail page URL for an entity, which is the standard
+    way to view any entity in ShotGrid.
+
+    Args:
+        base_url: The base URL for the ShotGrid instance (e.g., https://your-site.shotgunstudio.com).
+        entity_type: The type of entity (e.g., "Asset", "Shot", "Task").
+        entity_id: The ID of the entity.
+
+    Returns:
+        str: The detail page URL for the entity.
+
+    Examples:
+        >>> generate_entity_url("https://example.shotgunstudio.com", "Asset", 123)
+        'https://example.shotgunstudio.com/detail/Asset/123'
+    """
+    base = base_url.rstrip("/")
+    return f"{base}/detail/{entity_type}/{entity_id}"
 
 
 def generate_playlist_url_variants(base_url: str, playlist_id: int, project_id: Optional[int] = None) -> Dict[str, str]:
