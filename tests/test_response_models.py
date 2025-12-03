@@ -15,6 +15,7 @@ from shotgrid_mcp_server.response_models import (
     create_error_response,
     create_playlist_response,
     create_success_response,
+    generate_entity_url,
     generate_playlist_url,
     generate_playlist_url_variants,
     serialize_response,
@@ -158,3 +159,56 @@ def test_serialize_response_with_plain_dict() -> None:
     result = serialize_response(payload)
 
     assert result == payload
+
+
+def test_generate_entity_url_basic() -> None:
+    """generate_entity_url returns correct detail page URL."""
+
+    base_url = "https://example.shotgrid.autodesk.com"
+    url = generate_entity_url(base_url, "Asset", 12345)
+
+    assert url == "https://example.shotgrid.autodesk.com/detail/Asset/12345"
+
+
+def test_generate_entity_url_with_trailing_slash() -> None:
+    """generate_entity_url handles base_url with trailing slash."""
+
+    base_url = "https://example.shotgrid.autodesk.com/"
+    url = generate_entity_url(base_url, "Shot", 67890)
+
+    assert url == "https://example.shotgrid.autodesk.com/detail/Shot/67890"
+
+
+def test_generate_entity_url_various_entity_types() -> None:
+    """generate_entity_url works with various entity types."""
+
+    base_url = "https://mcp-site.shotgrid.autodesk.com"
+
+    # Test common entity types
+    assert generate_entity_url(base_url, "Asset", 1) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Asset/1"
+    )
+    assert generate_entity_url(base_url, "Shot", 2) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Shot/2"
+    )
+    assert generate_entity_url(base_url, "Task", 3) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Task/3"
+    )
+    assert generate_entity_url(base_url, "Note", 4) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Note/4"
+    )
+    assert generate_entity_url(base_url, "Version", 5) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Version/5"
+    )
+    assert generate_entity_url(base_url, "Project", 6) == (
+        "https://mcp-site.shotgrid.autodesk.com/detail/Project/6"
+    )
+
+
+def test_generate_entity_url_custom_entity_type() -> None:
+    """generate_entity_url works with custom entity types."""
+
+    base_url = "https://example.shotgrid.autodesk.com"
+    url = generate_entity_url(base_url, "CustomEntity01", 999)
+
+    assert url == "https://example.shotgrid.autodesk.com/detail/CustomEntity01/999"
