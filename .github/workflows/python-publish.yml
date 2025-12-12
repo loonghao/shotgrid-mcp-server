@@ -41,7 +41,7 @@ jobs:
 
     # Cache dependencies
     - name: Cache pip dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
@@ -50,7 +50,7 @@ jobs:
 
     # Cache nox environments
     - name: Cache nox environments
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .nox
         key: ${{ runner.os }}-nox-${{ hashFiles('**/noxfile.py') }}
