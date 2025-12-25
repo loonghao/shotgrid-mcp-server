@@ -7,7 +7,7 @@ import os
 import ssl
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Union
 
 # Import third-party modules
 import requests
@@ -672,3 +672,196 @@ def generate_default_file_path(
     # Generate a filename based on entity type, id, and field name
     filename = f"{entity_type}_{entity_id}_{field_name}.{image_format}"
     return str(temp_dir / filename)
+
+
+def _resolve_schema_ref(ref: str, defs: Dict[str, Any]) -> Dict[str, Any]:
+    """Resolve a $ref reference to its definition.
+
+    Args:
+        ref: The $ref string (e.g., "#/$defs/SomeModel").
+        defs: The definitions dictionary from the schema.
+
+    Returns:
+        A copy of the referenced definition.
+    """
+    # Format: "#/$defs/DefinitionName" or "#/definitions/DefinitionName"
+    parts = ref.split("/")
+    if len(parts) >= 3:
+        def_name = parts[-1]
+        if def_name in defs:
+            return defs[def_name].copy()
+    return {}
+
+
+def _filter_null_schemas(schemas: List[Any]) -> List[Any]:
+    """Filter out null type schemas from a list.
+
+    Args:
+        schemas: List of schema objects.
+
+    Returns:
+        List of non-null schemas.
+    """
+    return [s for s in schemas if not (isinstance(s, dict) and s.get("type") == "null")]
+
+
+def _simplify_union_type(
+    obj: Dict[str, Any],
+    union_key: str,
+    simplify_func: Callable[[Any], Any],
+) -> Optional[Dict[str, Any]]:
+    """Simplify anyOf/oneOf union types by removing null options.
+
+    Args:
+        obj: The schema object containing the union.
+        union_key: Either "anyOf" or "oneOf".
+        simplify_func: Function to recursively simplify schemas.
+
+    Returns:
+        Simplified schema or None if no simplification needed.
+    """
+    union_schemas = obj.get(union_key)
+    if not isinstance(union_schemas, list):
+        return None
+
+    non_null_schemas = _filter_null_schemas(union_schemas)
+
+    if len(non_null_schemas) == 1:
+        # Single non-null type - use it directly
+        result = simplify_func(non_null_schemas[0])
+        # Preserve other properties from the original object
+        for key, value in obj.items():
+            if key != union_key and key not in result:
+                result[key] = simplify_func(value)
+        return result
+
+    if len(non_null_schemas) > 1:
+        # Multiple non-null types - keep union but simplify contents
+        result = dict(obj)
+        result[union_key] = [simplify_func(s) for s in non_null_schemas]
+        return result
+
+    return None
+
+
+def _handle_ref_schema(
+    obj: Dict[str, Any],
+    defs: Dict[str, Any],
+    simplify_func: Callable[[Any], Any],
+) -> Dict[str, Any]:
+    """Handle $ref schema by resolving and merging properties.
+
+    Args:
+        obj: The schema object containing $ref.
+        defs: The definitions dictionary.
+        simplify_func: Function to recursively simplify schemas.
+
+    Returns:
+        Resolved and simplified schema.
+    """
+    resolved = _resolve_schema_ref(obj["$ref"], defs)
+    for key, value in obj.items():
+        if key != "$ref":
+            resolved[key] = value
+    return simplify_func(resolved)
+
+
+def _deep_simplify_schema(obj: Any, defs: Dict[str, Any]) -> Any:
+    """Recursively simplify a schema object.
+
+    Args:
+        obj: The object to simplify (can be dict, list, or primitive).
+        defs: The definitions dictionary for resolving $ref.
+
+    Returns:
+        Simplified object.
+    """
+    if not isinstance(obj, dict):
+        if isinstance(obj, list):
+            return [_deep_simplify_schema(item, defs) for item in obj]
+        return obj
+
+    # Create a partial function for recursive calls
+    def simplify(x: Any) -> Any:
+        return _deep_simplify_schema(x, defs)
+
+    # Handle $ref - resolve and continue simplifying
+    if "$ref" in obj:
+        return _handle_ref_schema(obj, defs, simplify)
+
+    # Handle anyOf/oneOf with null type
+    for union_key in ("anyOf", "oneOf"):
+        if union_key in obj:
+            result = _simplify_union_type(obj, union_key, simplify)
+            if result is not None:
+                return result
+            if union_key == "anyOf":
+                return obj
+
+    # Recursively process all dictionary values
+    return {key: simplify(value) for key, value in obj.items() if key != "$defs"}
+
+
+def simplify_json_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+    """Simplify Pydantic-generated JSON Schema for better LLM API compatibility.
+
+    This function flattens complex JSON Schema structures that some LLM APIs
+    (like DeepSeek) cannot parse properly. It performs the following transformations:
+
+    1. Inline all $ref references - resolves and embeds referenced definitions
+    2. Simplify anyOf null patterns - converts {"anyOf": [{"type": "string"}, {"type": "null"}]}
+       to {"type": "string"}
+    3. Remove $defs block - no longer needed after inlining
+
+    The resulting schema maintains MCP protocol compliance while improving
+    compatibility with various LLM APIs.
+
+    Args:
+        schema: The JSON Schema dictionary to simplify.
+
+    Returns:
+        Simplified JSON Schema dictionary.
+
+    Examples:
+        >>> schema = {
+        ...     "$defs": {"Project": {"type": "object", "properties": {"id": {"type": "integer"}}}},
+        ...     "properties": {"project": {"$ref": "#/$defs/Project"}}
+        ... }
+        >>> simplify_json_schema(schema)
+        {'properties': {'project': {'type': 'object', 'properties': {'id': {'type': 'integer'}}}}}
+
+        >>> schema = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+        >>> simplify_json_schema(schema)
+        {'type': 'string'}
+    """
+    if not isinstance(schema, dict):
+        return schema
+
+    defs = schema.get("$defs", {})
+    return _deep_simplify_schema(schema.copy(), defs)
+
+
+def simplify_tool_schemas(tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Simplify JSON schemas for a list of tool definitions.
+
+    This function processes a list of MCP tool definitions and simplifies
+    their input schemas for better LLM API compatibility.
+
+    Args:
+        tools: List of tool definition dictionaries, each containing
+               an 'inputSchema' key.
+
+    Returns:
+        List of tool definitions with simplified input schemas.
+
+    Examples:
+        >>> tools = [{"name": "my_tool", "inputSchema": {"$defs": {...}, ...}}]
+        >>> simplified = simplify_tool_schemas(tools)
+    """
+    simplified_tools = []
+    for tool in tools:
+        tool_copy = dict(tool)
+        if "inputSchema" in tool_copy and isinstance(tool_copy["inputSchema"], dict):
+            tool_copy["inputSchema"] = simplify_json_schema(tool_copy["inputSchema"])
+        simplified_tools.append(tool_copy)
+    return simplified_tools

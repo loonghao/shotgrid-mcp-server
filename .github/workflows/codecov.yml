@@ -14,30 +14,14 @@ jobs:
         with:
           with-owner: 'true'
           string-case: 'uppercase'
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+      - name: Setup vx
+        uses: loonghao/vx@vx-v0.5.29
         with:
-          python-version: '3.12'
-      - name: Install dependencies
-        shell: bash
-        run: |
-          python -m pip install uv
-          uv venv
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            source .venv/Scripts/activate
-          else
-            source .venv/bin/activate
-          fi
-          uv pip install -r requirements-dev.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup development environment
+        run: vx setup
       - name: Run tests and collect coverage
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            source .venv/Scripts/activate
-          else
-            source .venv/bin/activate
-          fi
-          nox -s tests
+        run: vx run test
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:

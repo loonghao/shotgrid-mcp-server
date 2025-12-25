@@ -34,19 +34,10 @@ jobs:
       id: get_tag_name
       with:
         tagRegex: "v(?<version>.*)"
-    - name: Set up Python
-      uses: actions/setup-python@v6
+    - name: Setup vx
+      uses: loonghao/vx@vx-v0.5.29
       with:
-        python-version: '3.12'
-
-    # Cache dependencies
-    - name: Cache pip dependencies
-      uses: actions/cache@v5
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     # Cache nox environments
     - name: Cache nox environments
@@ -57,34 +48,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nox-
 
-    - name: Install dependencies
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install uv
-        # Install the project in development mode using uvx
-        uvx pip install -e ".[dev]"
+    - name: Setup development environment
+      run: vx setup
 
     - name: Lint
-      shell: bash
-      run: |
-        uvx nox -s lint
+      run: vx run lint
 
     - name: Test
-      shell: bash
-      run: |
-        uvx nox -s tests
+      run: vx run test
 
     - name: Build package
       shell: bash
       run: |
         # Install shotgun-api3 from GitHub
-        uvx pip install git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
+        vx uv pip install git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
         # Create a temporary pyproject.toml without direct references
         cp pyproject.toml pyproject.toml.bak
         sed -i 's|"shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",|"shotgun-api3",|g' pyproject.toml
         # Build the package using nox
-        uvx nox -s build-wheel
+        vx run build
         # Restore original pyproject.toml
         mv pyproject.toml.bak pyproject.toml
 
