@@ -1,3 +1,9 @@
+## v0.14.1 (2025-12-25)
+
+### Fix
+
+- normalize integer entity IDs to dict format in API tools
+
 ## v0.14.0 (2025-12-03)
 
 ### Feat
