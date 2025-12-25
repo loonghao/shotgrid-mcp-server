@@ -12,6 +12,12 @@ from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.response_models import generate_entity_url
 from shotgrid_mcp_server.tools.base import handle_error
 from shotgrid_mcp_server.tools.types import FastMCPType
+from shotgrid_mcp_server.utils import (
+    normalize_batch_request,
+    normalize_data_dict,
+    normalize_filters,
+    normalize_grouping,
+)
 
 
 def _get_sg(fallback: Shotgun) -> Shotgun:
@@ -208,6 +214,7 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
             - Do NOT pass limit=0 or negative values
             - This is a low-level API wrapper; use higher-level tools when possible
             - For most searches, `search_entities` is recommended (simpler, safer)
+            - Integer entity IDs in filters are automatically normalized to dict format
         """
         try:
             # Validate limit parameter
@@ -221,6 +228,9 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
                 raise ValueError(
                     "page parameter must be a positive integer (1, 2, 3, ...). Do not pass 0 or negative values."
                 )
+
+            # Normalize filters to convert integer entity IDs to dict format
+            normalized_filters = normalize_filters(filters)
 
             # Build kwargs, only including optional parameters if they have values
             kwargs: Dict[str, Any] = {
@@ -245,7 +255,7 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             result = _get_sg(sg).find(
                 entity_type,
-                filters,
+                normalized_filters,
                 **kwargs,
             )
             return result
@@ -367,11 +377,15 @@ def _register_find_tools(server: FastMCPType, sg: Shotgun) -> None:
             - Returns None if no entity matches the filters
             - For most searches, `find_one_entity` is recommended (simpler, safer)
             - This is a low-level API wrapper; use higher-level tools when possible
+            - Integer entity IDs in filters are automatically normalized to dict format
         """
         try:
+            # Normalize filters to convert integer entity IDs to dict format
+            normalized_filters = normalize_filters(filters)
+
             result = _get_sg(sg).find_one(
                 entity_type,
-                filters,
+                normalized_filters,
                 fields=fields,
                 order=order,
                 filter_operator=filter_operator,
@@ -411,6 +425,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         **Note:** This is a direct wrapper around the ShotGrid API's create method.
         For most use cases, prefer using `create_entity` instead.
+        Integer entity IDs in data are automatically normalized to dict format.
 
         Args:
             entity_type: Type of entity to create.
@@ -418,6 +433,8 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             data: Data for the new entity.
                  Example: {"code": "SH001", "project": {"type": "Project", "id": 123}}
+                 Note: Integer entity IDs (e.g., {"project": 123}) will be automatically
+                 normalized to dict format.
 
             return_fields: Optional list of fields to return.
                           Example: ["code", "sg_status_list"]
@@ -427,7 +444,9 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         """
         try:
             current_sg = _get_sg(sg)
-            result = current_sg.create(entity_type, data, return_fields=return_fields)
+            # Normalize data to convert integer entity IDs to dict format
+            normalized_data = normalize_data_dict(data)
+            result = current_sg.create(entity_type, normalized_data, return_fields=return_fields)
             # Add sg_url to the result
             entity_id = result.get("id") if isinstance(result, dict) else None
             if entity_id:
@@ -457,6 +476,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         **Note:** This is a direct wrapper around the ShotGrid API's update method.
         For most use cases, prefer using `update_entity` instead.
+        Integer entity IDs in data are automatically normalized to dict format.
 
         Args:
             entity_type: Type of entity to update.
@@ -467,6 +487,8 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
 
             data: Data to update.
                  Example: {"sg_status_list": "ip"}
+                 Note: Integer entity IDs (e.g., {"project": 123}) will be automatically
+                 normalized to dict format.
 
             multi_entity_update_mode: Optional mode for multi-entity updates.
 
@@ -474,10 +496,12 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
             Updated entity with raw ShotGrid API response.
         """
         try:
+            # Normalize data to convert integer entity IDs to dict format
+            normalized_data = normalize_data_dict(data)
             result = _get_sg(sg).update(
                 entity_type,
                 entity_id,
-                data,
+                normalized_data,
                 multi_entity_update_mode=multi_entity_update_mode,
             )
             return result
@@ -606,6 +630,7 @@ def _register_batch_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         **Note:** This is a direct wrapper around the ShotGrid API's batch method.
         For most use cases, prefer using `batch_operations` instead.
+        Integer entity IDs in request data are automatically normalized to dict format.
 
         Args:
             requests: List of batch requests.
@@ -616,12 +641,16 @@ def _register_batch_tools(server: FastMCPType, sg: Shotgun) -> None:
                          {"request_type": "create", "entity_type": "Shot", "data": {"code": "SH001"}},
                          {"request_type": "update", "entity_type": "Shot", "entity_id": 1234, "data": {"sg_status_list": "ip"}}
                      ]
+                     Note: Integer entity IDs in data (e.g., {"project": 123}) will be automatically
+                     normalized to dict format.
 
         Returns:
             List of results from the batch operation (raw ShotGrid API response).
         """
         try:
-            result = _get_sg(sg).batch(requests)
+            # Normalize each request to convert integer entity IDs to dict format
+            normalized_requests = [normalize_batch_request(req) for req in requests]
+            result = _get_sg(sg).batch(normalized_requests)
             return result
         except Exception as err:
             handle_error(err, operation="sg.batch")
@@ -683,12 +712,19 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
 
         **Note:** This is a direct wrapper around the ShotGrid API's summarize method.
 
+        **Entity Reference Normalization:**
+        Integer entity IDs in filters and grouping are automatically converted to
+        the proper dict format. For example:
+        - Input: [["project", "is", 70]]
+        - Normalized: [["project", "is", {"type": "Project", "id": 70}]]
+
         Args:
             entity_type: Type of entity to summarize.
                         Example: "Shot"
 
             filters: List of filters to apply.
                     Example: [["project.id", "is", 123]]
+                    Note: Integer entity IDs will be automatically normalized.
 
             summary_fields: List of fields to summarize.
                            Each definition specifies field and aggregation type.
@@ -707,12 +743,16 @@ def register_advanced_query_tools(server: FastMCPType, sg: Shotgun) -> None:
             Summarized data (raw ShotGrid API response).
         """
         try:
+            # Normalize filters and grouping to convert integer entity IDs to dict format
+            normalized_filters = normalize_filters(filters)
+            normalized_grouping = normalize_grouping(grouping)
+
             result = _get_sg(sg).summarize(
                 entity_type,
-                filters,
+                normalized_filters,
                 summary_fields,
                 filter_operator=filter_operator,
-                grouping=grouping,
+                grouping=normalized_grouping,
                 include_archived_projects=include_archived_projects,
             )
             return result
