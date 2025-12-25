@@ -383,6 +383,274 @@ def serialize_entity(entity: Any) -> Dict[str, Any]:
     return {k: _serialize_value(v) for k, v in entity.items()}
 
 
+# Mapping of common field names to their entity types
+# This is used to infer entity types from field names when normalizing integer IDs
+FIELD_TO_ENTITY_TYPE: Dict[str, str] = {
+    "project": "Project",
+    "entity": "Entity",  # Generic, may need context
+    "task": "Task",
+    "shot": "Shot",
+    "asset": "Asset",
+    "sequence": "Sequence",
+    "version": "Version",
+    "user": "HumanUser",
+    "created_by": "HumanUser",
+    "updated_by": "HumanUser",
+    "assigned_to": "HumanUser",
+    "artist": "HumanUser",
+    "reviewer": "HumanUser",
+    "sg_task": "Task",
+    "sg_shot": "Shot",
+    "sg_asset": "Asset",
+    "sg_sequence": "Sequence",
+    "sg_version": "Version",
+    "sg_project": "Project",
+    "sg_user": "HumanUser",
+    "sg_assigned_to": "HumanUser",
+    "department": "Department",
+    "step": "Step",
+    "sg_step": "Step",
+    "sg_department": "Department",
+    "note": "Note",
+    "sg_note": "Note",
+    "playlist": "Playlist",
+    "sg_playlist": "Playlist",
+    "published_file": "PublishedFile",
+    "sg_published_file": "PublishedFile",
+    "group": "Group",
+    "sg_group": "Group",
+    "linked_entity": "Entity",
+    "parent": "Entity",
+    "sg_parent": "Entity",
+}
+
+
+def infer_entity_type_from_field_name(field_name: str) -> str:
+    """Infer entity type from field name.
+
+    Args:
+        field_name: The field name to infer entity type from.
+
+    Returns:
+        Inferred entity type string (e.g., 'Project' from 'project').
+    """
+    # Check if field name is in the mapping
+    lower_field = field_name.lower()
+    if lower_field in FIELD_TO_ENTITY_TYPE:
+        return FIELD_TO_ENTITY_TYPE[lower_field]
+
+    # Handle dot notation (e.g., "project.Project.id" -> "Project")
+    if "." in field_name:
+        parts = field_name.split(".")
+        # Try the first part
+        if parts[0].lower() in FIELD_TO_ENTITY_TYPE:
+            return FIELD_TO_ENTITY_TYPE[parts[0].lower()]
+        # If second part looks like an entity type, use it
+        if len(parts) > 1 and parts[1][0].isupper():
+            return parts[1]
+
+    # Default: capitalize the field name (e.g., 'project' -> 'Project')
+    return field_name.title().replace("_", "")
+
+
+def normalize_entity_reference(value: Any, field_name: str) -> Any:
+    """Normalize an entity reference value.
+
+    Converts integer entity IDs to proper entity dict format.
+    ShotGrid API expects entity references as {"type": "EntityType", "id": 123}.
+
+    Args:
+        value: The value to normalize (can be int, dict, or other).
+        field_name: The field name to infer entity type from.
+
+    Returns:
+        Normalized value (dict format if was int, otherwise unchanged).
+
+    Examples:
+        >>> normalize_entity_reference(70, "project")
+        {"type": "Project", "id": 70}
+
+        >>> normalize_entity_reference({"type": "Project", "id": 70}, "project")
+        {"type": "Project", "id": 70}
+
+        >>> normalize_entity_reference("active", "status")
+        "active"
+    """
+    if isinstance(value, int):
+        entity_type = infer_entity_type_from_field_name(field_name)
+        logger.debug(
+            "Normalized integer entity reference: %s=%d -> {'type': '%s', 'id': %d}",
+            field_name,
+            value,
+            entity_type,
+            value,
+        )
+        return {"type": entity_type, "id": value}
+    return value
+
+
+def normalize_filter_value(filter_item: Any) -> Any:
+    """Normalize a single filter item, converting integer entity IDs to dict format.
+
+    Args:
+        filter_item: A filter item, which can be:
+            - A list like ["field", "operator", value]
+            - A dict like {"field": value}
+            - Other values (passed through unchanged)
+
+    Returns:
+        Normalized filter item.
+
+    Examples:
+        >>> normalize_filter_value(["project", "is", 70])
+        ["project", "is", {"type": "Project", "id": 70}]
+
+        >>> normalize_filter_value({"project": 70})
+        {"project": {"type": "Project", "id": 70}}
+    """
+    if isinstance(filter_item, list) and len(filter_item) >= 3:
+        # Standard filter format: ["field", "operator", value]
+        field_name = filter_item[0]
+        operator = filter_item[1]
+        value = filter_item[2]
+
+        # Handle dot notation field names (e.g., "project.Project.id")
+        base_field = field_name.split(".")[0] if "." in field_name else field_name
+
+        # Normalize the value
+        normalized_value = normalize_entity_reference(value, base_field)
+
+        # Handle list values (e.g., for "in" operator)
+        if isinstance(value, list):
+            normalized_value = [normalize_entity_reference(v, base_field) for v in value]
+
+        return [field_name, operator, normalized_value] + list(filter_item[3:])
+
+    elif isinstance(filter_item, dict):
+        # Dict format filter: {"field": value}
+        normalized = {}
+        for key, value in filter_item.items():
+            if key in ("filter_operator", "filters"):
+                # Nested filter structure
+                if key == "filters" and isinstance(value, list):
+                    normalized[key] = normalize_filters(value)
+                else:
+                    normalized[key] = value
+            else:
+                normalized[key] = normalize_entity_reference(value, key)
+        return normalized
+
+    return filter_item
+
+
+def normalize_filters(filters: List[Any]) -> List[Any]:
+    """Normalize all filters, converting integer entity IDs to dict format.
+
+    This function recursively processes filter lists to ensure all entity
+    references are in the proper dict format expected by ShotGrid API.
+
+    Args:
+        filters: List of filter conditions.
+
+    Returns:
+        Normalized list of filters.
+
+    Examples:
+        >>> normalize_filters([["project", "is", 70]])
+        [["project", "is", {"type": "Project", "id": 70}]]
+
+        >>> normalize_filters([["project", "is", 70], ["shot", "is", 123]])
+        [["project", "is", {"type": "Project", "id": 70}],
+         ["shot", "is", {"type": "Shot", "id": 123}]]
+    """
+    if not isinstance(filters, list):
+        return filters
+
+    return [normalize_filter_value(f) for f in filters]
+
+
+def normalize_grouping(grouping: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+    """Normalize grouping configuration for sg_summarize.
+
+    Args:
+        grouping: List of grouping configurations.
+
+    Returns:
+        Normalized grouping list.
+    """
+    if not grouping:
+        return grouping
+
+    normalized = []
+    for group in grouping:
+        if isinstance(group, dict):
+            normalized_group = dict(group)
+            # The 'field' in grouping doesn't need entity normalization,
+            # but if there are any entity reference values, normalize them
+            for key, value in group.items():
+                if key not in ("field", "type", "direction") and isinstance(value, int):
+                    normalized_group[key] = normalize_entity_reference(value, key)
+            normalized.append(normalized_group)
+        else:
+            normalized.append(group)
+    return normalized
+
+
+def normalize_data_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize entity references in a data dictionary.
+
+    Used for create/update operations where data contains field-value pairs.
+
+    Args:
+        data: Dictionary of field names to values.
+
+    Returns:
+        Normalized dictionary with entity references converted.
+
+    Examples:
+        >>> normalize_data_dict({"project": 70, "code": "SH001"})
+        {"project": {"type": "Project", "id": 70}, "code": "SH001"}
+    """
+    if not isinstance(data, dict):
+        return data
+
+    normalized = {}
+    for key, value in data.items():
+        if isinstance(value, int) and key.lower() in FIELD_TO_ENTITY_TYPE:
+            # This looks like an entity field with an integer ID
+            normalized[key] = normalize_entity_reference(value, key)
+        elif isinstance(value, list):
+            # Could be a multi-entity field
+            if all(isinstance(v, int) for v in value) and key.lower() in FIELD_TO_ENTITY_TYPE:
+                normalized[key] = [normalize_entity_reference(v, key) for v in value]
+            else:
+                normalized[key] = value
+        else:
+            normalized[key] = value
+    return normalized
+
+
+def normalize_batch_request(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize entity references in a batch request.
+
+    Args:
+        request: A batch request dictionary with request_type, entity_type, etc.
+
+    Returns:
+        Normalized batch request.
+    """
+    if not isinstance(request, dict):
+        return request
+
+    normalized = dict(request)
+
+    # Normalize data field if present
+    if "data" in normalized and isinstance(normalized["data"], dict):
+        normalized["data"] = normalize_data_dict(normalized["data"])
+
+    return normalized
+
+
 def generate_default_file_path(
     entity_type: str, entity_id: int, field_name: str = "image", image_format: str = "jpg"
 ) -> str:
