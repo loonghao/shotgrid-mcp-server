@@ -1,4 +1,5 @@
 # Import built-in modules
+from typing import List, Optional
 
 # Import third-party modules
 import nox
@@ -7,12 +8,12 @@ import nox
 RUFF_VERSION = "0.8.6"
 
 
-def get_default_commands() -> list[str]:
+def get_default_commands() -> List[str]:
     """Get default linting commands."""
     return ["ruff check .", "ruff format --check .", "mypy ."]
 
 
-def lint(session: nox.Session, commands: list[str] | None = None) -> None:
+def lint(session: nox.Session, commands: Optional[List[str]] = None) -> None:
     """Run linters."""
     # Install linting tools into the nox virtualenv using pip
     session.install(f"ruff=={RUFF_VERSION}", "black", "mypy")

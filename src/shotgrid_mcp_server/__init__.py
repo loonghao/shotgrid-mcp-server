@@ -53,6 +53,8 @@ __all__ = [
     # Utilities
     "ShotGridJSONEncoder",
     "serialize_entity",
+    "simplify_json_schema",
+    "simplify_tool_schemas",
 ]
 
 # Import filter utilities from shotgrid-query
@@ -108,4 +110,9 @@ from shotgrid_mcp_server.models import (
     create_yesterday_filter,
 )
 from shotgrid_mcp_server.server import create_server, main
-from shotgrid_mcp_server.utils import ShotGridJSONEncoder, serialize_entity
+from shotgrid_mcp_server.utils import (
+    ShotGridJSONEncoder,
+    serialize_entity,
+    simplify_json_schema,
+    simplify_tool_schemas,
+)
