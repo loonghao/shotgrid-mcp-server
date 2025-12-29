@@ -1,3 +1,9 @@
+## v0.15.0 (2025-12-29)
+
+### Feat
+
+- simplify JSON Schema for LLM API compatibility and migrate CI to vx
+
 ## v0.14.1 (2025-12-25)
 
 ### Fix
