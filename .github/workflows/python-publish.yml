@@ -60,8 +60,8 @@ jobs:
     - name: Build package
       shell: bash
       run: |
-        # Install shotgun-api3 from GitHub
-        vx uv pip install git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
+        # Install shotgun-api3 from GitHub (use --system since we're in CI without venv)
+        vx uv pip install --system git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
         # Create a temporary pyproject.toml without direct references
         cp pyproject.toml pyproject.toml.bak
         sed -i 's|"shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",|"shotgun-api3",|g' pyproject.toml
