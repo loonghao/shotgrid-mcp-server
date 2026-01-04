@@ -1,3 +1,9 @@
+## v0.15.1 (2026-01-04)
+
+### Fix
+
+- **ci**: add --system flag to vx uv pip install for CI environment
+
 ## v0.15.0 (2025-12-29)
 
 ### Feat
