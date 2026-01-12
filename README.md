@@ -24,6 +24,36 @@ ShotGrid MCP Server enables AI assistants like Claude, Cursor, and VS Code Copil
 
 ### Demo
 
+#### 0. Configure ShotGrid MCP in Code Editor
+
+![Configure ShotGrid MCP in Code Editor](images/00-codebuddy-config-shotgrid-mcp.gif)
+
+#### 1. Query Task Schedule & Workload Visualization
+
+![Query Task Schedule & Workload Visualization](images/01-query-projects-visualize-tasks.gif)
+
+**Prompt:** `Query the team's task schedule for the past week, calculate workload rate based on 8 hours per day, and visualize it in web format`
+
+#### 2. Batch Create Assets & Assign Tasks
+
+![Batch Create Assets & Assign Tasks](images/02-batch-create-assets-tasks-assign.gif)
+
+**Prompt:** `Batch create the recommended hero characters in the shotgrid Demo:Animation project, categorize them as characters, use the FilmVFX-CharacterAsset task template, assign tasks to Yang Zhuo, with start and end dates set to next week`
+
+#### 3. TimeLog Statistics & Visualization
+
+![TimeLog Statistics & Visualization](images/03-timelog-statistics-visualize.gif)
+
+**Prompt:** `Query timelog data from shotgrid and visualize it in web format`
+
+#### 4. Department Efficiency Statistics & Send to WeCom
+
+![Department Efficiency Statistics & Send to WeCom](images/04-department-efficiency-wecom.gif)
+
+**Prompt:** `Calculate department efficiency and send the data to WeCom. Efficiency formula: Efficiency = Task bid / Timelog hours`
+
+#### More Examples
+
 ![ShotGrid MCP Server Demo](images/sg-mcp.gif)
 
 ## Features
