@@ -1,5 +1,11 @@
 name: MR Checks
-on: [ pull_request ]
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'images/**'
+      - '.github/workflows/docs.yml'
 
 jobs:
   python-check:
