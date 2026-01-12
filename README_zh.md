@@ -16,6 +16,8 @@
 [![Downloads](https://static.pepy.tech/badge/shotgrid-mcp-server/week)](https://pepy.tech/project/shotgrid-mcp-server)
 [![Downloads](https://static.pepy.tech/badge/shotgrid-mcp-server/month)](https://pepy.tech/project/shotgrid-mcp-server)
 
+**📖 [Documentation](https://loonghao.github.io/shotgrid-mcp-server/) | [中文文档](https://loonghao.github.io/shotgrid-mcp-server/zh/)**
+
 </div>
 
 ## 概述
