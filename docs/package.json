@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Documentation for ShotGrid MCP Server",
   "scripts": {
-    "dev": "mintlify dev",
-    "build": "mintlify build"
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
   },
-  "dependencies": {
-    "mintlify": "^4.2.202"
+  "keywords": ["shotgrid", "mcp", "documentation"],
+  "author": "zhuoxyang",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
   }
 }
