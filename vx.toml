@@ -1,16 +1,10 @@
 # VX Project Configuration
 # Run 'vx setup' to install all required tools.
 # Run 'vx dev' to enter the development environment.
+# Run 'vx just <recipe>' to execute justfile recipes.
+# See: https://github.com/loonghao/vx
 
 [tools]
 python = "latest"
 uv = "0.7.12"
-
-[scripts]
-build = "uvx nox -s build-wheel"
-check = "uvx ruff check ."
-docs = "uvx nox -s docs"
-format = "uvx ruff format ."
-lint = "uvx nox -s lint"
-test = "uvx nox -s tests"
-typecheck = "uvx mypy src"
+just = "latest"
