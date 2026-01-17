@@ -1,3 +1,10 @@
+## v0.15.2 (2026-01-17)
+
+### Fix
+
+- **docs**: regenerate package-lock.json for npm ci compatibility
+- **ci**: add pull-requests write permission for PR comments
+
 ## v0.15.1 (2026-01-04)
 
 ### Fix
