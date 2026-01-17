@@ -1,3 +1,9 @@
+## v0.15.3 (2026-01-17)
+
+### Fix
+
+- use vx uvx in justfile instead of bare uvx
+
 ## v0.15.2 (2026-01-17)
 
 ### Fix
