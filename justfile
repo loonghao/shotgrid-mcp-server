@@ -8,51 +8,51 @@ default:
 
 # Build wheel package
 build:
-    uvx nox -s build-wheel
+    vx uvx nox -s build-wheel
 
 # Run linter checks
 lint:
-    uvx nox -s lint
+    vx uvx nox -s lint
 
 # Run linter and fix issues
 lint-fix:
-    uvx nox -s lint-fix
+    vx uvx nox -s lint-fix
 
 # Run tests
 test *args='':
-    uvx nox -s tests -- {{args}}
+    vx uvx nox -s tests -- {{args}}
 
 # Run ruff check
 check:
-    uvx ruff check .
+    vx uvx ruff check .
 
 # Format code with ruff
 format:
-    uvx ruff format .
+    vx uvx ruff format .
 
 # Run type checking
 typecheck:
-    uvx mypy src
+    vx uvx mypy src
 
 # Generate API documentation
 docs-api:
-    uvx nox -s docs-api
+    vx uvx nox -s docs-api
 
 # Preview documentation locally
 docs-preview:
-    uvx nox -s docs-preview
+    vx uvx nox -s docs-preview
 
 # Build documentation
 docs-build:
-    uvx nox -s docs-build
+    vx uvx nox -s docs-build
 
 # Deploy documentation
 docs-deploy:
-    uvx nox -s docs-deploy
+    vx uvx nox -s docs-deploy
 
 # Generate static documentation site
 docs-static:
-    uvx nox -s docs-static
+    vx uvx nox -s docs-static
 
 # Clean build artifacts
 clean:
@@ -60,4 +60,4 @@ clean:
 
 # Install development dependencies
 install-dev:
-    uv pip install -e ".[dev,test,lint]"
+    vx uv pip install -e ".[dev,test,lint]"
