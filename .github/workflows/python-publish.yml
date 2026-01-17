@@ -39,36 +39,25 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Cache nox environments
-    - name: Cache nox environments
+    - name: Cache uv
       uses: actions/cache@v5
       with:
-        path: .nox
-        key: ${{ runner.os }}-nox-${{ hashFiles('**/noxfile.py') }}
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
         restore-keys: |
-          ${{ runner.os }}-nox-
+          ${{ runner.os }}-uv-
 
     - name: Setup development environment
       run: vx setup
 
     - name: Lint
-      run: vx run lint
+      run: vx just lint
 
     - name: Test
-      run: vx run test
+      run: vx just test
 
     - name: Build package
-      shell: bash
-      run: |
-        # Install shotgun-api3 from GitHub (use --system since we're in CI without venv)
-        vx uv pip install --system git+https://github.com/shotgunsoftware/python-api.git@v3.8.2
-        # Create a temporary pyproject.toml without direct references
-        cp pyproject.toml pyproject.toml.bak
-        sed -i 's|"shotgun-api3@git+https://github.com/shotgunsoftware/python-api.git@v3.8.2",|"shotgun-api3",|g' pyproject.toml
-        # Build the package using nox
-        vx run build
-        # Restore original pyproject.toml
-        mv pyproject.toml.bak pyproject.toml
+      run: vx just build
 
     # Note that we don't need credentials.
     # We rely on https://docs.pypi.org/trusted-publishers/.
