@@ -35,7 +35,7 @@ jobs:
       with:
         tagRegex: "v(?<version>.*)"
     - name: Setup vx
-      uses: loonghao/vx@vx-v0.5.29
+      uses: loonghao/vx@vx-v0.6.13
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 

@@ -15,13 +15,13 @@ jobs:
           with-owner: 'true'
           string-case: 'uppercase'
       - name: Setup vx
-        uses: loonghao/vx@vx-v0.5.29
+        uses: loonghao/vx@vx-v0.6.13
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup development environment
         run: vx setup
       - name: Run tests and collect coverage
-        run: vx run test
+        run: vx just test
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
