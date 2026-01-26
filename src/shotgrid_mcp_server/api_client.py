@@ -177,7 +177,7 @@ class ShotGridAPIClient:
                 request.entity_type,
                 request.entity_id,
                 request.data,
-                multi_entity_update_mode=request.multi_entity_update_mode,
+                multi_entity_update_modes=request.multi_entity_update_modes,
             )
             return result
         except Exception as err:
