@@ -461,14 +461,14 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
         entity_type: EntityType,
         entity_id: int,
         data: Dict[str, Any],
-        multi_entity_update_mode: Optional[str] = None,
+        multi_entity_update_modes: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update an entity in ShotGrid using the native ShotGrid API update method.
 
         **When to use this tool:**
         - You need low-level direct access to the ShotGrid API
         - You want the raw API response without additional processing
-        - You need multi_entity_update_mode parameter
+        - You need multi_entity_update_modes parameter
 
         **When NOT to use this tool:**
         - For most use cases - Use `update_entity` instead (better validation and error handling)
@@ -490,7 +490,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
                  Note: Integer entity IDs (e.g., {"project": 123}) will be automatically
                  normalized to dict format.
 
-            multi_entity_update_mode: Optional mode for multi-entity updates.
+            multi_entity_update_modes: Optional mode for multi-entity updates.
 
         Returns:
             Updated entity with raw ShotGrid API response.
@@ -502,7 +502,7 @@ def _register_create_update_tools(server: FastMCPType, sg: Shotgun) -> None:
                 entity_type,
                 entity_id,
                 normalized_data,
-                multi_entity_update_mode=multi_entity_update_mode,
+                multi_entity_update_modes=multi_entity_update_modes,
             )
             return result
         except Exception as err:
