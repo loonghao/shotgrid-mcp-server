@@ -1,3 +1,9 @@
+## v0.15.4 (2026-01-28)
+
+### Fix
+
+- sg update multi_entity_update_modes param spell error
+
 ## v0.15.3 (2026-01-17)
 
 ### Fix
