@@ -1,0 +1,31 @@
+tools:
+  - name: download_thumbnail
+    description: "Download a thumbnail from ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity" }
+        entity_id: { type: integer, description: "ID of entity" }
+        field_name: { type: string, description: "Thumbnail field name (default: image)", default: "image" }
+        output_path: { type: string, description: "Optional output file path" }
+      required: [entity_type, entity_id]
+  - name: upload_thumbnail
+    description: "Upload a thumbnail to ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity" }
+        entity_id: { type: integer, description: "ID of entity" }
+        field_name: { type: string, description: "Thumbnail field name", default: "image" }
+        file_path: { type: string, description: "Path to image file" }
+      required: [entity_type, entity_id, file_path]
+  - name: batch_download_thumbnails
+    description: "Download multiple thumbnails in batch."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entities" }
+        entity_ids: { type: array, items: { type: integer } }
+        field_name: { type: string, default: "image" }
+        output_dir: { type: string }
+      required: [entity_type, entity_ids, output_dir]

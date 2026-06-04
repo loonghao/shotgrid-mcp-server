@@ -1,0 +1,36 @@
+tools:
+  - name: create_playlist
+    description: "Create a playlist for version review in ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        name: { type: string, description: "Playlist name" }
+        description: { type: string, description: "Optional description" }
+        project_id: { type: integer, description: "Project ID" }
+        versions: { type: array, items: { type: integer }, description: "Optional initial version IDs" }
+      required: [name, project_id]
+  - name: find_playlists
+    description: "Search for playlists in ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        project_id: { type: integer, description: "Optional project ID filter" }
+        name_contains: { type: string, description: "Optional name filter" }
+        fields: { type: array, items: { type: string } }
+      required: []
+  - name: add_versions_to_playlist
+    description: "Add versions to an existing playlist."
+    input_schema:
+      type: object
+      properties:
+        playlist_id: { type: integer, description: "Playlist ID" }
+        version_ids: { type: array, items: { type: integer }, description: "Version IDs to add" }
+      required: [playlist_id, version_ids]
+  - name: remove_versions_from_playlist
+    description: "Remove versions from a playlist."
+    input_schema:
+      type: object
+      properties:
+        playlist_id: { type: integer, description: "Playlist ID" }
+        version_ids: { type: array, items: { type: integer } }
+      required: [playlist_id, version_ids]

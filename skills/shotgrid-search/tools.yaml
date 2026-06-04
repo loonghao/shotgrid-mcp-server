@@ -1,0 +1,68 @@
+tools:
+  - name: search_entities
+    description: "Search for entities in ShotGrid using filters."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity to search" }
+        filters: { type: array, description: "List of filter conditions [field, operator, value]" }
+        fields: { type: array, items: { type: string }, description: "Optional fields to return" }
+        order: { type: array, description: "Optional sort order" }
+        limit: { type: integer, description: "Optional result limit" }
+      required: [entity_type]
+  - name: find_one_entity
+    description: "Find a single entity by ID or unique field."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity to find" }
+        filters: { type: array, description: "Filter conditions to identify the entity" }
+        fields: { type: array, items: { type: string }, description: "Optional fields to return" }
+      required: [entity_type, filters]
+  - name: search_entities_with_related
+    description: "Search entities with related entity data in a single query."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity to search" }
+        filters: { type: array, description: "Optional filters" }
+        fields: { type: array, items: { type: string } }
+        related_fields: { type: object, description: "{ field_name: [related_fields] }" }
+        order: { type: array }
+        limit: { type: integer }
+      required: [entity_type]
+  - name: sg_search_advanced
+    description: "Advanced search with time-based filters and related fields."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity to search" }
+        filters: { type: array, description: "Standard filters" }
+        time_filters: { type: array, description: "Time-based filters" }
+        fields: { type: array, items: { type: string } }
+        related_fields: { type: object }
+        order: { type: array }
+        limit: { type: integer }
+      required: [entity_type]
+  - name: project_find_active
+    description: "Find projects active in the last N days."
+    input_schema:
+      type: object
+      properties:
+        days: { type: integer, description: "Days to look back (default: 90)", default: 90 }
+  - name: user_find_active
+    description: "Find users active in the last N days."
+    input_schema:
+      type: object
+      properties:
+        days: { type: integer, description: "Days to look back (default: 30)", default: 30 }
+  - name: entity_find_by_date
+    description: "Find entities within a date range."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity" }
+        date_field: { type: string, description: "Date field to filter on" }
+        start_date: { type: string, description: "Start date (YYYY-MM-DD)" }
+        end_date: { type: string, description: "End date (YYYY-MM-DD)" }
+      required: [entity_type, date_field, start_date, end_date]

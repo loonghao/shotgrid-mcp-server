@@ -1,4 +1,7 @@
-"""Command-line interface for ShotGrid MCP server."""
+"""Command-line interface for ShotGrid MCP server.
+
+Powered by dcc-mcp-core. Supports stdio and HTTP transport modes.
+"""
 
 # Import built-in modules
 import logging
@@ -8,7 +11,7 @@ import sys
 import click
 
 # Import local modules
-from shotgrid_mcp_server.server import create_server
+from shotgrid_mcp_server.shotgrid_adapter import create_shotgrid_server
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -16,23 +19,28 @@ logger = logging.getLogger(__name__)
 
 @click.group(
     help="""
-ShotGrid MCP Server - Connect LLMs to ShotGrid.
+ShotGrid MCP Server - Connect LLMs to ShotGrid via dcc-mcp-core.
 
 This server provides Model Context Protocol (MCP) access to ShotGrid,
 allowing LLMs like Claude to interact with your production tracking data.
+Built on dcc-mcp-core with skill-based progressive loading.
 
 \b
 Environment Variables:
   SHOTGRID_URL:         Your ShotGrid server URL
   SHOTGRID_SCRIPT_NAME: Your ShotGrid script name
   SHOTGRID_SCRIPT_KEY:  Your ShotGrid script key
+
+\b
+Skill Environment:
+  DCC_MCP_SKILL_PATHS:  Additional skill search paths
+  DCC_MCP_SHOTGRID_FULL: Set to 1 to eager-load all 8 skill packages
     """,
     invoke_without_command=True,
 )
 @click.pass_context
 def cli(ctx: click.Context) -> None:
     """ShotGrid MCP Server CLI."""
-    # If no subcommand is provided, default to stdio
     if ctx.invoked_subcommand is None:
         ctx.invoke(stdio)
 
@@ -48,14 +56,10 @@ def stdio() -> None:
     """
     try:
         logger.info("Starting ShotGrid MCP server with stdio transport")
-
-        # For stdio, create connection immediately to validate credentials
-        app = create_server(lazy_connection=False)
-        app.run(transport="stdio")
-
+        server = create_shotgrid_server()
+        server.start(transport="stdio")
     except ValueError as e:
-        # Handle missing environment variables error
-        if "Missing required environment variables for ShotGrid connection" in str(e):
+        if "Missing required environment variables" in str(e):
             click.echo(f"\n{'=' * 80}", err=True)
             click.echo("ERROR: ShotGrid MCP Server Configuration Issue", err=True)
             click.echo(f"{'=' * 80}", err=True)
@@ -72,27 +76,9 @@ def stdio() -> None:
 
 
 @cli.command()
-@click.option(
-    "--host",
-    type=str,
-    default="127.0.0.1",
-    show_default=True,
-    help="Host to bind to",
-)
-@click.option(
-    "--port",
-    type=int,
-    default=8000,
-    show_default=True,
-    help="Port to bind to",
-)
-@click.option(
-    "--path",
-    type=str,
-    default="/mcp",
-    show_default=True,
-    help="API endpoint path",
-)
+@click.option("--host", type=str, default="127.0.0.1", show_default=True, help="Host to bind to")
+@click.option("--port", type=int, default=8000, show_default=True, help="Port to bind to")
+@click.option("--path", type=str, default="/mcp", show_default=True, help="API endpoint path")
 def http(host: str, port: int, path: str) -> None:
     """Run server with HTTP transport (for remote deployments).
 
@@ -108,25 +94,18 @@ def http(host: str, port: int, path: str) -> None:
     """
     try:
         click.echo("\n💡 HTTP mode: ShotGrid connection will be created on-demand")
-        click.echo("   You can provide credentials via HTTP headers or environment variables\n")
+        click.echo("   Credentials via HTTP headers or environment variables\n")
 
-        # For HTTP, use lazy connection mode (credentials from headers)
-        app = create_server(lazy_connection=True)
+        server = create_shotgrid_server(port=port)
 
-        logger.info(
-            "Starting ShotGrid MCP server with HTTP transport on %s:%d%s",
-            host,
-            port,
-            path,
-        )
+        logger.info("Starting ShotGrid MCP server with HTTP transport on %s:%d%s", host, port, path)
         click.echo(f"\n{'=' * 80}")
-        click.echo("ShotGrid MCP Server - HTTP Transport")
+        click.echo("ShotGrid MCP Server - HTTP Transport (dcc-mcp-core)")
         click.echo(f"{'=' * 80}")
         click.echo(f"Server URL: http://{host}:{port}{path}")
         click.echo(f"{'=' * 80}\n")
 
-        app.run(transport="http", host=host, port=port, path=path)
-
+        server.start(transport="http", host=host, port=port, path=path)
     except KeyboardInterrupt:
         click.echo("\n\nShutting down server...")
     except Exception as e:

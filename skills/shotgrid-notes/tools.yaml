@@ -1,0 +1,29 @@
+tools:
+  - name: create_note
+    description: "Create a note on a ShotGrid entity."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity to note on" }
+        entity_id: { type: integer, description: "ID of entity" }
+        subject: { type: string, description: "Note subject" }
+        content: { type: string, description: "Note content (HTML or text)" }
+        note_type: { type: string, description: "Optional note type", default: "Note" }
+      required: [entity_type, entity_id, subject, content]
+  - name: read_notes
+    description: "Read notes from a ShotGrid entity."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string, description: "Type of entity" }
+        entity_id: { type: integer, description: "ID of entity" }
+        fields: { type: array, items: { type: string } }
+      required: [entity_type, entity_id]
+  - name: update_note
+    description: "Update a note in ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        note_id: { type: integer, description: "ID of the note" }
+        data: { type: object, description: "Fields to update (subject, content, etc.)" }
+      required: [note_id, data]

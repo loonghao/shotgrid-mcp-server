@@ -1,0 +1,68 @@
+tools:
+  - name: create_entity
+    description: "Create a new entity in ShotGrid. Use this to create Shots, Assets, Tasks, Versions, or any other entity type."
+    input_schema:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          description: "Type of entity to create (Shot, Asset, Task, Version, etc.)"
+        data:
+          type: object
+          description: "Entity data as key-value pairs"
+        project_id:
+          type: integer
+          description: "Optional project ID to link this entity to"
+      required: [entity_type, data]
+  - name: read_entity
+    description: "Read a single entity from ShotGrid by ID."
+    input_schema:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          description: "Type of entity to read"
+        entity_id:
+          type: integer
+          description: "ID of the entity to read"
+        fields:
+          type: array
+          items: { type: string }
+          description: "Optional list of fields to return"
+      required: [entity_type, entity_id]
+  - name: update_entity
+    description: "Update an existing entity in ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          description: "Type of entity to update"
+        entity_id:
+          type: integer
+          description: "ID of the entity to update"
+        data:
+          type: object
+          description: "Fields to update as key-value pairs"
+      required: [entity_type, entity_id, data]
+  - name: delete_entity
+    description: "Delete (retire) an entity in ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          description: "Type of entity to delete"
+        entity_id:
+          type: integer
+          description: "ID of the entity to delete"
+      required: [entity_type, entity_id]
+  - name: entity_schema
+    description: "Get field schema information for an entity type."
+    input_schema:
+      type: object
+      properties:
+        entity_type:
+          type: string
+          description: "Type of entity to get schema for (Shot, Asset, Task, etc.)"
+      required: [entity_type]

@@ -1,0 +1,29 @@
+tools:
+  - name: find_vendor_users
+    description: "Find vendor users by name or email."
+    input_schema:
+      type: object
+      properties:
+        name_contains: { type: string, description: "Name filter" }
+        email_contains: { type: string, description: "Email filter" }
+      required: []
+  - name: find_vendor_versions
+    description: "Find versions by vendor criteria."
+    input_schema:
+      type: object
+      properties:
+        project_id: { type: integer }
+        vendor_id: { type: integer, description: "Optional vendor user ID" }
+        status: { type: string }
+        days: { type: integer, default: 30 }
+      required: [project_id]
+  - name: create_vendor_playlist
+    description: "Create a playlist for vendor review."
+    input_schema:
+      type: object
+      properties:
+        name: { type: string }
+        project_id: { type: integer }
+        version_ids: { type: array, items: { type: integer } }
+        vendor_user_ids: { type: array, items: { type: integer } }
+      required: [name, project_id]

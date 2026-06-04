@@ -1,0 +1,112 @@
+tools:
+  - name: sg_find
+    description: "Low-level ShotGrid find operation. Returns raw results."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        filters: { type: array }
+        fields: { type: array, items: { type: string } }
+        order: { type: array }
+        filter_operator: { type: string }
+        limit: { type: integer }
+        page: { type: integer }
+      required: [entity_type, filters]
+  - name: sg_find_one
+    description: "Low-level ShotGrid find_one operation."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        filters: { type: array }
+        fields: { type: array, items: { type: string } }
+        order: { type: array }
+      required: [entity_type, filters]
+  - name: sg_create
+    description: "Low-level ShotGrid create operation."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        data: { type: object }
+      required: [entity_type, data]
+  - name: sg_update
+    description: "Low-level ShotGrid update operation."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        entity_id: { type: integer }
+        data: { type: object }
+      required: [entity_type, entity_id, data]
+  - name: sg_delete
+    description: "Low-level ShotGrid delete operation."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        entity_id: { type: integer }
+      required: [entity_type, entity_id]
+  - name: sg_batch
+    description: "Low-level ShotGrid batch operation."
+    input_schema:
+      type: object
+      properties:
+        requests: { type: array, description: "List of batch request dicts" }
+      required: [requests]
+  - name: sg_schema_entity_read
+    description: "Read entity schema. Returns available entity types."
+    input_schema:
+      type: object
+      properties: {}
+  - name: sg_schema_field_read
+    description: "Read field schema for an entity type."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        field_name: { type: string, description: "Optional specific field" }
+      required: [entity_type]
+  - name: sg_text_search
+    description: "Full-text search across entities."
+    input_schema:
+      type: object
+      properties:
+        text: { type: string }
+        entity_types: { type: array, items: { type: string } }
+      required: [text, entity_types]
+  - name: sg_revive
+    description: "Revive a retired entity."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        entity_id: { type: integer }
+      required: [entity_type, entity_id]
+  - name: sg_upload
+    description: "Upload a file to ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        entity_id: { type: integer }
+        field_name: { type: string }
+        file_path: { type: string }
+      required: [entity_type, entity_id, field_name, file_path]
+  - name: sg_download_attachment
+    description: "Download an attachment from ShotGrid."
+    input_schema:
+      type: object
+      properties:
+        attachment_id: { type: integer }
+        output_path: { type: string }
+      required: [attachment_id]
+  - name: sg_summarize
+    description: "Summarize entities matching filters. Returns counts per status or field."
+    input_schema:
+      type: object
+      properties:
+        entity_type: { type: string }
+        filters: { type: array }
+        summarize_field: { type: string, description: "Field to group by" }
+      required: [entity_type, filters, summarize_field]

@@ -1,15 +1,27 @@
 """ShotGrid MCP Server Package.
 
-This package provides a Model Context Protocol (MCP) server for ShotGrid,
-allowing AI assistants to interact with ShotGrid data.
+This package provides a Model Context Protocol (MCP) server for ShotGrid
+(Flow Production Tracking), allowing AI assistants to interact with
+ShotGrid data via the dcc-mcp-core ecosystem.
+
+ShotGrid capabilities are exposed as on-demand skills that are discovered
+and loaded through dcc-gateway. The adapter uses the custom-studio-tool /
+external-bridge pattern since ShotGrid has no GUI host.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.15.4"
 
 # Define exported symbols
 __all__ = [
+    # Adapter
+    "ShotGridServer",
+    "create_shotgrid_server",
     # ASGI
     "create_asgi_app",
+    # Connection pool
+    "ShotGridConnectionContext",
+    "create_shotgun_connection",
+    "get_shotgun_credentials",
     # Exceptions
     "ConnectionError",
     "EntityNotFoundError",
@@ -47,7 +59,7 @@ __all__ = [
     "create_today_filter",
     "create_tomorrow_filter",
     "create_yesterday_filter",
-    # Server
+    # Server (backward compat)
     "create_server",
     "main",
     # Utilities
@@ -57,7 +69,7 @@ __all__ = [
     "simplify_tool_schemas",
 ]
 
-# Import filter utilities from shotgrid-query
+# Re-export filter utilities from shotgrid-query
 from shotgrid_query import (
     FilterBuilder,
     TimeFilter,
@@ -66,17 +78,17 @@ from shotgrid_query import (
     create_date_filter,
     process_filters,
 )
-from shotgrid_query import (
-    FilterModel as Filter,
-)
-from shotgrid_query import (
-    FilterOperatorEnum as FilterOperator,
-)
-from shotgrid_query import (
-    TimeUnitEnum as TimeUnit,
-)
+from shotgrid_query import FilterModel as Filter
+from shotgrid_query import FilterOperatorEnum as FilterOperator
+from shotgrid_query import TimeUnitEnum as TimeUnit
 
+# Local exports
 from shotgrid_mcp_server.asgi import create_asgi_app
+from shotgrid_mcp_server.connection_pool import (
+    ShotGridConnectionContext,
+    create_shotgun_connection,
+    get_shotgun_credentials,
+)
 from shotgrid_mcp_server.exceptions import (
     ConnectionError,
     EntityNotFoundError,
@@ -85,8 +97,6 @@ from shotgrid_mcp_server.exceptions import (
     SerializationError,
     ShotGridMCPError,
 )
-
-# Import MCP-specific models from local models module
 from shotgrid_mcp_server.models import (
     DateRangeFilter,
     EntitiesResponse,
@@ -110,6 +120,7 @@ from shotgrid_mcp_server.models import (
     create_yesterday_filter,
 )
 from shotgrid_mcp_server.server import create_server, main
+from shotgrid_mcp_server.shotgrid_adapter import ShotGridServer, create_shotgrid_server
 from shotgrid_mcp_server.utils import (
     ShotGridJSONEncoder,
     serialize_entity,
