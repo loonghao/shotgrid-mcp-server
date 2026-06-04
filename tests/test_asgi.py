@@ -1,7 +1,10 @@
 """Tests for ASGI application."""
 
 # Import built-in modules
+import asyncio
+import json
 import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 # Import third-party modules
@@ -10,7 +13,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
 # Import local modules
-from shotgrid_mcp_server.asgi import create_asgi_app
+from shotgrid_mcp_server.asgi import _health, _mcp_not_available, create_asgi_app
 
 
 @pytest.fixture
@@ -36,6 +39,23 @@ def test_create_asgi_app_with_custom_path(mock_env_vars):
     custom_path = "/api/shotgrid"
     app = create_asgi_app(path=custom_path)
     assert app is not None
+    assert app.state.mcp_path == custom_path
+
+
+def test_asgi_compatibility_routes_report_runtime_path(mock_env_vars):
+    """Test compatibility routes return clear runtime information."""
+    app = create_asgi_app(path="api/shotgrid")
+    request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(mcp_path=app.state.mcp_path)))
+
+    health = asyncio.run(_health(request))
+    assert health.status_code == 200
+    assert json.loads(health.body)["runtime"] == "dcc-mcp-core"
+
+    mcp_response = asyncio.run(_mcp_not_available(request))
+    assert mcp_response.status_code == 503
+    payload = json.loads(mcp_response.body)
+    assert payload["error"] == "asgi_mcp_not_available"
+    assert payload["mcp_path"] == "/api/shotgrid"
 
 
 def test_create_asgi_app_with_middleware(mock_env_vars):

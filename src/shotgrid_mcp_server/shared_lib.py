@@ -1309,7 +1309,7 @@ def sg_search_advanced(
                 all_filters.append(tf.to_tuple())
             elif isinstance(tf, dict) and "field" in tf:
                 all_filters.append(
-                    [tf["field"], tf.get("operator", "in_last"), tf.get("count", 0), tf.get("unit", "DAY")]
+                    [tf["field"], tf.get("operator", "in_last"), [tf.get("count", 0), tf.get("unit", "DAY")]]
                 )
             else:
                 all_filters.append(tf)
