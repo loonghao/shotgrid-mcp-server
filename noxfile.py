@@ -21,10 +21,9 @@ from nox_actions.utils import PACKAGE_NAME, THIS_ROOT
 def tests(session: nox.Session) -> None:
     """Run the test suite with pytest."""
 
-    # Install test + runtime dependencies into the nox virtualenv using pip
-    # We deliberately avoid `uv pip` here to sidestep Windows permission issues
-    # when uv tries to manage its own wheel cache.
-    session.install("-r", "requirements-test.txt")
+    # Install the project in editable mode so runtime dependencies stay in sync
+    # with pyproject.toml while still using pip inside nox.
+    session.install("-e", ".[test]")
 
     # Run tests
     test_root = os.path.join(ROOT, "tests")

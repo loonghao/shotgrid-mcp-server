@@ -19,7 +19,7 @@ Usage::
 # Import built-in modules
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 # Import third-party modules
 from dcc_mcp_core import DccServerBase, DccServerOptions

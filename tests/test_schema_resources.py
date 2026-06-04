@@ -108,6 +108,7 @@ def test_register_schema_resources_registers_and_resolves(mock_sg: Shotgun, monk
         return {"Asset"}
 
     monkeypatch.setattr(sr, "get_entity_types_from_schema", fake_get_entity_types_from_schema)
+    mock_sg.schema_read.return_value = {"Shot": {}, "Asset": {}}
 
     server = DummyServer()
     sr.register_schema_resources(server, mock_sg)

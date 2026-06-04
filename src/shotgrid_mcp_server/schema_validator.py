@@ -133,7 +133,7 @@ class SchemaValidator:
         if data_type in type_checks:
             expected_type, type_name = type_checks[data_type]
             if not isinstance(value, expected_type):
-                return f"Field '{field_name}' expects {type_name}, " f"got {type(value).__name__}"
+                return f"Field '{field_name}' expects {type_name}, got {type(value).__name__}"
 
         return None
 

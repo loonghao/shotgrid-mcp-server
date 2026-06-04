@@ -18,9 +18,7 @@ SHOTGRID_SCRIPT_KEY_HEADER = "X-ShotGrid-Script-Key"
 
 # Context variable for storing request-level HTTP headers
 # Set by middleware or request handler before tool execution
-_http_headers_ctx: ContextVar[Optional[Dict[str, str]]] = ContextVar(
-    "shotgrid_http_headers", default=None
-)
+_http_headers_ctx: ContextVar[Optional[Dict[str, str]]] = ContextVar("shotgrid_http_headers", default=None)
 
 
 def set_http_headers(headers: Optional[Mapping[str, str]]) -> None:

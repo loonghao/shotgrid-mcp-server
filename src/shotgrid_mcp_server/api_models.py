@@ -130,13 +130,11 @@ class FindRequest(BaseAPIRequest):
 
             if "field_name" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'field_name' key. " f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'field_name' key. Available keys: {list(order_dict.keys())}"
                 )
 
             if "direction" not in order_dict:
-                raise ValueError(
-                    f"Order item {i} must have 'direction' key. " f"Available keys: {list(order_dict.keys())}"
-                )
+                raise ValueError(f"Order item {i} must have 'direction' key. Available keys: {list(order_dict.keys())}")
 
             direction = order_dict["direction"]
             if direction not in ["asc", "desc"]:
@@ -188,13 +186,11 @@ class FindOneRequest(BaseAPIRequest):
 
             if "field_name" not in order_dict:
                 raise ValueError(
-                    f"Order item {i} must have 'field_name' key. " f"Available keys: {list(order_dict.keys())}"
+                    f"Order item {i} must have 'field_name' key. Available keys: {list(order_dict.keys())}"
                 )
 
             if "direction" not in order_dict:
-                raise ValueError(
-                    f"Order item {i} must have 'direction' key. " f"Available keys: {list(order_dict.keys())}"
-                )
+                raise ValueError(f"Order item {i} must have 'direction' key. Available keys: {list(order_dict.keys())}")
 
             direction = order_dict["direction"]
             if direction not in ["asc", "desc"]:

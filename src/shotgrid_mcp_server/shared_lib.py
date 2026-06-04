@@ -11,7 +11,7 @@ It only depends on ShotGrid API, shotgrid-query, and local infra modules
 
 # Import built-in modules
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # Import third-party modules
 from shotgun_api3.lib.mockgun import Shotgun
@@ -22,16 +22,7 @@ from shotgrid_mcp_server.api_models import FindOneRequest, FindRequest
 from shotgrid_mcp_server.custom_types import EntityType
 from shotgrid_mcp_server.exceptions import (
     EntityNotFoundError,
-    FilterError,
     ShotGridMCPError,
-)
-from shotgrid_mcp_server.models import (
-    EntitiesResponse,
-    EntityDict,
-    ProjectDict,
-    ProjectsResponse,
-    UserDict,
-    UsersResponse,
 )
 from shotgrid_mcp_server.response_models import (
     SchemaResult,
@@ -426,10 +417,9 @@ def batch_create(
         List of created entity dicts.
     """
     try:
-        batch_data = sg.batch([
-            {"request_type": "create", "entity_type": entity_type, "data": data}
-            for data in data_list
-        ])
+        batch_data = sg.batch(
+            [{"request_type": "create", "entity_type": entity_type, "data": data} for data in data_list]
+        )
         return [serialize_entity(item) for item in (batch_data or [])]
     except Exception as e:
         logger.error("Batch create failed: %s", e)
@@ -452,15 +442,17 @@ def batch_update(
         List of updated entity dicts.
     """
     try:
-        batch_data = sg.batch([
-            {
-                "request_type": "update",
-                "entity_type": entity_type,
-                "entity_id": item["id"],
-                "data": {k: v for k, v in item.items() if k != "id"},
-            }
-            for item in data_list
-        ])
+        batch_data = sg.batch(
+            [
+                {
+                    "request_type": "update",
+                    "entity_type": entity_type,
+                    "entity_id": item["id"],
+                    "data": {k: v for k, v in item.items() if k != "id"},
+                }
+                for item in data_list
+            ]
+        )
         return [serialize_entity(item) for item in (batch_data or [])]
     except Exception as e:
         logger.error("Batch update failed: %s", e)
@@ -483,10 +475,9 @@ def batch_delete(
         List of bool results per entity.
     """
     try:
-        batch_data = sg.batch([
-            {"request_type": "delete", "entity_type": entity_type, "entity_id": eid}
-            for eid in entity_ids
-        ])
+        batch_data = sg.batch(
+            [{"request_type": "delete", "entity_type": entity_type, "entity_id": eid} for eid in entity_ids]
+        )
         return [bool(item) for item in (batch_data or [])]
     except Exception as e:
         logger.error("Batch delete failed: %s", e)
@@ -620,8 +611,8 @@ def download_thumbnail(
         else:
             # Return base64 data
             import base64
-            import tempfile
             import os
+            import tempfile
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                 tmp_path = tmp.name
@@ -633,7 +624,13 @@ def download_thumbnail(
                 )
                 with open(tmp_path, "rb") as f:
                     data = base64.b64encode(f.read()).decode("utf-8")
-                return {"status": "downloaded", "data": data, "format": "base64", "entity_type": entity_type, "entity_id": entity_id}
+                return {
+                    "status": "downloaded",
+                    "data": data,
+                    "format": "base64",
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                }
             finally:
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
@@ -663,7 +660,8 @@ def upload_thumbnail(
     """
     try:
         result = sg.upload(
-            entity_type, entity_id,
+            entity_type,
+            entity_id,
             file_path,
             field_name=field_name,
         )
@@ -760,13 +758,14 @@ def add_versions_to_playlist(
         Dict with updated playlist data.
     """
     try:
-        result = sg.update("Playlist", playlist_id, {
-            "versions": [
-                {"type": "Version", "id": vid}
-                for vid in version_ids
-            ],
-            "update_mode": "multi_entity_update_mode_add",
-        })
+        result = sg.update(
+            "Playlist",
+            playlist_id,
+            {
+                "versions": [{"type": "Version", "id": vid} for vid in version_ids],
+                "update_mode": "multi_entity_update_mode_add",
+            },
+        )
         return serialize_entity(result or {})
     except Exception as e:
         logger.error("Failed to add versions to playlist %d: %s", playlist_id, e)
@@ -789,13 +788,14 @@ def remove_versions_from_playlist(
         Dict with updated playlist data.
     """
     try:
-        result = sg.update("Playlist", playlist_id, {
-            "versions": [
-                {"type": "Version", "id": vid}
-                for vid in version_ids
-            ],
-            "update_mode": "multi_entity_update_mode_remove",
-        })
+        result = sg.update(
+            "Playlist",
+            playlist_id,
+            {
+                "versions": [{"type": "Version", "id": vid} for vid in version_ids],
+                "update_mode": "multi_entity_update_mode_remove",
+            },
+        )
         return serialize_entity(result or {})
     except Exception as e:
         logger.error("Failed to remove versions from playlist %d: %s", playlist_id, e)
@@ -833,8 +833,9 @@ def sg_find(
         List of raw entity dicts.
     """
     try:
-        result = sg.find(entity_type, filters, fields=fields, order=order,
-                         filter_operator=filter_operator, limit=limit, page=page)
+        result = sg.find(
+            entity_type, filters, fields=fields, order=order, filter_operator=filter_operator, limit=limit, page=page
+        )
         return [serialize_entity(r) for r in (result or [])]
     except Exception as e:
         logger.error("sg.find failed: %s", e)
@@ -1016,7 +1017,9 @@ def sg_summarize(
         Dict with summary counts per field value.
     """
     try:
-        result = sg.summarize(entity_type, filters=filters, summary_fields=[{"field": summarize_field, "type": "count"}])
+        result = sg.summarize(
+            entity_type, filters=filters, summary_fields=[{"field": summarize_field, "type": "count"}]
+        )
         return {"summarize_field": summarize_field, "groups": result or {}}
     except Exception as e:
         logger.error("sg.summarize failed: %s", e)
@@ -1078,7 +1081,7 @@ def find_vendor_versions(
         List of version dicts.
     """
     try:
-        from shotgrid_query import FilterModel, TimeFilter, TimeUnit
+        from shotgrid_query import TimeFilter, TimeUnit
 
         filters: List[Any] = [["project", "is", {"type": "Project", "id": project_id}]]
         if vendor_id:
@@ -1119,7 +1122,7 @@ def create_vendor_playlist(
     try:
         data: Dict[str, Any] = {
             "code": name,
-            "description": f"Vendor review playlist",
+            "description": "Vendor review playlist",
             "project": {"type": "Project", "id": project_id},
         }
         if version_ids:
@@ -1262,6 +1265,7 @@ find_active_sg_projects = find_active_projects
 find_active_sg_users = find_active_users
 find_sg_entities_by_date = find_entities_by_date_range
 
+
 # Advanced search with time filters
 def sg_search_advanced(
     sg: Shotgun,
@@ -1304,7 +1308,9 @@ def sg_search_advanced(
             if hasattr(tf, "to_tuple"):
                 all_filters.append(tf.to_tuple())
             elif isinstance(tf, dict) and "field" in tf:
-                all_filters.append([tf["field"], tf.get("operator", "in_last"), tf.get("count", 0), tf.get("unit", "DAY")])
+                all_filters.append(
+                    [tf["field"], tf.get("operator", "in_last"), tf.get("count", 0), tf.get("unit", "DAY")]
+                )
             else:
                 all_filters.append(tf)
 
@@ -1356,6 +1362,7 @@ def batch_download_thumbnails(
         List of download result dicts.
     """
     import os
+
     results = []
     for entity_id in entity_ids:
         try:

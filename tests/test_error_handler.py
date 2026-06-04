@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-from fastmcp.exceptions import ToolError
 from shotgun_api3 import ShotgunError
 
 from shotgrid_mcp_server.error_handler import (
@@ -20,6 +19,7 @@ from shotgrid_mcp_server.exceptions import (
     FilterError,
     PermissionError,
     SerializationError,
+    ToolError,
 )
 
 

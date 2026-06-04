@@ -19,6 +19,23 @@ PROJECT_ROOT = TEST_DIR.parent
 SRC_DIR = PROJECT_ROOT / "src"
 SKILLS_DIR = PROJECT_ROOT / "skills"
 
+# These modules target the deleted FastMCP `shotgrid_mcp_server.tools` package.
+# Current coverage lives in test_shared_lib.py, test_skills.py, and adapter tests.
+collect_ignore = [
+    "test_api_tools.py",
+    "test_batch_operations.py",
+    "test_helper_types.py",
+    "test_note_tools.py",
+    "test_optimized_queries.py",
+    "test_playlist_tools.py",
+    "test_search_tools.py",
+    "test_search_tools_return_types.py",
+    "test_server.py",
+    "test_ssl_fix.py",
+    "test_thumbnail_tools.py",
+    "test_vendor_tools.py",
+]
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Mock ShotGrid connection fixtures
@@ -46,11 +63,21 @@ def mock_sg() -> MagicMock:
     # Schema responses
     sg.schema_field_read.return_value = {
         "code": {"data_type": {"value": "text"}, "properties": {"editable": {"value": True}}},
-        "sg_status_list": {"data_type": {"value": "status_list"}, "properties": {"valid_values": {"value": ["wtg", "ip", "fin"]}}},
+        "sg_status_list": {
+            "data_type": {"value": "status_list"},
+            "properties": {"valid_values": {"value": ["wtg", "ip", "fin"]}},
+        },
     }
     sg.schema_entity_read.return_value = {
-        "Shot": {}, "Asset": {}, "Task": {}, "Version": {}, "Note": {},
-        "PublishedFile": {}, "Playlist": {}, "Project": {}, "HumanUser": {},
+        "Shot": {},
+        "Asset": {},
+        "Task": {},
+        "Version": {},
+        "Note": {},
+        "PublishedFile": {},
+        "Playlist": {},
+        "Project": {},
+        "HumanUser": {},
     }
     return sg
 

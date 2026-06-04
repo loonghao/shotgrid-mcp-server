@@ -55,7 +55,7 @@ def cli(port: int) -> None:
     try:
         click.echo(f"\n{'=' * 70}")
         click.echo("  ShotGrid MCP Server (dcc-mcp-core)")
-        click.echo(f"  Gateway:  http://127.0.0.1:9765/mcp")
+        click.echo("  Gateway:  http://127.0.0.1:9765/mcp")
         click.echo(f"  Server:   http://127.0.0.1:{port}/mcp")
         click.echo(f"{'=' * 70}\n")
         click.echo("→ Starting server and registering with gateway...\n")
@@ -64,12 +64,13 @@ def cli(port: int) -> None:
 
         with server as handle:
             click.echo(f"✓ Server listening at {handle.mcp_url()}")
-            click.echo(f"✓ Gateway endpoint: http://127.0.0.1:9765/mcp")
+            click.echo("✓ Gateway endpoint: http://127.0.0.1:9765/mcp")
             click.echo("\nPress Ctrl+C to stop...\n")
 
             # Keep running until interrupted
             try:
                 import time
+
                 while True:
                     time.sleep(1)
             except KeyboardInterrupt:

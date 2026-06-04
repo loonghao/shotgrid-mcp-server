@@ -1,29 +1,10 @@
-"""ASGI application for ShotGrid MCP server.
+"""ASGI compatibility shim for ShotGrid MCP server.
 
-This module provides a standalone ASGI application that can be deployed
-to any ASGI server (Uvicorn, Gunicorn, Hypercorn, etc.) or cloud platforms
-like FastMCP Cloud.
-
-Example:
-    Deploy with Uvicorn:
-        uvicorn shotgrid_mcp_server.asgi:app --host 0.0.0.0 --port 8000
-
-    Deploy with Gunicorn:
-        gunicorn shotgrid_mcp_server.asgi:app -k uvicorn.workers.UvicornWorker
-
-    With custom middleware:
-        from shotgrid_mcp_server.asgi import create_asgi_app
-        from starlette.middleware import Middleware
-        from starlette.middleware.cors import CORSMiddleware
-
-        app = create_asgi_app(middleware=[
-            Middleware(
-                CORSMiddleware,
-                allow_origins=["*"],
-                allow_methods=["*"],
-                allow_headers=["*"],
-            )
-        ])
+dcc-mcp-core 0.17 starts its own MCP HTTP server via ``DccServerBase.start()``
+instead of exposing a FastMCP-style ``http_app()`` object. This module keeps
+``shotgrid_mcp_server.asgi:app`` importable for platforms that probe it, while
+returning a clear response that the dcc-mcp-core CLI/gateway entrypoint is the
+supported runtime path.
 """
 
 # Import built-in modules
@@ -31,63 +12,77 @@ import logging
 from typing import List, Optional
 
 # Import third-party modules
+from starlette.applications import Starlette
 from starlette.middleware import Middleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 # Import local modules
 from shotgrid_mcp_server.logger import setup_logging
-from shotgrid_mcp_server.server import create_server
 
 # Configure logger
 logger = logging.getLogger(__name__)
 setup_logging()
 
+_HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+
+
+async def _health(_request: Request) -> JSONResponse:
+    """Return a small health payload for ASGI platform probes."""
+
+    return JSONResponse(
+        {
+            "status": "ok",
+            "runtime": "dcc-mcp-core",
+            "message": "Use the shotgrid-mcp-server CLI to start the MCP HTTP server.",
+        }
+    )
+
+
+async def _mcp_not_available(request: Request) -> JSONResponse:
+    """Explain why this ASGI shim does not serve MCP traffic."""
+
+    return JSONResponse(
+        {
+            "error": "asgi_mcp_not_available",
+            "runtime": "dcc-mcp-core",
+            "mcp_path": request.app.state.mcp_path,
+            "message": (
+                "dcc-mcp-core 0.17.54 serves MCP over its own HTTP server. "
+                "Start this adapter with `shotgrid-mcp-server --port <port>` "
+                "and connect through dcc-gateway."
+            ),
+        },
+        status_code=503,
+    )
+
 
 def create_asgi_app(middleware: Optional[List[Middleware]] = None, path: str = "/mcp"):
-    """Create a standalone ASGI application.
+    """Create a Starlette ASGI compatibility application.
 
     Args:
         middleware: Optional list of Starlette middleware to add to the app.
-        path: API endpoint path (default: "/mcp").
+        path: MCP endpoint path reported by the compatibility response.
 
     Returns:
-        Starlette application instance that can be deployed to any ASGI server.
-
-    Example:
-        Basic usage:
-            app = create_asgi_app()
-
-        With CORS middleware:
-            from starlette.middleware import Middleware
-            from starlette.middleware.cors import CORSMiddleware
-
-            app = create_asgi_app(middleware=[
-                Middleware(
-                    CORSMiddleware,
-                    allow_origins=["*"],
-                    allow_methods=["*"],
-                    allow_headers=["*"],
-                )
-            ])
-
-        With multiple middleware:
-            from starlette.middleware.gzip import GZipMiddleware
-
-            app = create_asgi_app(middleware=[
-                Middleware(CORSMiddleware, allow_origins=["*"]),
-                Middleware(GZipMiddleware, minimum_size=1000),
-            ])
+        Starlette application instance.
     """
     try:
-        logger.info("Creating ASGI application with lazy connection mode")
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        logger.info("Creating ASGI compatibility app for path: %s", normalized_path)
 
-        # Create MCP server with lazy connection mode
-        # Credentials will be provided via HTTP headers or environment variables
-        mcp_server = create_server(lazy_connection=True)
+        asgi_app = Starlette(
+            routes=[
+                Route("/", _health, methods=["GET"]),
+                Route(normalized_path, _mcp_not_available, methods=_HTTP_METHODS),
+                Route(f"{normalized_path}/{{rest:path}}", _mcp_not_available, methods=_HTTP_METHODS),
+            ],
+            middleware=middleware or [],
+        )
+        asgi_app.state.mcp_path = normalized_path
 
-        # Generate ASGI app from MCP server
-        asgi_app = mcp_server.http_app(middleware=middleware, path=path)
-
-        logger.info("ASGI application created successfully on path: %s", path)
+        logger.info("ASGI compatibility app created successfully on path: %s", normalized_path)
         return asgi_app
 
     except Exception as err:
@@ -124,7 +119,7 @@ def get_app():
     return _app_instance
 
 
-# For ASGI servers, we need a module-level callable
+# For ASGI servers, we need a module-level callable.
 # Import this as: uvicorn shotgrid_mcp_server.asgi:app
 def app(scope, receive, send):
     """ASGI application entry point with lazy initialization.

@@ -10,7 +10,7 @@ from typing import Any
 
 # Import local modules
 from shotgrid_mcp_server.logger import setup_logging
-from shotgrid_mcp_server.shotgrid_adapter import ShotGridServer, create_shotgrid_server
+from shotgrid_mcp_server.shotgrid_adapter import create_shotgrid_server
 
 logger = logging.getLogger(__name__)
 setup_logging()
@@ -43,6 +43,7 @@ def create_server(
 
             with ShotGridConnectionContext(factory_or_connection=connection) as sg:
                 import asyncio
+
                 from shotgrid_mcp_server.schema_cache import preload_schemas
 
                 asyncio.run(preload_schemas(sg))
