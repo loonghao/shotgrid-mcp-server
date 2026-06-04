@@ -1,6 +1,14 @@
 tools:
   - name: create_note
     description: "Create a note on a ShotGrid entity."
+    source_file: "scripts/create_note.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
     input_schema:
       type: object
       properties:
@@ -12,6 +20,12 @@ tools:
       required: [entity_type, entity_id, subject, content]
   - name: read_notes
     description: "Read notes from a ShotGrid entity."
+    source_file: "scripts/read_notes.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -21,6 +35,14 @@ tools:
       required: [entity_type, entity_id]
   - name: update_note
     description: "Update a note in ShotGrid."
+    source_file: "scripts/update_note.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
     input_schema:
       type: object
       properties:

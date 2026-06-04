@@ -1,30 +1,28 @@
 """Tool: shotgrid-api__sg_batch — Low-level ShotGrid batch operation."""
-import argparse
+# Import built-in modules
 import json
-import sys
-from shotgrid_mcp_server.shared_lib import sg_batch
+
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
+
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
+from shotgrid_mcp_server.shared_lib import sg_batch
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Low-level ShotGrid batch operation. Executes multiple requests in one call.")
-    parser.add_argument("--requests", type=json.loads, required=True, help="JSON array of batch request dicts, e.g. [{\"request_type\":\"create\",\"entity_type\":\"Shot\",\"data\":{...}}]")
-    args = parser.parse_args()
-    try:
-        sg = get_current_shotgrid_connection()
-        result = sg_batch(
-            sg,
-            requests=args.requests,
-        )
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+@skill_entry
+def main(
+    requests: list,
+    **kwargs,
+) -> dict:
+    """Low-level ShotGrid batch operation. Executes multiple requests in a single API call."""
+    sg = get_current_shotgrid_connection()
+    result = sg_batch(
+        sg,
+        requests=requests,
+    )
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

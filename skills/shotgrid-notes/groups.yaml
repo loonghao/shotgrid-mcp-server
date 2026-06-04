@@ -1,0 +1,9 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-notes tools"
+
+  - name: read-only
+    tools:
+      - read_notes
+    description: "Safe read operations only"

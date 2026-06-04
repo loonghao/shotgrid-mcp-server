@@ -1,0 +1,8 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-batch tools"
+
+  - name: read-only
+    tools: []
+    description: "Safe read operations only — all batch tools are write operations"

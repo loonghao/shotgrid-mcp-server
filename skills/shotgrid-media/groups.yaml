@@ -1,0 +1,10 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-media tools"
+
+  - name: read-only
+    tools:
+      - download_thumbnail
+      - batch_download_thumbnails
+    description: "Safe read operations only"

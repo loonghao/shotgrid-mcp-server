@@ -1,6 +1,14 @@
 tools:
   - name: create_entity
     description: "Create a new entity in ShotGrid. Use this to create Shots, Assets, Tasks, Versions, or any other entity type."
+    source_file: "scripts/create_entity.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next_tools:
+      on_failure: "dcc_diagnostics__error_report"
     input_schema:
       type: object
       properties:
@@ -16,6 +24,12 @@ tools:
       required: [entity_type, data]
   - name: read_entity
     description: "Read a single entity from ShotGrid by ID."
+    source_file: "scripts/read_entity.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -32,6 +46,14 @@ tools:
       required: [entity_type, entity_id]
   - name: update_entity
     description: "Update an existing entity in ShotGrid."
+    source_file: "scripts/update_entity.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next_tools:
+      on_failure: "dcc_diagnostics__error_report"
     input_schema:
       type: object
       properties:
@@ -47,6 +69,14 @@ tools:
       required: [entity_type, entity_id, data]
   - name: delete_entity
     description: "Delete (retire) an entity in ShotGrid."
+    source_file: "scripts/delete_entity.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: true
+    next_tools:
+      on_failure: "dcc_diagnostics__error_report"
     input_schema:
       type: object
       properties:
@@ -59,6 +89,12 @@ tools:
       required: [entity_type, entity_id]
   - name: entity_schema
     description: "Get field schema information for an entity type."
+    source_file: "scripts/entity_schema.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:

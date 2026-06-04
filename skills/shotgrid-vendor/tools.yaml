@@ -7,6 +7,13 @@ tools:
         name_contains: { type: string, description: "Name filter" }
         email_contains: { type: string, description: "Email filter" }
       required: []
+    source_file: "scripts/find_vendor_users.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
+
   - name: find_vendor_versions
     description: "Find versions by vendor criteria."
     input_schema:
@@ -17,6 +24,13 @@ tools:
         status: { type: string }
         days: { type: integer, default: 30 }
       required: [project_id]
+    source_file: "scripts/find_vendor_versions.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
+
   - name: create_vendor_playlist
     description: "Create a playlist for vendor review."
     input_schema:
@@ -27,3 +41,11 @@ tools:
         version_ids: { type: array, items: { type: integer } }
         vendor_user_ids: { type: array, items: { type: integer } }
       required: [name, project_id]
+    source_file: "scripts/create_vendor_playlist.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next-tools:
+      on_failure: dcc_diagnostics__error_report

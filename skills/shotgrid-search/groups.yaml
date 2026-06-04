@@ -1,0 +1,15 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-search tools"
+
+  - name: read-only
+    tools:
+      - search_entities
+      - find_one_entity
+      - search_entities_with_related
+      - sg_search_advanced
+      - project_find_active
+      - user_find_active
+      - entity_find_by_date
+    description: "Safe read operations only"

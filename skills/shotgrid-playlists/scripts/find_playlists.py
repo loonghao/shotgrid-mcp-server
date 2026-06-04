@@ -1,49 +1,32 @@
 """Tool: shotgrid-playlists__find_playlists — Search for playlists in ShotGrid."""
-import argparse
+# Import built-in modules
 import json
-import sys
 
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
+
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
+from shotgrid_mcp_server.shared_lib import find_playlists as find_sg_playlists
 
 
-DEFAULT_PLAYLIST_FIELDS = [
-    "id", "code", "description", "created_at", "updated_at",
-    "created_by", "versions", "project",
-]
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Search for playlists in ShotGrid.")
-    parser.add_argument("--project_id", type=int, default=None, help="Optional project ID filter")
-    parser.add_argument("--name_contains", type=str, default=None, help="Optional name filter")
-    parser.add_argument("--fields", type=str, nargs="*", default=None, help="Optional fields to return")
-    args = parser.parse_args()
-
-    try:
-        sg = get_current_shotgrid_connection()
-
-        fields = args.fields if args.fields else DEFAULT_PLAYLIST_FIELDS
-
-        filters = []
-        if args.project_id:
-            filters.append(["project", "is", {"type": "Project", "id": args.project_id}])
-        if args.name_contains:
-            filters.append(["code", "contains", args.name_contains])
-
-        try:
-            result = sg.find("Playlist", filters, fields=fields, retired_only=False)
-        except TypeError:
-            result = sg.find("Playlist", filters, fields=fields)
-
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+@skill_entry
+def main(
+    project_id: int | None = None,
+    name_contains: str = "",
+    fields: list[str] | None = None,
+    **kwargs,
+) -> dict:
+    """Search for playlists in ShotGrid."""
+    sg = get_current_shotgrid_connection()
+    result = find_sg_playlists(
+        sg,
+        project_id=project_id,
+        name_contains=name_contains or None,
+        fields=fields,
+    )
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

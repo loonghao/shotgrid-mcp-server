@@ -1,16 +1,29 @@
 tools:
   - name: create_playlist
     description: "Create a playlist for version review in ShotGrid."
+    source_file: scripts/create_playlist.py
+    execution: sync
+    affinity: any
+    read_only: false
+    idempotent: false
     input_schema:
       type: object
       properties:
         name: { type: string, description: "Playlist name" }
         description: { type: string, description: "Optional description" }
         project_id: { type: integer, description: "Project ID" }
-        versions: { type: array, items: { type: integer }, description: "Optional initial version IDs" }
+        version_ids: { type: array, items: { type: integer }, description: "Optional initial version IDs" }
       required: [name, project_id]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
+
   - name: find_playlists
     description: "Search for playlists in ShotGrid."
+    source_file: scripts/find_playlists.py
+    execution: sync
+    affinity: any
+    read_only: true
+    idempotent: true
     input_schema:
       type: object
       properties:
@@ -18,19 +31,36 @@ tools:
         name_contains: { type: string, description: "Optional name filter" }
         fields: { type: array, items: { type: string } }
       required: []
+
   - name: add_versions_to_playlist
     description: "Add versions to an existing playlist."
+    source_file: scripts/add_versions_to_playlist.py
+    execution: sync
+    affinity: any
+    read_only: false
+    idempotent: false
     input_schema:
       type: object
       properties:
         playlist_id: { type: integer, description: "Playlist ID" }
         version_ids: { type: array, items: { type: integer }, description: "Version IDs to add" }
       required: [playlist_id, version_ids]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
+
   - name: remove_versions_from_playlist
     description: "Remove versions from a playlist."
+    source_file: scripts/remove_versions_from_playlist.py
+    execution: sync
+    affinity: any
+    read_only: false
+    idempotent: false
+    destructive: true
     input_schema:
       type: object
       properties:
         playlist_id: { type: integer, description: "Playlist ID" }
         version_ids: { type: array, items: { type: integer } }
       required: [playlist_id, version_ids]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report

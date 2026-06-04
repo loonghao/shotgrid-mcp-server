@@ -1,19 +1,21 @@
 ---
 name: shotgrid-vendor
-description: Vendor tools: find_vendor_users, find_vendor_versions, create_vendor_playlist
+description: >-
+  Pipeline skill — ShotGrid vendor management. Use when finding vendor users, versions, or creating vendor review playlists.
 license: MIT
 metadata:
   dcc-mcp:
     dcc: shotgrid
     version: "1.0.0"
-    layer: optional
-    search-hint: "shotgrid, entity, shotgrid-vendor"
+    layer: domain
+    stage: pipeline
+    search-hint: "vendor users, vendor versions, vendor playlist, external review, shotgrid vendor"
     tags: "shotgrid, mcp"
     tools: tools.yaml
 ---
 
 # ShotGrid Vendor
-Vendor tools: find_vendor_users, find_vendor_versions, create_vendor_playlist
+Pipeline skill for managing vendor users, versions, and review playlists in ShotGrid.
 
 ## Tools
 - **find_vendor_users** — Find vendor (external) users by name or email filter.

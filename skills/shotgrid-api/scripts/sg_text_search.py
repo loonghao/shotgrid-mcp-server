@@ -1,32 +1,30 @@
 """Tool: shotgrid-api__sg_text_search — Full-text search across ShotGrid entities."""
-import argparse
+# Import built-in modules
 import json
-import sys
-from shotgrid_mcp_server.shared_lib import sg_text_search
+
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
+
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
+from shotgrid_mcp_server.shared_lib import sg_text_search
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Full-text search across ShotGrid entities.")
-    parser.add_argument("--text", type=str, required=True, help="Search text to look for across entities")
-    parser.add_argument("--entity-types", type=json.loads, required=True, help="JSON array of entity type names to search, e.g. [\"Shot\",\"Asset\"]")
-    args = parser.parse_args()
-    try:
-        sg = get_current_shotgrid_connection()
-        result = sg_text_search(
-            sg,
-            text=args.text,
-            entity_types=args.entity_types,
-        )
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+@skill_entry
+def main(
+    text: str,
+    entity_types: list[str],
+    **kwargs,
+) -> dict:
+    """Full-text search across entities. Searches by text and entity types."""
+    sg = get_current_shotgrid_connection()
+    result = sg_text_search(
+        sg,
+        text=text,
+        entity_types=entity_types,
+    )
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

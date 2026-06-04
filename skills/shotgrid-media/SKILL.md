@@ -1,19 +1,21 @@
 ---
 name: shotgrid-media
-description: Thumbnail operations: download_thumbnail, upload_thumbnail, batch_download
+description: >-
+  Domain skill — ShotGrid thumbnail and media operations. Use when downloading or uploading thumbnails and attachments.
 license: MIT
 metadata:
   dcc-mcp:
     dcc: shotgrid
     version: "1.0.0"
-    layer: optional
-    search-hint: "shotgrid, entity, shotgrid-media"
-    tags: "shotgrid, mcp"
+    layer: domain
+    stage: mutate
+    search-hint: "thumbnail, download thumbnail, upload thumbnail, batch download, shotgrid media, attachment"
+    tags: "shotgrid, mcp, media, thumbnail"
     tools: tools.yaml
 ---
 
 # ShotGrid Media
-Thumbnail operations: download_thumbnail, upload_thumbnail, batch_download
+Domain skill — ShotGrid thumbnail and media operations. Use when downloading or uploading thumbnails and attachments.
 
 ## Tools
 - **download_thumbnail** — Download a thumbnail from ShotGrid for a given entity.

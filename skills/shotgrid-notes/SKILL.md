@@ -1,19 +1,21 @@
 ---
 name: shotgrid-notes
-description: Note operations: create_note, read_note, update_note
+description: >-
+  Domain skill — ShotGrid note operations. Use when creating, reading, or updating notes on entities.
 license: MIT
 metadata:
   dcc-mcp:
     dcc: shotgrid
     version: "1.0.0"
-    layer: optional
-    search-hint: "shotgrid, entity, shotgrid-notes"
+    layer: domain
+    stage: mutate
+    search-hint: "create note, read notes, update note, shotgrid comment, feedback"
     tags: "shotgrid, mcp"
     tools: tools.yaml
 ---
 
 # ShotGrid Notes
-Note operations: create_note, read_note, update_note
+Domain skill — ShotGrid note operations. Use when creating, reading, or updating notes on entities.
 
 ## Tools
 - **create_note** — Create a note on a ShotGrid entity with subject and content.

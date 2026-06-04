@@ -1,20 +1,22 @@
 ---
 name: shotgrid-batch
-description: Batch operations: batch_create, batch_update, batch_delete
+description: >-
+  Data layer skill — batch CRUD operations for ShotGrid. Use when creating, updating, or deleting many entities at once.
 license: MIT
 metadata:
   dcc-mcp:
     dcc: shotgrid
     version: "1.0.0"
-    layer: optional
-    search-hint: "shotgrid, entity, shotgrid-batch"
+    layer: data
+    stage: mutate
+    search-hint: "batch create, batch update, batch delete, bulk operations, shotgrid batch"
     tags: "shotgrid, mcp"
     tools: tools.yaml
 ---
 
 # ShotGrid Batch
 
-Batch operations: batch_create, batch_update, batch_delete
+Data layer skill — batch CRUD operations for ShotGrid. Use when creating, updating, or deleting many entities at once.
 
 ## Tools
 

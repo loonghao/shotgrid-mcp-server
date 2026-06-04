@@ -1,0 +1,10 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-crud tools"
+
+  - name: read-only
+    tools:
+      - read_entity
+      - entity_schema
+    description: "Safe read operations only"

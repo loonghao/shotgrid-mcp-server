@@ -1,25 +1,49 @@
 tools:
   - name: batch_create
     description: "Create multiple entities in a single batch operation."
+    source_file: "scripts/batch_create.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
         entity_type: { type: string, description: "Type of entities to create" }
         data_list: { type: array, description: "List of entity data dicts" }
       required: [entity_type, data_list]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
   - name: batch_update
     description: "Update multiple entities in a single batch operation."
+    source_file: "scripts/batch_update.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
         entity_type: { type: string, description: "Type of entities to update" }
         data_list: { type: array, description: "List of {id, data} dicts" }
       required: [entity_type, data_list]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
   - name: batch_delete
     description: "Delete (retire) multiple entities in a single batch operation."
+    source_file: "scripts/batch_delete.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: true
     input_schema:
       type: object
       properties:
         entity_type: { type: string, description: "Type of entities to delete" }
         entity_ids: { type: array, items: { type: integer }, description: "List of entity IDs" }
       required: [entity_type, entity_ids]
+    next-tools:
+      on-failure: dcc_diagnostics__error_report

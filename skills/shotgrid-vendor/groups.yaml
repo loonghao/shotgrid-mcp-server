@@ -1,0 +1,10 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-vendor tools"
+
+  - name: read-only
+    tools:
+      - find_vendor_users
+      - find_vendor_versions
+    description: "Safe read operations only"

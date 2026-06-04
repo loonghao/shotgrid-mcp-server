@@ -1,0 +1,9 @@
+groups:
+  - name: default
+    tools: ["*"]
+    description: "All shotgrid-playlists tools"
+
+  - name: read-only
+    tools:
+      - find_playlists
+    description: "Safe read operations only"

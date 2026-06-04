@@ -1,6 +1,12 @@
 tools:
   - name: sg_find
     description: "Low-level ShotGrid find operation. Returns raw results."
+    source_file: "scripts/sg_find.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -12,8 +18,15 @@ tools:
         limit: { type: integer }
         page: { type: integer }
       required: [entity_type, filters]
+
   - name: sg_find_one
     description: "Low-level ShotGrid find_one operation."
+    source_file: "scripts/sg_find_one.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -22,16 +35,32 @@ tools:
         fields: { type: array, items: { type: string } }
         order: { type: array }
       required: [entity_type, filters]
+
   - name: sg_create
     description: "Low-level ShotGrid create operation."
+    source_file: "scripts/sg_create.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
         entity_type: { type: string }
         data: { type: object }
       required: [entity_type, data]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_update
     description: "Low-level ShotGrid update operation."
+    source_file: "scripts/sg_update.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -39,52 +68,109 @@ tools:
         entity_id: { type: integer }
         data: { type: object }
       required: [entity_type, entity_id, data]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_delete
     description: "Low-level ShotGrid delete operation."
+    source_file: "scripts/sg_delete.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: true
     input_schema:
       type: object
       properties:
         entity_type: { type: string }
         entity_id: { type: integer }
       required: [entity_type, entity_id]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_batch
     description: "Low-level ShotGrid batch operation."
+    source_file: "scripts/sg_batch.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
         requests: { type: array, description: "List of batch request dicts" }
       required: [requests]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_schema_entity_read
     description: "Read entity schema. Returns available entity types."
+    source_file: "scripts/sg_schema_entity_read.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties: {}
+
   - name: sg_schema_field_read
     description: "Read field schema for an entity type."
+    source_file: "scripts/sg_schema_field_read.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
         entity_type: { type: string }
         field_name: { type: string, description: "Optional specific field" }
       required: [entity_type]
+
   - name: sg_text_search
     description: "Full-text search across entities."
+    source_file: "scripts/sg_text_search.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
         text: { type: string }
         entity_types: { type: array, items: { type: string } }
       required: [text, entity_types]
+
   - name: sg_revive
     description: "Revive a retired entity."
+    source_file: "scripts/sg_revive.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
         entity_type: { type: string }
         entity_id: { type: integer }
       required: [entity_type, entity_id]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_upload
     description: "Upload a file to ShotGrid."
+    source_file: "scripts/sg_upload.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -93,16 +179,32 @@ tools:
         field_name: { type: string }
         file_path: { type: string }
       required: [entity_type, entity_id, field_name, file_path]
+    next-tools:
+      on_failure: "dcc_diagnostics__error_report"
+
   - name: sg_download_attachment
     description: "Download an attachment from ShotGrid."
+    source_file: "scripts/sg_download_attachment.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
         attachment_id: { type: integer }
         output_path: { type: string }
       required: [attachment_id]
+
   - name: sg_summarize
     description: "Summarize entities matching filters. Returns counts per status or field."
+    source_file: "scripts/sg_summarize.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:

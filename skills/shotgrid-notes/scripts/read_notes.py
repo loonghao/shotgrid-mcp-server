@@ -1,49 +1,29 @@
 """Tool: shotgrid-notes__read_notes — Read notes from a ShotGrid entity."""
-import argparse
-import json
-import sys
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
 
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
-from shotgrid_mcp_server.shared_lib import read_sg_notes
+from shotgrid_mcp_server.shared_lib import get_entity_notes
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Read notes from a ShotGrid entity"
+@skill_entry
+def main(
+    entity_type: str = "",
+    entity_id: int = 0,
+    fields: list[str] | None = None,
+    **kwargs,
+) -> dict:
+    """Read notes from a ShotGrid entity."""
+    sg = get_current_shotgrid_connection()
+    result = get_entity_notes(
+        sg,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        fields=fields,
     )
-    parser.add_argument(
-        "--entity_type",
-        type=str,
-        required=True,
-        help="Type of entity to read notes from",
-    )
-    parser.add_argument(
-        "--entity_id",
-        type=int,
-        required=True,
-        help="ID of the entity",
-    )
-    parser.add_argument(
-        "--fields",
-        type=str,
-        nargs="*",
-        default=None,
-        help="Optional list of fields to return",
-    )
-    args = parser.parse_args()
-
-    try:
-        sg = get_current_shotgrid_connection()
-        result = read_sg_notes(sg, args.entity_type, args.entity_id, args.fields)
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

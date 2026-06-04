@@ -1,47 +1,34 @@
 """Tool: shotgrid-playlists__create_playlist — Create a playlist for version review in ShotGrid."""
-import argparse
+# Import built-in modules
 import json
-import sys
 
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
+
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
+from shotgrid_mcp_server.shared_lib import create_playlist as create_sg_playlist
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Create a playlist for version review in ShotGrid.")
-    parser.add_argument("--name", type=str, required=True, help="Playlist name")
-    parser.add_argument("--description", type=str, default=None, help="Optional description")
-    parser.add_argument("--project_id", type=int, required=True, help="Project ID")
-    parser.add_argument("--versions", type=int, nargs="*", default=None, help="Optional initial version IDs")
-    args = parser.parse_args()
-
-    try:
-        sg = get_current_shotgrid_connection()
-
-        data = {
-            "code": args.name,
-            "project": {"type": "Project", "id": args.project_id},
-        }
-
-        if args.description:
-            data["description"] = args.description
-
-        if args.versions:
-            data["versions"] = [{"type": "Version", "id": vid} for vid in args.versions]
-
-        result = sg.create("Playlist", data)
-
-        if result is None:
-            raise ShotGridMCPError("Failed to create playlist")
-
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+@skill_entry
+def main(
+    name: str = "",
+    project_id: int = 0,
+    description: str = "",
+    version_ids: list[int] | None = None,
+    **kwargs,
+) -> dict:
+    """Create a playlist for version review in ShotGrid."""
+    sg = get_current_shotgrid_connection()
+    result = create_sg_playlist(
+        sg,
+        name=name,
+        project_id=project_id,
+        description=description or None,
+        version_ids=version_ids,
+    )
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

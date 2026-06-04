@@ -1,54 +1,34 @@
 """Tool: shotgrid-media__download_thumbnail — Download a thumbnail from ShotGrid."""
-import argparse
+# Import built-in modules
 import json
-import os
-import sys
 
-from shotgrid_mcp_server.shared_lib import download_thumbnail
+# Import third-party modules
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
+
+# Import local modules
 from shotgrid_mcp_server.connection_pool import get_current_shotgrid_connection
-from shotgrid_mcp_server.exceptions import ShotGridMCPError
+from shotgrid_mcp_server.shared_lib import download_thumbnail
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Download a thumbnail from ShotGrid for a given entity."
+@skill_entry
+def main(
+    entity_type: str = "",
+    entity_id: int = 0,
+    field_name: str = "image",
+    output_path: str | None = None,
+    **kwargs,
+) -> dict:
+    """Download a thumbnail from ShotGrid for a given entity."""
+    sg = get_current_shotgrid_connection()
+    result = download_thumbnail(
+        sg,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        field_name=field_name,
+        output_path=output_path,
     )
-    parser.add_argument(
-        "--entity_type", type=str, required=True,
-        help="Type of entity (e.g. Asset, Shot, Version)"
-    )
-    parser.add_argument(
-        "--entity_id", type=int, required=True,
-        help="ID of the entity"
-    )
-    parser.add_argument(
-        "--field_name", type=str, default="image",
-        help="Thumbnail field name (default: image)"
-    )
-    parser.add_argument(
-        "--output_path", type=str, default=None,
-        help="Optional output file path. If not provided, a default path is used."
-    )
-
-    args = parser.parse_args()
-
-    try:
-        sg = get_current_shotgrid_connection()
-        result = download_thumbnail(
-            sg,
-            entity_type=args.entity_type,
-            entity_id=args.entity_id,
-            field_name=args.field_name,
-            output_path=args.output_path,
-        )
-        print(json.dumps(result, default=str))
-    except ShotGridMCPError as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(json.dumps({"error": f"Unexpected: {e}"}), file=sys.stderr)
-        sys.exit(2)
+    return skill_success({"result": result})
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

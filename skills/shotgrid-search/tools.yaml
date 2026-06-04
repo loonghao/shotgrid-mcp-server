@@ -1,6 +1,12 @@
 tools:
   - name: search_entities
     description: "Search for entities in ShotGrid using filters."
+    source_file: "scripts/search_entities.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -12,6 +18,12 @@ tools:
       required: [entity_type]
   - name: find_one_entity
     description: "Find a single entity by ID or unique field."
+    source_file: "scripts/find_one_entity.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -21,6 +33,12 @@ tools:
       required: [entity_type, filters]
   - name: search_entities_with_related
     description: "Search entities with related entity data in a single query."
+    source_file: "scripts/search_entities_with_related.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -33,6 +51,12 @@ tools:
       required: [entity_type]
   - name: sg_search_advanced
     description: "Advanced search with time-based filters and related fields."
+    source_file: "scripts/sg_search_advanced.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
@@ -46,18 +70,36 @@ tools:
       required: [entity_type]
   - name: project_find_active
     description: "Find projects active in the last N days."
+    source_file: "scripts/project_find_active.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
         days: { type: integer, description: "Days to look back (default: 90)", default: 90 }
   - name: user_find_active
     description: "Find users active in the last N days."
+    source_file: "scripts/user_find_active.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
         days: { type: integer, description: "Days to look back (default: 30)", default: 30 }
   - name: entity_find_by_date
     description: "Find entities within a date range."
+    source_file: "scripts/entity_find_by_date.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:

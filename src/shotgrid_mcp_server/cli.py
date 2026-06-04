@@ -1,10 +1,17 @@
 """Command-line interface for ShotGrid MCP server.
 
-Powered by dcc-mcp-core. Supports stdio and HTTP transport modes.
+Powered by dcc-mcp-core. Starts an HTTP server that auto-registers with
+the dcc-gateway at 127.0.0.1:9765/mcp.
+
+Usage::
+
+    uvx shotgrid-mcp-server                # default (port 8765)
+    uvx shotgrid-mcp-server --port 8000    # custom port
 """
 
 # Import built-in modules
 import logging
+import os
 import sys
 
 # Import third-party modules
@@ -13,103 +20,74 @@ import click
 # Import local modules
 from shotgrid_mcp_server.shotgrid_adapter import create_shotgrid_server
 
-# Configure logger
 logger = logging.getLogger(__name__)
 
+# Default port — register with gateway at 127.0.0.1:9765
+DEFAULT_PORT = int(os.getenv("SHOTGRID_MCP_PORT", "8765"))
 
-@click.group(
+
+@click.command(
     help="""
-ShotGrid MCP Server - Connect LLMs to ShotGrid via dcc-mcp-core.
+ShotGrid MCP Server — connect LLMs to ShotGrid via dcc-gateway.
 
-This server provides Model Context Protocol (MCP) access to ShotGrid,
-allowing LLMs like Claude to interact with your production tracking data.
-Built on dcc-mcp-core with skill-based progressive loading.
+Starts an HTTP server and registers with the local dcc-gateway at
+http://127.0.0.1:9765/mcp. All ShotGrid tools are exposed as progressive
+skills (search → load → call).
 
 \b
 Environment Variables:
-  SHOTGRID_URL:         Your ShotGrid server URL
-  SHOTGRID_SCRIPT_NAME: Your ShotGrid script name
-  SHOTGRID_SCRIPT_KEY:  Your ShotGrid script key
-
-\b
-Skill Environment:
-  DCC_MCP_SKILL_PATHS:  Additional skill search paths
-  DCC_MCP_SHOTGRID_FULL: Set to 1 to eager-load all 8 skill packages
-    """,
-    invoke_without_command=True,
+  SHOTGRID_URL            ShotGrid server URL
+  SHOTGRID_SCRIPT_NAME    ShotGrid script name
+  SHOTGRID_SCRIPT_KEY     ShotGrid script key
+  SHOTGRID_MCP_PORT       Override server port (default: 8765)
+  DCC_MCP_SKILL_PATHS     Additional skill search paths
+""",
 )
-@click.pass_context
-def cli(ctx: click.Context) -> None:
-    """ShotGrid MCP Server CLI."""
-    if ctx.invoked_subcommand is None:
-        ctx.invoke(stdio)
-
-
-@cli.command()
-def stdio() -> None:
-    """Run server with stdio transport (for local MCP clients like Claude Desktop).
-
-    \b
-    Example:
-      shotgrid-mcp-server stdio
-      shotgrid-mcp-server  # stdio is the default
-    """
+@click.option(
+    "--port",
+    type=int,
+    default=DEFAULT_PORT,
+    show_default=True,
+    help="HTTP server port",
+)
+def cli(port: int) -> None:
+    """Start the ShotGrid MCP server."""
     try:
-        logger.info("Starting ShotGrid MCP server with stdio transport")
-        server = create_shotgrid_server()
-        server.start(transport="stdio")
-    except ValueError as e:
-        if "Missing required environment variables" in str(e):
-            click.echo(f"\n{'=' * 80}", err=True)
-            click.echo("ERROR: ShotGrid MCP Server Configuration Issue", err=True)
-            click.echo(f"{'=' * 80}", err=True)
-            click.echo(str(e), err=True)
-            click.echo(f"{'=' * 80}\n", err=True)
-            sys.exit(1)
-        raise
-    except KeyboardInterrupt:
-        click.echo("\n\nShutting down server...")
-    except Exception as e:
-        logger.error("Failed to start server: %s", str(e), exc_info=True)
-        click.echo(f"\n❌ Error: {e}", err=True)
-        raise click.Abort() from e
-
-
-@cli.command()
-@click.option("--host", type=str, default="127.0.0.1", show_default=True, help="Host to bind to")
-@click.option("--port", type=int, default=8000, show_default=True, help="Port to bind to")
-@click.option("--path", type=str, default="/mcp", show_default=True, help="API endpoint path")
-def http(host: str, port: int, path: str) -> None:
-    """Run server with HTTP transport (for remote deployments).
-
-    In HTTP mode, credentials can be provided via:
-    - HTTP headers: X-ShotGrid-URL, X-ShotGrid-Script-Name, X-ShotGrid-Script-Key
-    - Environment variables: SHOTGRID_URL, SHOTGRID_SCRIPT_NAME, SHOTGRID_SCRIPT_KEY
-
-    \b
-    Examples:
-      shotgrid-mcp-server http
-      shotgrid-mcp-server http --host 0.0.0.0 --port 8080
-      shotgrid-mcp-server http --host 0.0.0.0 --port 8000 --path /api/mcp
-    """
-    try:
-        click.echo("\n💡 HTTP mode: ShotGrid connection will be created on-demand")
-        click.echo("   Credentials via HTTP headers or environment variables\n")
+        click.echo(f"\n{'=' * 70}")
+        click.echo("  ShotGrid MCP Server (dcc-mcp-core)")
+        click.echo(f"  Gateway:  http://127.0.0.1:9765/mcp")
+        click.echo(f"  Server:   http://127.0.0.1:{port}/mcp")
+        click.echo(f"{'=' * 70}\n")
+        click.echo("→ Starting server and registering with gateway...\n")
 
         server = create_shotgrid_server(port=port)
 
-        logger.info("Starting ShotGrid MCP server with HTTP transport on %s:%d%s", host, port, path)
-        click.echo(f"\n{'=' * 80}")
-        click.echo("ShotGrid MCP Server - HTTP Transport (dcc-mcp-core)")
-        click.echo(f"{'=' * 80}")
-        click.echo(f"Server URL: http://{host}:{port}{path}")
-        click.echo(f"{'=' * 80}\n")
+        with server as handle:
+            click.echo(f"✓ Server listening at {handle.mcp_url()}")
+            click.echo(f"✓ Gateway endpoint: http://127.0.0.1:9765/mcp")
+            click.echo("\nPress Ctrl+C to stop...\n")
 
-        server.start(transport="http", host=host, port=port, path=path)
-    except KeyboardInterrupt:
-        click.echo("\n\nShutting down server...")
+            # Keep running until interrupted
+            try:
+                import time
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
+
+        click.echo("\nServer stopped.")
+
+    except ValueError as e:
+        if "Missing required" in str(e):
+            click.echo(f"\n{'=' * 60}", err=True)
+            click.echo("  Configuration Error", err=True)
+            click.echo(f"{'=' * 60}", err=True)
+            click.echo(str(e), err=True)
+            click.echo(f"{'=' * 60}\n", err=True)
+            sys.exit(1)
+        raise
     except Exception as e:
-        logger.error("Failed to start server: %s", str(e), exc_info=True)
+        logger.error("Failed to start: %s", e, exc_info=True)
         click.echo(f"\n❌ Error: {e}", err=True)
         raise click.Abort() from e
 

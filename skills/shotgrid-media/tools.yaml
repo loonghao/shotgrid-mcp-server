@@ -1,31 +1,82 @@
 tools:
   - name: download_thumbnail
-    description: "Download a thumbnail from ShotGrid."
+    description: "Download a thumbnail from ShotGrid for a given entity."
+    source_file: "scripts/download_thumbnail.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
-        entity_type: { type: string, description: "Type of entity" }
-        entity_id: { type: integer, description: "ID of entity" }
-        field_name: { type: string, description: "Thumbnail field name (default: image)", default: "image" }
-        output_path: { type: string, description: "Optional output file path" }
+        entity_type:
+          type: string
+          description: "Type of entity (e.g. Asset, Shot, Version)"
+        entity_id:
+          type: integer
+          description: "ID of entity"
+        field_name:
+          type: string
+          description: "Thumbnail field name (default: image)"
+          default: "image"
+        output_path:
+          type: string
+          description: "Optional output file path"
       required: [entity_type, entity_id]
+
   - name: upload_thumbnail
-    description: "Upload a thumbnail to ShotGrid."
+    description: "Upload a thumbnail image to ShotGrid for a given entity."
+    source_file: "scripts/upload_thumbnail.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: false
+    idempotent: false
+    destructive: false
+    next-tools:
+      on-failure: dcc_diagnostics__error_report
     input_schema:
       type: object
       properties:
-        entity_type: { type: string, description: "Type of entity" }
-        entity_id: { type: integer, description: "ID of entity" }
-        field_name: { type: string, description: "Thumbnail field name", default: "image" }
-        file_path: { type: string, description: "Path to image file" }
+        entity_type:
+          type: string
+          description: "Type of entity (e.g. Asset, Shot, Version)"
+        entity_id:
+          type: integer
+          description: "ID of entity"
+        field_name:
+          type: string
+          description: "Thumbnail field name"
+          default: "image"
+        file_path:
+          type: string
+          description: "Path to image file to upload"
       required: [entity_type, entity_id, file_path]
+
   - name: batch_download_thumbnails
-    description: "Download multiple thumbnails in batch."
+    description: "Download multiple thumbnails in batch for a list of entities."
+    source_file: "scripts/batch_download_thumbnails.py"
+    execution: "sync"
+    affinity: "any"
+    read_only: true
+    idempotent: true
+    destructive: false
     input_schema:
       type: object
       properties:
-        entity_type: { type: string, description: "Type of entities" }
-        entity_ids: { type: array, items: { type: integer } }
-        field_name: { type: string, default: "image" }
-        output_dir: { type: string }
+        entity_type:
+          type: string
+          description: "Type of entities (e.g. Asset, Shot, Version)"
+        entity_ids:
+          type: array
+          items:
+            type: integer
+          description: "List of entity IDs"
+        field_name:
+          type: string
+          description: "Thumbnail field name"
+          default: "image"
+        output_dir:
+          type: string
+          description: "Directory to save downloaded thumbnails"
       required: [entity_type, entity_ids, output_dir]

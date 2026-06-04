@@ -1,21 +1,25 @@
---- 
+---
 name: shotgrid-search
-description: Search and discovery: search_entities, find_one_entity, search_with_related, search_advanced, project_find_active, user_find_active, entity_find_by_date
+description: >-
+  Discovery layer skill — search and find ShotGrid entities. Use when searching, filtering, or discovering entities. Not for creating or modifying — use shotgrid-crud instead.
 license: MIT
 metadata:
   dcc-mcp:
     dcc: shotgrid
     version: "1.0.0"
-    layer: default
-    search-hint: "shotgrid, entity, shotgrid-search"
+    layer: data
+    stage: discovery
+    search-hint: "search entities, find entity, advanced search, project list, user list, date filter, shotgrid query"
     tags: "shotgrid, mcp"
     tools: tools.yaml
 ---
 
 # ShotGrid Search
-Search and discovery: search_entities, find_one_entity, search_with_related, search_advanced, project_find_active, user_find_active, entity_find_by_date
+
+Discovery layer skill — search and find ShotGrid entities. Use when searching, filtering, or discovering entities. Not for creating or modifying — use shotgrid-crud instead.
 
 ## Tools
+
 - **search_entities** — Search for entities in ShotGrid using filters and field selection.
 - **find_one_entity** — Find a single entity by ID or unique field.
 - **search_entities_with_related** — Search entities with related entity data in a single query.
@@ -25,6 +29,7 @@ Search and discovery: search_entities, find_one_entity, search_with_related, sea
 - **entity_find_by_date** — Find entities within a date range.
 
 ## Usage
+
 ```python
 # Tools are loaded via dcc-gateway:
 # 1. search_skills → find shotgrid-* skills
