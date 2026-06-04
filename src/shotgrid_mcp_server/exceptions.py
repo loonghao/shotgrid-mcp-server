@@ -3,7 +3,12 @@
 This module defines custom exception types for the ShotGrid MCP server.
 """
 
-from fastmcp.exceptions import ToolError
+
+class ToolError(Exception):
+    """Replacement for fastmcp.exceptions.ToolError — framework-agnostic."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class ShotGridMCPError(ToolError):

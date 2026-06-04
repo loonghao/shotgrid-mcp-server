@@ -10,7 +10,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Type
 
 # Import third-party modules
-from fastmcp.exceptions import ToolError
 from shotgun_api3 import ShotgunError
 
 # Import local modules
@@ -20,6 +19,7 @@ from shotgrid_mcp_server.exceptions import (
     FilterError,
     PermissionError,
     SerializationError,
+    ToolError,
 )
 
 # Configure logging

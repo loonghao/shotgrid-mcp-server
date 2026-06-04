@@ -1078,7 +1078,7 @@ def find_vendor_versions(
         List of version dicts.
     """
     try:
-        from shotgrid_query import FilterModel, TimeUnitEnum, create_in_last_filter
+        from shotgrid_query import FilterModel, TimeFilter, TimeUnit
 
         filters: List[Any] = [["project", "is", {"type": "Project", "id": project_id}]]
         if vendor_id:
@@ -1086,8 +1086,8 @@ def find_vendor_versions(
         if status:
             filters.append(["sg_status_list", "is", status])
 
-        time_filter = create_in_last_filter("created_at", days, TimeUnitEnum.DAY)
-        filters.append(time_filter.to_tuple())
+        time_filter = TimeFilter(field="created_at", operator="in_last", count=days, unit=TimeUnit.DAY)
+        filters.append(time_filter.to_filter().to_tuple())
 
         fields = ["id", "code", "sg_status_list", "user", "entity", "sg_task", "created_at"]
         result = sg.find("Version", filters, fields=fields, order=[{"field_name": "created_at", "direction": "desc"}])
@@ -1147,10 +1147,10 @@ def find_active_projects(sg: Shotgun, days: int = 90) -> List[Dict[str, Any]]:
         List of project dicts.
     """
     try:
-        from shotgrid_query import TimeUnitEnum, create_in_last_filter
+        from shotgrid_query import TimeFilter, TimeUnit
 
-        time_filter = create_in_last_filter("updated_at", days, TimeUnitEnum.DAY)
-        filters = [time_filter.to_tuple()]
+        time_filter = TimeFilter(field="updated_at", operator="in_last", count=days, unit=TimeUnit.DAY)
+        filters = [time_filter.to_filter().to_tuple()]
         fields = ["id", "name", "sg_status", "updated_at", "updated_by"]
         order = [{"field_name": "updated_at", "direction": "desc"}]
         result = sg.find("Project", filters, fields=fields, order=order, page=1)
@@ -1175,11 +1175,11 @@ def find_active_users(sg: Shotgun, days: int = 30) -> List[Dict[str, Any]]:
         List of user dicts.
     """
     try:
-        from shotgrid_query import FilterModel, TimeUnitEnum, create_in_last_filter
+        from shotgrid_query import FilterModel, TimeFilter, TimeUnit
 
         status_filter = FilterModel(field="sg_status_list", operator="is", value="act")
-        time_filter = create_in_last_filter("updated_at", days, TimeUnitEnum.DAY)
-        filters = [status_filter.to_tuple(), time_filter.to_tuple()]
+        time_filter = TimeFilter(field="updated_at", operator="in_last", count=days, unit=TimeUnit.DAY)
+        filters = [status_filter.to_tuple(), time_filter.to_filter().to_tuple()]
         fields = ["id", "name", "login", "email", "updated_at"]
         order = [{"field_name": "updated_at", "direction": "desc"}]
         result = sg.find("HumanUser", filters, fields=fields, order=order)

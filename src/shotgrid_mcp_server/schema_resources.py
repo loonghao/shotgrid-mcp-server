@@ -16,7 +16,6 @@ from typing import Any, Dict, Mapping
 from shotgun_api3.lib.mockgun import Shotgun
 
 from shotgrid_mcp_server.schema_loader import get_entity_types_from_schema
-from shotgrid_mcp_server.tools.types import FastMCPType
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +96,7 @@ def _build_all_status_payload(sg: Shotgun) -> Dict[str, Any]:
     return payload
 
 
-def register_schema_resources(server: FastMCPType, sg: Shotgun) -> None:
+def register_schema_resources(server: Any, sg: Shotgun) -> None:
     """Register schema-related MCP resources on the server.
 
     Currently we expose two resources:

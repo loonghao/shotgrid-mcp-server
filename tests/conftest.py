@@ -1,585 +1,162 @@
-"""Test fixtures for the ShotGrid MCP server."""
+"""Test fixtures for the ShotGrid MCP server (dcc-mcp-core era).
+
+Provides mock ShotGrid connections, test data, and server fixtures
+without depending on FastMCP.
+"""
 
 # Import built-in modules
-import inspect
-import json
-import pickle
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
+from unittest.mock import MagicMock
 
 # Import third-party modules
 import pytest
 import yaml
-from fastmcp import FastMCP
-from fastmcp.tools.tool import ToolResult
+
+# Fixture-scoped path resolution (runs before test collection)
+TEST_DIR = Path(__file__).parent
+PROJECT_ROOT = TEST_DIR.parent
+SRC_DIR = PROJECT_ROOT / "src"
+SKILLS_DIR = PROJECT_ROOT / "skills"
 
 
-async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None = None):
-    """Test-only shim to preserve legacy _mcp_call_tool behavior **without** using Client.
+# ═══════════════════════════════════════════════════════════════════════════
+# Mock ShotGrid connection fixtures
+# ═══════════════════════════════════════════════════════════════════════════
 
-    For tests we don't need full MCP transport behavior. Instead, we call the underlying
-    tool implementation functions directly and wrap the result to match the historical
-    return shape: a list with a single object exposing a ``text`` attribute containing
-    JSON.
+
+@pytest.fixture
+def mock_sg() -> MagicMock:
+    """Create a mock ShotGrid (shotgun_api3.Shotgun) connection.
+
+    Default return values cover the most common CRUD and search operations.
+    Tests can override individual method return values on the fixture.
     """
+    sg = MagicMock()
+    sg.find.return_value = [{"type": "Shot", "id": 1, "code": "SH001"}]
+    sg.find_one.return_value = {"type": "Shot", "id": 1, "code": "SH001"}
+    sg.create.return_value = {"type": "Shot", "id": 2, "code": "SH002"}
+    sg.update.return_value = {"type": "Shot", "id": 1, "code": "SH001_UPDATED"}
+    sg.delete.return_value = True
+    sg.revive.return_value = True
+    sg.batch.return_value = [{"type": "Shot", "id": 3}]
+    sg.text_search.return_value = [{"type": "Shot", "id": 1}]
+    sg.summarize.return_value = {"groups": [{"value": "ip", "count": 5}]}
 
-    arguments: dict[str, Any] = params or {}
-    payload: Any | None = None
-
-    # Use FastMCP's internal tool registry to find the tool
-    # This works with FastMCP 2.x where tools are registered via decorators
-    tool = None
-    try:
-        # get_tool is async in FastMCP 2.x
-        tool = await self.get_tool(tool_name)
-    except (KeyError, AttributeError, TypeError):
-        # Tool not found or get_tool is not async, try direct access
-        if hasattr(self, "_tool_manager") and hasattr(self._tool_manager, "_tools"):
-            tool = self._tool_manager._tools.get(tool_name)
-        elif hasattr(self, "tools"):
-            tool = self.tools.get(tool_name)
-
-    if tool is not None:
-        # FastMCP v2 tools are usually instances of FunctionTool. In that case
-        # we should use their ``run`` method instead of calling them directly.
-        run_method = getattr(tool, "run", None)
-        if callable(run_method):
-            # FunctionTool.run expects a single ``arguments`` dict parameter and
-            # returns a ToolResult or an awaitable that resolves to ToolResult.
-            result = run_method(arguments)
-            if inspect.isawaitable(result):
-                result = await result
-
-            if isinstance(result, ToolResult):
-                # For our tools we always use structured_content for the JSON-
-                # serializable payload when present; otherwise fall back to the
-                # human-readable content.
-                payload = result.structured_content if result.structured_content is not None else result.content
-            else:
-                payload = result
-        else:
-            # Some decorators may wrap the original function; prefer the
-            # underlying implementation if ``__wrapped__`` is present.
-            impl = getattr(tool, "__wrapped__", tool)
-            if callable(impl):
-                # Try to call with arguments dict first (Pydantic model case)
-                try:
-                    payload = impl(**arguments)
-                except TypeError:
-                    # If that fails, try calling with arguments as a single parameter
-                    payload = impl(arguments)
-
-    def _to_jsonable(value: Any) -> Any:
-        """Recursively convert pydantic models and containers into JSON-serializable data."""
-        if hasattr(value, "model_dump") and callable(value.model_dump):
-            try:
-                return value.model_dump()
-            except Exception:  # pragma: no cover - very defensive
-                pass
-        if isinstance(value, list):
-            return [_to_jsonable(item) for item in value]
-        if isinstance(value, dict):
-            return {key: _to_jsonable(val) for key, val in value.items()}
-        return value
-
-    json_payload = _to_jsonable(payload)
-
-    class MockResponse:
-        def __init__(self, data: Any) -> None:
-            self.text = json.dumps(data)
-
-    return [MockResponse(json_payload)]
-
-
-# Attach the shim to FastMCP so tests using server._mcp_call_tool continue to work
-FastMCP._mcp_call_tool = _test_mcp_call_tool
-
-
-# Import local modules
-from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
-from shotgrid_mcp_server.mockgun_ext import MockgunExt
-from shotgrid_mcp_server.tools import register_all_tools
-
-
-@pytest.fixture(scope="session")
-def schema_paths():
-    """Get schema paths for testing."""
-    data_dir = Path(__file__).parent / "data"
-    data_dir.mkdir(exist_ok=True)
-    schema_path = data_dir / "schema.bin"
-    entity_schema_path = data_dir / "entity_schema.bin"
-
-    # Load schema from YAML
-    yaml_dir = data_dir / "yaml"
-    with open(yaml_dir / "schema.yaml", "r", encoding="utf-8") as f:
-        schema = yaml.safe_load(f)
-
-    # Add Sequence schema
-    schema["Sequence"] = {
-        "code": {
-            "data_type": {"value": "text"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["text"]},
-            },
-        },
-        "description": {
-            "data_type": {"value": "text"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["text"]},
-            },
-        },
-        "project": {
-            "data_type": {"value": "entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["Project"]},
-            },
-        },
-        "sg_status_list": {
-            "data_type": {"value": "text"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["text"]},
-            },
-        },
+    # Schema responses
+    sg.schema_field_read.return_value = {
+        "code": {"data_type": {"value": "text"}, "properties": {"editable": {"value": True}}},
+        "sg_status_list": {"data_type": {"value": "status_list"}, "properties": {"valid_values": {"value": ["wtg", "ip", "fin"]}}},
     }
-
-    # Add Note schema
-    schema["Note"] = {
-        "subject": {
-            "data_type": {"value": "text"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["text"]},
-            },
-        },
-        "content": {
-            "data_type": {"value": "text"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["text"]},
-            },
-        },
-        "project": {
-            "data_type": {"value": "entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["Project"]},
-            },
-        },
-        "user": {
-            "data_type": {"value": "entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["HumanUser"]},
-            },
-        },
-        "note_links": {
-            "data_type": {"value": "multi_entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["Version", "Shot"]},
-            },
-        },
-        "addressings_to": {
-            "data_type": {"value": "multi_entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["HumanUser"]},
-            },
-        },
-        "addressings_cc": {
-            "data_type": {"value": "multi_entity"},
-            "properties": {
-                "default_value": {"value": None},
-                "valid_types": {"value": ["HumanUser"]},
-            },
-        },
-        "created_at": {
-            "data_type": {"value": "date_time"},
-            "properties": {
-                "default_value": {"value": None},
-            },
-        },
-        "updated_at": {
-            "data_type": {"value": "date_time"},
-            "properties": {
-                "default_value": {"value": None},
-            },
-        },
+    sg.schema_entity_read.return_value = {
+        "Shot": {}, "Asset": {}, "Task": {}, "Version": {}, "Note": {},
+        "PublishedFile": {}, "Playlist": {}, "Project": {}, "HumanUser": {},
     }
-
-    # Save schema to binary files
-    with open(schema_path, "wb") as f:
-        pickle.dump(schema, f)
-    with open(entity_schema_path, "wb") as f:
-        pickle.dump(schema, f)
-
-    return {"schema_path": str(schema_path), "schema_entity_path": str(entity_schema_path)}
-
-
-@pytest.fixture
-def mock_sg(schema_paths):
-    """Create a mock ShotGrid client."""
-    # Set schema paths before creating the instance
-    MockgunExt.set_schema_paths(schema_paths["schema_path"], schema_paths["schema_entity_path"])
-
-    # Create the instance
-    sg = MockgunExt(
-        "https://test.shotgunstudio.com",
-        script_name="test_script",
-        api_key="test_key",
-    )
-
     return sg
 
 
 @pytest.fixture
-def mock_sg(schema_paths):
-    """Create a mock ShotGrid client with test data."""
-    # Set schema paths before creating the instance
-    MockgunExt.set_schema_paths(schema_paths["schema_path"], schema_paths["schema_entity_path"])
-
-    # Create the instance
-    sg = MockgunExt(
-        "https://test.shotgunstudio.com",
-        script_name="test_script",
-        api_key="test_key",
-    )
-
-    # Create test groups
-    admin_group = sg.create("Group", {"code": "Admin"})
-
-    artist_group = sg.create("Group", {"code": "Artist"})
-
-    producer_group = sg.create("Group", {"code": "Producer"})
-
-    # Create test departments
-    it_department = sg.create("Department", {"code": "IT"})
-
-    anim_department = sg.create("Department", {"code": "Animation"})
-
-    prod_department = sg.create("Department", {"code": "Production"})
-
-    # Create test permission rule sets
-    admin_rule_set = sg.create("PermissionRuleSet", {"code": "Admin"})
-
-    artist_rule_set = sg.create("PermissionRuleSet", {"code": "Artist"})
-
-    producer_rule_set = sg.create("PermissionRuleSet", {"code": "Producer"})
-
-    # Create test users
-    admin = sg.create(
-        "HumanUser",
-        {
-            "login": "admin",
-            "name": "Admin User",
-            "email": "admin@example.com",
-            "groups": [admin_group],
-            "department": {"type": "Department", "id": it_department["id"]},
-            "permission_rule_set": {"type": "PermissionRuleSet", "id": admin_rule_set["id"]},
-        },
-    )
-
-    artist = sg.create(
-        "HumanUser",
-        {
-            "login": "artist",
-            "name": "Test Artist",
-            "email": "artist@example.com",
-            "groups": [artist_group],
-            "department": {"type": "Department", "id": anim_department["id"]},
-            "permission_rule_set": {"type": "PermissionRuleSet", "id": artist_rule_set["id"]},
-        },
-    )
-
-    producer = sg.create(
-        "HumanUser",
-        {
-            "login": "producer",
-            "name": "Test Producer",
-            "email": "producer@example.com",
-            "groups": [producer_group],
-            "department": {"type": "Department", "id": prod_department["id"]},
-            "permission_rule_set": {"type": "PermissionRuleSet", "id": producer_rule_set["id"]},
-        },
-    )
-
-    # Create multiple test projects
-    main_project = sg.create(
-        "Project",
-        {
-            "name": "Main Project",
-            "code": "main",
-            "sg_status": "Active",
-            "sg_type": "Feature Film",
-            "users": [admin, artist, producer],
-            "sg_description": "Main test project",
-        },
-    )
-
-    sg.create(
-        "Project",
-        {
-            "name": "Archived Project",
-            "code": "arch",
-            "sg_status": "Archived",
-            "sg_type": "Commercial",
-            "users": [admin],
-            "sg_description": "Archived test project",
-        },
-    )
-
-    # Create test project
-    project = sg.create(
-        "Project",
-        {
-            "name": "Test Project",
-            "code": "test",
-            "description": "Test project for unit tests",
-        },
-    )
-
-    # Create test sequences
-    seq_01 = sg.create(
-        "Sequence",
-        {"project": main_project, "code": "SEQ_01", "description": "Opening sequence", "sg_status_list": "ip"},
-    )
-
-    sg.create(
-        "Sequence",
-        {"project": main_project, "code": "SEQ_02", "description": "Middle sequence", "sg_status_list": "wtg"},
-    )
-
-    # Create test shots with various states and data
-    shot_010 = sg.create(
-        "Shot",
-        {
-            "project": main_project,
-            "code": "SEQ_01_010",
-            "sg_sequence": seq_01,
-            "sg_status_list": "fin",
-            "description": "Opening shot",
-            "sg_cut_in": 1001,
-            "sg_cut_out": 1086,
-            "sg_cut_duration": 86,
-            "sg_working_duration": 90,
-            "created_by": admin,
-            "updated_by": artist,
-        },
-    )
-
-    sg.create(
-        "Shot",
-        {
-            "project": main_project,
-            "code": "SEQ_01_020",
-            "sg_sequence": seq_01,
-            "sg_status_list": "ip",
-            "description": "Character introduction",
-            "sg_cut_in": 1087,
-            "sg_cut_out": 1156,
-            "sg_cut_duration": 70,
-            "sg_working_duration": 75,
-            "created_by": admin,
-            "updated_by": artist,
-        },
-    )
-
-    sg.create(
-        "Shot",
-        {
-            "code": "test_shot",
-            "project": {"type": "Project", "id": project["id"]},
-            "description": "Test shot for unit tests",
-        },
-    )
-
-    char_asset = sg.create(
-        "Asset",
-        {
-            "project": main_project,
-            "code": "CHAR_hero",
-            "sg_asset_type": "Character",
-            "description": "Hero character",
-            "sg_status_list": "fin",
-            "created_by": admin,
-        },
-    )
-
-    sg.create(
-        "Asset",
-        {
-            "project": main_project,
-            "code": "PROP_weapon",
-            "sg_asset_type": "Prop",
-            "description": "Hero's weapon",
-            "sg_status_list": "ip",
-            "created_by": admin,
-        },
-    )
-
-    sg.create(
-        "Asset",
-        {
-            "project": main_project,
-            "code": "ENV_castle",
-            "sg_asset_type": "Environment",
-            "description": "Castle environment",
-            "sg_status_list": "wtg",
-            "created_by": admin,
-        },
-    )
-
-    # Create test steps
-    model_step = sg.create("Step", {"code": "Model", "short_name": "mod", "description": "Modeling step"})
-
-    rig_step = sg.create("Step", {"code": "Rig", "short_name": "rig", "description": "Rigging step"})
-
-    anim_step = sg.create("Step", {"code": "Anim", "short_name": "anim", "description": "Animation step"})
-
-    # Create test tasks with dependencies
-    model_task = sg.create(
-        "Task",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "content": "Hero Modeling",
-            "step": {"type": "Step", "id": model_step["id"]},
-            "entity": {"type": "Asset", "id": char_asset["id"]},
-            "task_assignees": [{"type": "HumanUser", "id": artist["id"]}],
-            "sg_status_list": "ip",
-            "due_date": "2025-02-01",
-            "duration": 5,
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-        },
-    )
-
-    rig_task = sg.create(
-        "Task",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "content": "Hero Rigging",
-            "step": {"type": "Step", "id": rig_step["id"]},
-            "entity": {"type": "Asset", "id": char_asset["id"]},
-            "task_assignees": [{"type": "HumanUser", "id": artist["id"]}],
-            "sg_status_list": "wtg",
-            "due_date": "2025-02-10",
-            "duration": 7,
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-            "upstream_tasks": [model_task],
-        },
-    )
-
-    anim_task = sg.create(
-        "Task",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "content": "Shot Animation",
-            "step": {"type": "Step", "id": anim_step["id"]},
-            "entity": {"type": "Shot", "id": shot_010["id"]},
-            "task_assignees": [{"type": "HumanUser", "id": artist["id"]}],
-            "sg_status_list": "rdy",
-            "due_date": "2025-02-20",
-            "duration": 10,
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-            "upstream_tasks": [rig_task],
-        },
-    )
-
-    # Create test versions
-    model_version = sg.create(
-        "Version",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "code": "hero_model_v001",
-            "entity": {"type": "Asset", "id": char_asset["id"]},
-            "sg_task": {"type": "Task", "id": model_task["id"]},
-            "user": {"type": "HumanUser", "id": artist["id"]},
-            "description": "Initial modeling",
-            "sg_status_list": "rev",
-            "sg_path_to_frames": "/path/to/model/v001",
-            "sg_path_to_movie": "/path/to/model/v001/preview.mov",
-            "created_by": {"type": "HumanUser", "id": artist["id"]},
-            "sg_first_frame": 1001,
-            "sg_last_frame": 1001,
-            "frame_count": 1,
-        },
-    )
-
-    anim_version = sg.create(
-        "Version",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "code": "shot_010_anim_v001",
-            "entity": {"type": "Shot", "id": shot_010["id"]},
-            "sg_task": {"type": "Task", "id": anim_task["id"]},
-            "user": {"type": "HumanUser", "id": artist["id"]},
-            "description": "First pass animation",
-            "sg_status_list": "rev",
-            "sg_path_to_frames": "/path/to/anim/v001",
-            "sg_path_to_movie": "/path/to/anim/v001/preview.mov",
-            "created_by": {"type": "HumanUser", "id": artist["id"]},
-            "sg_first_frame": 1001,
-            "sg_last_frame": 1086,
-            "frame_count": 86,
-        },
-    )
-
-    # Create test playlists
-    sg.create(
-        "Playlist",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "code": "daily_review_0105",
-            "description": "Daily review playlist",
-            "versions": [model_version, anim_version],
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-        },
-    )
-
-    sg.create(
-        "Playlist",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "code": "client_review_0105",
-            "description": "Client review playlist",
-            "versions": [anim_version],
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-        },
-    )
-
-    # Create test notes
-    sg.create(
-        "Note",
-        {
-            "project": {"type": "Project", "id": main_project["id"]},
-            "content": "Please refine the topology around the eyes",
-            "note_links": [model_version],
-            "user": {"type": "HumanUser", "id": producer["id"]},
-            "addressings_to": [artist],
-            "tasks": [model_task],
-            "created_by": {"type": "HumanUser", "id": producer["id"]},
-            "sg_status_list": "opn",
-        },
-    )
-
-    return sg
+def mock_sg_with_projects(mock_sg: MagicMock) -> MagicMock:
+    """Mock ShotGrid with 3 projects."""
+    projects = [
+        {"type": "Project", "id": 100, "name": "Project Alpha", "sg_status": "Active"},
+        {"type": "Project", "id": 101, "name": "Project Beta", "sg_status": "Active"},
+        {"type": "Project", "id": 102, "name": "Project Gamma", "sg_status": "Archived"},
+    ]
+    mock_sg.find.return_value = projects
+    mock_sg.find_one.return_value = projects[0]
+    return mock_sg
 
 
 @pytest.fixture
-def mock_context(mock_sg):
-    """Create a mock ShotGrid connection context."""
-    return ShotGridConnectionContext(factory_or_connection=mock_factory)
+def mock_sg_with_users(mock_sg: MagicMock) -> MagicMock:
+    """Mock ShotGrid with 2 users."""
+    users = [
+        {"type": "HumanUser", "id": 1, "name": "Alice", "login": "alice", "email": "alice@example.com"},
+        {"type": "HumanUser", "id": 2, "name": "Bob", "login": "bob", "email": "bob@example.com"},
+    ]
+    mock_sg.find.return_value = users
+    return mock_sg
 
 
 @pytest.fixture
-def server(mock_sg):
-    """Create a FastMCP server instance."""
-    server = FastMCP(name="test-server")
+def mock_sg_no_results(mock_sg: MagicMock) -> MagicMock:
+    """Mock ShotGrid that returns empty results."""
+    mock_sg.find.return_value = []
+    mock_sg.find_one.return_value = None
+    return mock_sg
 
-    # Register tools with mock client
-    register_all_tools(server, mock_sg)
 
-    return server
+# ═══════════════════════════════════════════════════════════════════════════
+# Test data fixtures
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.fixture
+def sample_shot_data() -> Dict[str, Any]:
+    """Sample Shot entity data."""
+    return {"code": "SH999", "description": "Test shot", "sg_status_list": "ip"}
+
+
+@pytest.fixture
+def sample_task_data() -> Dict[str, Any]:
+    """Sample Task entity data."""
+    return {"content": "Animation", "sg_status_list": "wtg"}
+
+
+@pytest.fixture
+def sample_note_data() -> Dict[str, Any]:
+    """Sample Note data."""
+    return {"subject": "Review feedback", "content": "Please fix the lighting in frame 42."}
+
+
+@pytest.fixture
+def sample_filters() -> List[List[Any]]:
+    """Sample ShotGrid filter conditions."""
+    return [["sg_status_list", "is", "ip"], ["project", "is", {"type": "Project", "id": 100}]]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Skill package fixtures
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.fixture
+def skills_dir() -> Path:
+    """Path to the skills directory."""
+    assert SKILLS_DIR.is_dir(), f"Skills dir not found: {SKILLS_DIR}"
+    return SKILLS_DIR
+
+
+@pytest.fixture
+def skill_packages(skills_dir: Path) -> List[str]:
+    """List of all skill package names."""
+    return sorted(d.name for d in skills_dir.iterdir() if d.is_dir())
+
+
+@pytest.fixture
+def load_tools_yaml():
+    """Helper to load tools.yaml for a skill."""
+
+    def _load(skill_name: str) -> Dict[str, Any]:
+        path = SKILLS_DIR / skill_name / "tools.yaml"
+        with open(path, encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
+    return _load
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ShotGrid connection context fixtures
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@pytest.fixture
+def connection_context(mock_sg: MagicMock):
+    """Provide a context-managed ShotGrid connection."""
+    import sys
+
+    sys.path.insert(0, str(SRC_DIR))
+    from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
+
+    return ShotGridConnectionContext(factory_or_connection=mock_sg)
