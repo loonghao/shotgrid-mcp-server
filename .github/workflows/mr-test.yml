@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.target.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup vx
         uses: loonghao/vx@vx-v0.6.13
         with:
