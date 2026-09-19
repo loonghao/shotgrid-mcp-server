@@ -259,25 +259,21 @@ app = create_asgi_app(middleware=middleware)
 {
   "mcpServers": {
     "site1": {
+      "type": "http",
       "url": "http://server:8000/mcp",
-      "transport": {
-        "type": "http",
-        "headers": {
-          "X-ShotGrid-URL": "https://site1.shotgunstudio.com",
-          "X-ShotGrid-Script-Name": "script1",
-          "X-ShotGrid-Script-Key": "key1"
-        }
+      "headers": {
+        "X-ShotGrid-URL": "https://site1.shotgunstudio.com",
+        "X-ShotGrid-Script-Name": "script1",
+        "X-ShotGrid-Script-Key": "key1"
       }
     },
     "site2": {
+      "type": "http",
       "url": "http://server:8000/mcp",
-      "transport": {
-        "type": "http",
-        "headers": {
-          "X-ShotGrid-URL": "https://site2.shotgunstudio.com",
-          "X-ShotGrid-Script-Name": "script2",
-          "X-ShotGrid-Script-Key": "key2"
-        }
+      "headers": {
+        "X-ShotGrid-URL": "https://site2.shotgunstudio.com",
+        "X-ShotGrid-Script-Name": "script2",
+        "X-ShotGrid-Script-Key": "key2"
       }
     }
   }
