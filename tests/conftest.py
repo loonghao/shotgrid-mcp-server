@@ -11,7 +11,15 @@ from typing import Any
 import pytest
 import yaml
 from fastmcp import FastMCP
-from fastmcp.tools.tool import ToolResult
+
+# `ToolResult` moved between FastMCP releases: it lives in `fastmcp.tools.tool`
+# on 2.x and in `fastmcp.tools` on 4.x (the `fastmcp.tools.tool` module is gone
+# there). Import it defensively so the suite runs against either major version
+# without pinning an upper bound on the fastmcp dependency.
+try:
+    from fastmcp.tools import ToolResult
+except ImportError:  # FastMCP 2.x
+    from fastmcp.tools.tool import ToolResult
 
 
 async def _test_mcp_call_tool(self: FastMCP, tool_name: str, params: Any | None = None):
