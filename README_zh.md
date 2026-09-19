@@ -150,8 +150,8 @@ uvx shotgrid-mcp-server http --host 0.0.0.0 --port 8000
 {
   "mcpServers": {
     "shotgrid": {
-      "url": "http://your-server:8000/mcp",
-      "transport": { "type": "http" }
+      "type": "http",
+      "url": "http://your-server:8000/mcp"
     }
   }
 }

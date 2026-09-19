@@ -73,8 +73,8 @@ pip install -e .
 {
   "mcpServers": {
     "shotgrid": {
-      "url": "http://your-server:8000/mcp",
-      "transport": { "type": "http" }
+      "type": "http",
+      "url": "http://your-server:8000/mcp"
     }
   }
 }
