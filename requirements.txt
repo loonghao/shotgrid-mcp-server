@@ -1,6 +1,6 @@
 # Runtime dependencies for FastMCP Cloud deployment
 # This file mirrors pyproject.toml dependencies for cloud builds
-fastmcp>=2.13.0
+fastmcp>=4.0.5
 mcp>=1.10.0
 uvicorn[standard]>=0.35.0
 pydantic[email]>=2.0.0
