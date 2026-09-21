@@ -1,7 +1,7 @@
 nox
 uv>=0.9.6
-fastmcp>=4.0.5
-mcp>=1.10.0
+fastmcp>=4.0.5,<5.0.0
+mcp>=2.2.0,<3.0.0
 uvicorn>=0.22.0
 pydantic[email]>=2.0.0
 python-dotenv>=1.0.0
