@@ -5,8 +5,8 @@ description = "A Model Context Protocol (MCP) server implementation using fastmc
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastmcp>=4.0.5",
-    "mcp>=1.10.0",  # Fix CVE-2025-53365, CVE-2025-53366
+    "fastmcp>=4.0.5,<5.0.0",
+    "mcp>=2.2.0,<3.0.0",  # fastmcp 4.x pins mcp 2.x; also fixes CVE-2025-53365, CVE-2025-53366
     "uvicorn[standard]>=0.35.0",
     "pydantic[email]>=2.0.0",
     "python-dotenv>=1.0.0",

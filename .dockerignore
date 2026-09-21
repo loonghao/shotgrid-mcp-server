@@ -81,7 +81,6 @@ requirements-test.txt
 mypy.ini
 codecov.yml
 renovate.json
-poetry.lock
 run_pycharm.bat
 copy_schema.py
 test_http_request.py
