@@ -1,0 +1,23 @@
+{
+  "name": "shotgrid-mcp-server-apps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development-only sources for the MCP Apps UI bundled into the shotgrid-mcp-server Python package.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vite-plugin-singlefile": "^2.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^2.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}

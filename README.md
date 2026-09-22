@@ -179,7 +179,20 @@ This server provides **40+ tools** for interacting with ShotGrid:
 | **Media** | `download_thumbnail`, `upload_thumbnail` |
 | **Notes** | `shotgrid.note.create`, `shotgrid.note.read`, `shotgrid.note.update` |
 | **Playlists** | `create_playlist`, `find_playlists` |
+| **MCP Apps** | `shotgrid_dashboard` (interactive status dashboard) |
 | **Direct API** | `sg.find`, `sg.create`, `sg.update`, `sg.batch`, and more... |
+
+## MCP Apps
+
+`shotgrid_dashboard` is an [MCP App](https://modelcontextprotocol.io/extensions/apps/build): it returns data **and** an interactive UI. The tool advertises `ui://shotgrid/dashboard` in its `_meta.ui.resourceUri`, and the host renders that resource in a sandboxed iframe.
+
+Hosts without MCP Apps support automatically receive the same summary as plain text.
+
+The UI is bundled into a single self-contained HTML file, so no Node runtime is needed in production. See the [MCP Apps guide](docs/guide/mcp-apps.md) for the wire format and rebuild instructions.
+
+```bash
+python scripts/verify_mcp_app.py
+```
 
 ## Example Prompts
 
@@ -189,6 +202,7 @@ Once connected, you can ask your AI assistant:
 - *"Create a playlist with yesterday's lighting renders"*
 - *"Add a note to SHOT_010 about the background lighting"*
 - *"Summarize time logs for the Animation department this month"*
+- *"Show me a dashboard of Task statuses for Project X"*
 
 ## Development
 
