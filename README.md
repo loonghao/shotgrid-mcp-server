@@ -65,6 +65,7 @@ ShotGrid MCP Server enables AI assistants like Claude, Cursor, and VS Code Copil
 | **40+ Tools** | Complete CRUD operations, batch processing, thumbnails, notes, playlists |
 | **Transport** | stdio (local), HTTP (remote), ASGI (production) |
 | **Performance** | Connection pooling, schema caching, lazy initialization |
+| **Skills** | Bundled Agent Skills over MCP (`io.modelcontextprotocol/skills`) |
 | **Deployment** | FastMCP Cloud, Docker, uvicorn/gunicorn, any ASGI server |
 | **Platform** | Windows, macOS, Linux |
 
@@ -202,6 +203,9 @@ nox -s tests
 
 # Development server with hot reload
 uv run fastmcp dev src/shotgrid_mcp_server/server.py:mcp
+
+# Verify the Skills extension against a live HTTP server
+uv run python scripts/verify_skills_extension.py
 ```
 
 ## Documentation

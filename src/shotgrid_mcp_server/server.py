@@ -21,6 +21,7 @@ from shotgrid_mcp_server.connection_pool import ShotGridConnectionContext
 from shotgrid_mcp_server.http_context import get_shotgrid_credentials_from_headers
 from shotgrid_mcp_server.logger import setup_logging
 from shotgrid_mcp_server.schema_cache import preload_schemas
+from shotgrid_mcp_server.skills_extension import register_skills
 from shotgrid_mcp_server.tools import register_all_tools
 
 # Configure logger
@@ -135,6 +136,10 @@ def create_server(
                         logger.info("Schema preloading completed")
                     except Exception as e:
                         logger.warning(f"Schema preloading failed: {e}")
+
+        # Expose skill:// resources together with the skills/list and
+        # skills/get methods of the io.modelcontextprotocol/skills extension.
+        register_skills(mcp)
 
         return mcp
     except Exception as err:

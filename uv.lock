@@ -2603,6 +2603,7 @@ dependencies = [
     { name = "pydantic", extra = ["email"] },
     { name = "python-dotenv" },
     { name = "python-slugify" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "shotgrid-query" },
     { name = "shotgun-api3" },
@@ -2628,6 +2629,7 @@ lint = [
     { name = "black" },
     { name = "mypy" },
     { name = "ruff" },
+    { name = "types-pyyaml" },
     { name = "types-requests" },
 ]
 test = [
@@ -2664,6 +2666,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-slugify", specifier = ">=8.0.4,<9.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "pyyaml", marker = "extra == 'test'" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.11" },
@@ -2671,6 +2674,7 @@ requires-dist = [
     { name = "shotgrid-query", specifier = ">=0.1.0" },
     { name = "shotgun-api3", specifier = ">=3.8.2" },
     { name = "tenacity", specifier = ">=9.1.2,<10.0.0" },
+    { name = "types-pyyaml", marker = "extra == 'lint'" },
     { name = "types-requests", marker = "extra == 'lint'" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.9.6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
@@ -2821,6 +2825,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/53/a3/1585216310e344e8102c22482f6060c7a6ea0322b63e026372e6dcefcfd6/truststore-0.10.4.tar.gz", hash = "sha256:9d91bd436463ad5e4ee4aba766628dd6cd7010cf3e2461756b3303710eebc301", size = 26169, upload-time = "2025-08-12T18:49:02.73Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/19/97/56608b2249fe206a67cd573bc93cd9896e1efb9e98bce9c163bcdc704b88/truststore-0.10.4-py3-none-any.whl", hash = "sha256:adaeaecf1cbb5f4de3b1959b42d41f6fab57b2b1666adb59e89cb0b53361d981", size = 18660, upload-time = "2025-08-12T18:49:01.46Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
 ]
 
 [[package]]

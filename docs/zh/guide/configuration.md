@@ -9,6 +9,7 @@
 | `SHOTGRID_SCRIPT_KEY` | 是 | API 脚本密钥 |
 | `SHOTGRID_HTTP_PROXY` | 否 | HTTP 代理 URL |
 | `SHOTGRID_HTTPS_PROXY` | 否 | HTTPS 代理 URL |
+| `SHOTGRID_MCP_SKILLS_DIR` | 否 | 额外的 [MCP Skills](/zh/guide/skills) 目录，用 `;`（`:`）分隔 |
 
 ## 配置示例
 
