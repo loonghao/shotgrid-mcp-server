@@ -9,6 +9,7 @@ dependencies = [
     "mcp>=2.2.0,<3.0.0",  # fastmcp 4.x pins mcp 2.x; also fixes CVE-2025-53365, CVE-2025-53366
     "uvicorn[standard]>=0.35.0",
     "pydantic[email]>=2.0.0",
+    "pyyaml>=6.0",  # SKILL.md frontmatter parsing for the MCP Skills extension
     "python-dotenv>=1.0.0",
     "platformdirs>=4.1.0",
     "aiohttp>=3.12.14",  # Fix CVE-2025-53643
@@ -59,6 +60,7 @@ lint = [
     "ruff",
     "black",
     "mypy",
+    "types-PyYAML",
     "types-requests",
 ]
 dev = [

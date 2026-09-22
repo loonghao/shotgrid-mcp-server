@@ -28,6 +28,7 @@ export default defineConfig({
                 { text: 'Getting Started', link: '/guide/getting-started' },
                 { text: 'Installation', link: '/guide/installation' },
                 { text: 'Configuration', link: '/guide/configuration' },
+                { text: 'Skills', link: '/guide/skills' },
               ]
             },
             {
@@ -74,6 +75,7 @@ export default defineConfig({
                 { text: '快速开始', link: '/zh/guide/getting-started' },
                 { text: '安装', link: '/zh/guide/installation' },
                 { text: '配置', link: '/zh/guide/configuration' },
+                { text: 'Skills', link: '/zh/guide/skills' },
               ]
             },
             {

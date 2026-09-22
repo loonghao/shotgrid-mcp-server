@@ -65,6 +65,7 @@ ShotGrid MCP Server 使 Claude、Cursor、VS Code Copilot 等 AI 助手能够直
 | **40+ 工具** | 完整的 CRUD 操作、批量处理、缩略图、备注、播放列表 |
 | **传输方式** | stdio (本地)、HTTP (远程)、ASGI (生产) |
 | **性能** | 连接池、Schema 缓存、延迟初始化 |
+| **Skills** | 通过 MCP 暴露内置 Agent Skills（`io.modelcontextprotocol/skills`） |
 | **部署** | FastMCP Cloud、Docker、uvicorn/gunicorn、任意 ASGI 服务器 |
 | **平台** | Windows、macOS、Linux |
 

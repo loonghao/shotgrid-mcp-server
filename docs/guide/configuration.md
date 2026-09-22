@@ -9,6 +9,7 @@
 | `SHOTGRID_SCRIPT_KEY` | Yes | API script key |
 | `SHOTGRID_HTTP_PROXY` | No | HTTP proxy URL |
 | `SHOTGRID_HTTPS_PROXY` | No | HTTPS proxy URL |
+| `SHOTGRID_MCP_SKILLS_DIR` | No | Extra [MCP Skills](/guide/skills) directories, `;` (`\:`) separated |
 
 ## Example Configuration
 

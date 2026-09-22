@@ -30,6 +30,10 @@ DEFAULT_ENTITY_TYPES = [
 ENV_CUSTOM_ENTITY_TYPES = "SHOTGRID_CUSTOM_ENTITY_TYPES"  # Comma-separated list of custom entity types
 ENTITY_TYPES_ENV_VAR = "ENTITY_TYPES"  # For backward compatibility
 
+# Extra MCP Skills (io.modelcontextprotocol/skills) root directories,
+# os.pathsep-separated. Scanned after the skills bundled with the package.
+ENV_SKILLS_DIRS = "SHOTGRID_MCP_SKILLS_DIR"
+
 # Batch operation limits
 MAX_BATCH_SIZE = 100  # Maximum number of operations per batch request
 MAX_FUZZY_RANGE = 1000  # Maximum range for fuzzy ID searches
