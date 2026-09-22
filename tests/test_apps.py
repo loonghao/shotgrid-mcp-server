@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # Import built-in modules
 from typing import Any, Dict
+from unittest import mock
 from unittest.mock import MagicMock
 
 # Import third-party modules
@@ -186,6 +187,42 @@ async def test_ui_resource_coexists_with_schema_resources(app_server: FastMCP) -
     assert "shotgrid://schema/statuses" in uris
 
 
+def test_build_dashboard_payload_reads_the_real_project_name(mock_sg: Shotgun) -> None:
+    """The project card shows ShotGrid's project name, not a fabricated one."""
+
+    project = mock_sg.find_one("Project", [], ["id", "name"]) or {}
+    project_id = project.get("id")
+    expected_name = project.get("name")
+
+    payload = dashboard_module.build_dashboard_payload(mock_sg, "Task", project_id=project_id)
+
+    assert payload["project"] is not None
+    assert payload["project"]["id"] == project_id
+    assert payload["project"]["name"] == expected_name
+    assert payload["project"]["name"] != f"Project {project_id}"
+
+
+def test_project_name_falls_back_to_a_synthetic_label() -> None:
+    """An unreadable or missing project degrades to an obviously synthetic name."""
+
+    sg = MagicMock()
+    sg.find_one.return_value = None
+
+    assert dashboard_module._project_summary(sg, 42) == {"id": 42, "name": "Project 42"}
+
+    sg.find_one.side_effect = RuntimeError("no permission")
+    assert dashboard_module._project_summary(sg, 42) == {"id": 42, "name": "Project 42"}
+
+
+def test_status_label_matches_the_breakdown_label() -> None:
+    """Entity rows and breakdown buckets resolve an unmapped status the same way."""
+
+    labels = {"ip": "In Progress"}
+
+    assert dashboard_module._status_label(labels, "ip") == "In Progress"
+    assert dashboard_module._status_label(labels, "wtg") == "wtg"
+
+
 @pytest.mark.asyncio
 async def test_dashboard_tool_falls_back_to_text_without_apps_support(app_server: FastMCP) -> None:
     """A client that never negotiated Apps gets the plain-text summary."""
@@ -196,10 +233,57 @@ async def test_dashboard_tool_falls_back_to_text_without_apps_support(app_server
     payload = result.structured_content or {}
     assert payload["entity_type"] == "Task"
     assert payload["apps_supported"] is False
-    assert "status overview" in payload["text"]
 
-    text_blocks = [block.text for block in result.content if hasattr(block, "text")]
-    assert any("status overview" in block for block in text_blocks)
+    # The text block must be the readable summary, not a JSON dump of the
+    # payload: a non-Apps host should not be handed every fetched entity twice.
+    text_blocks = [
+        block.text
+        for block in result.content
+        if getattr(block, "type", None) == "text" and isinstance(getattr(block, "text", None), str)
+    ]
+    assert text_blocks, "expected at least one text content block"
+
+    summary = text_blocks[0]
+    assert summary.startswith("ShotGrid ")
+    assert "status overview" in summary
+    assert not summary.lstrip().startswith("{")
+    assert "apps_supported" not in summary
+
+
+@pytest.mark.asyncio
+async def test_dashboard_tool_sets_apps_supported_from_the_context(mock_sg: Shotgun) -> None:
+    """`apps_supported` reflects what `client_supports_apps` reports for the ctx."""
+
+    server: FastMCP = FastMCP(name="test-apps-ctx")
+    register_apps(server, mock_sg)
+
+    with mock.patch.object(dashboard_module, "client_supports_apps", return_value=True) as supports:
+        async with Client(server) as client:
+            result = await client.call_tool(DASHBOARD_TOOL_NAME, {"entity_type": "Task"})
+
+    assert supports.called, "ctx was not injected, so Apps support was never evaluated"
+
+    payload = result.structured_content or {}
+    assert payload["apps_supported"] is True
+    assert payload["total"] > 0
+
+
+@pytest.mark.asyncio
+async def test_dashboard_tool_payload_is_served_as_structured_content(app_server: FastMCP) -> None:
+    """Apps hosts read the payload from structuredContent, which must be complete."""
+
+    async with Client(app_server) as client:
+        result = await client.call_tool(DASHBOARD_TOOL_NAME, {"entity_type": "Asset"})
+
+    payload = result.structured_content or {}
+    assert payload["breakdown"]
+    assert payload["entities"]
+    assert payload["generated_at"]
+
+    # Every entity row must render a status label, never an "Unknown" placeholder.
+    labels = {bucket["status"]: bucket["label"] for bucket in payload["breakdown"]}
+    for entity in payload["entities"]:
+        assert entity["status_label"] == labels[entity["status"]]
 
 
 @pytest.mark.asyncio

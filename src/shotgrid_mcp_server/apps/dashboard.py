@@ -23,7 +23,9 @@ from typing import Any, Dict, List, Optional
 # Import third-party modules
 from fastmcp import Context
 from fastmcp.apps import UI_MIME_TYPE, AppConfig
+from fastmcp.tools import ToolResult
 from mcp.server.apps import client_supports_apps
+from mcp.types import TextContent
 from shotgun_api3.lib.mockgun import Shotgun
 
 # Import local modules
@@ -110,6 +112,54 @@ def _status_labels(sg: Shotgun, entity_type: str) -> Dict[str, str]:
     return labels
 
 
+def _status_label(labels: Dict[str, str], status: str) -> str:
+    """Resolve a status code to its display label.
+
+    Falls back to the raw status code rather than a placeholder such as
+    ``"Unknown"``: the breakdown buckets and the entity rows are rendered
+    side by side, so both must resolve the very same way or the dashboard
+    shows two different names for one status.
+
+    Args:
+        labels: Status code -> display label mapping.
+        status: Raw ShotGrid status code.
+
+    Returns:
+        str: The display label, or ``status`` when it has none.
+    """
+    return labels.get(status, status)
+
+
+def _project_summary(sg: Shotgun, project_id: int) -> Dict[str, Any]:
+    """Look up the real name of the project the dashboard is filtered to.
+
+    Args:
+        sg: ShotGrid connection.
+        project_id: Id of the project to describe.
+
+    Returns:
+        Dict[str, Any]: ``{"id", "name"}`` for the project. The name is read
+            from ShotGrid; a synthetic ``"Project <id>"`` label is only used
+            when the project cannot be read (missing, deleted, or hidden by
+            permissions), because a fabricated name on the dashboard is
+            worse than an obviously synthetic one.
+    """
+    project_id = int(project_id)
+    fallback = f"Project {project_id}"
+
+    try:
+        project = sg.find_one("Project", [["id", "is", project_id]], ["name", "code"])
+    except Exception as exc:  # noqa: BLE001 - the name is cosmetic, never fatal
+        logger.debug("Could not read Project %s: %s", project_id, exc)
+        return {"id": project_id, "name": fallback}
+
+    if not isinstance(project, dict):
+        return {"id": project_id, "name": fallback}
+
+    name = project.get("name") or project.get("code")
+    return {"id": project_id, "name": str(name) if name else fallback}
+
+
 def _entity_label(entity: Dict[str, Any], entity_type: str, entity_id: Any) -> str:
     """Build a human-readable label for an entity."""
     for field in _ENTITY_LABEL_FIELDS:
@@ -163,7 +213,9 @@ def build_dashboard_payload(
     if project_id is not None:
         filters.append(["project", "is", {"type": "Project", "id": int(project_id)}])
 
-    fields = list({"id", _STATUS_FIELD, *_ENTITY_LABEL_FIELDS, *_ENTITY_DETAIL_FIELDS})
+    # dict.fromkeys keeps the field order deterministic across processes;
+    # a set literal would reorder it with PYTHONHASHSEED.
+    fields = list(dict.fromkeys(("id", _STATUS_FIELD, *_ENTITY_LABEL_FIELDS, *_ENTITY_DETAIL_FIELDS)))
     try:
         entities = sg.find(entity_type, filters, fields, limit=limit) or []
     except Exception as err:
@@ -181,7 +233,7 @@ def build_dashboard_payload(
     breakdown = [
         {
             "status": status,
-            "label": labels.get(status, status),
+            "label": _status_label(labels, status),
             "count": count,
             "share": round(count * 100.0 / total, 2) if total else 0.0,
         }
@@ -190,7 +242,20 @@ def build_dashboard_payload(
 
     project: Optional[Dict[str, Any]] = None
     if project_id is not None:
-        project = {"id": int(project_id), "name": f"Project {project_id}"}
+        project = _project_summary(sg, int(project_id))
+
+    entity_rows: List[Dict[str, Any]] = []
+    for entity in entities:
+        status = entity.get(_STATUS_FIELD) or "unknown"
+        entity_rows.append(
+            {
+                "id": entity.get("id"),
+                "label": _entity_label(entity, entity_type, entity.get("id")),
+                "status": status,
+                "status_label": _status_label(labels, status),
+                "detail": _entity_detail(entity),
+            }
+        )
 
     return {
         "entity_type": entity_type,
@@ -198,16 +263,7 @@ def build_dashboard_payload(
         "total": total,
         "truncated": total >= limit,
         "breakdown": breakdown,
-        "entities": [
-            {
-                "id": entity.get("id"),
-                "label": _entity_label(entity, entity_type, entity.get("id")),
-                "status": entity.get(_STATUS_FIELD) or "unknown",
-                "status_label": labels.get(entity.get(_STATUS_FIELD) or "unknown", "Unknown"),
-                "detail": _entity_detail(entity),
-            }
-            for entity in entities
-        ],
+        "entities": entity_rows,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -272,7 +328,7 @@ def register_dashboard_app(server: FastMCPType, sg: Shotgun) -> None:
         project_id: Optional[int] = None,
         limit: int = DEFAULT_LIMIT,
         ctx: Optional[Context] = None,
-    ) -> Dict[str, Any]:
+    ) -> ToolResult:
         """Summarise ShotGrid entity statuses and render them in an interactive dashboard.
 
         **When to use this tool:**
@@ -302,8 +358,8 @@ def register_dashboard_app(server: FastMCPType, sg: Shotgun) -> None:
             - entities: List of {id, label, status, status_label, detail}
             - generated_at: UTC timestamp of the query
 
-            Hosts without MCP Apps support also receive the same summary as
-            plain text.
+            The summary above is returned as the tool's text content as well,
+            so hosts without MCP Apps support render it as plain text.
 
         Raises:
             ToolError: If ShotGrid cannot be queried.
@@ -330,7 +386,13 @@ def register_dashboard_app(server: FastMCPType, sg: Shotgun) -> None:
                 logger.debug("Could not determine Apps support: %s", exc)
                 supported = False
 
-        # A non-App host only ever sees the text part, so lead with it there.
-        payload["text"] = format_dashboard_text(payload) if not supported else ""
         payload["apps_supported"] = supported
-        return payload
+
+        # The text content is what a host without MCP Apps support renders, so
+        # it must be the readable summary. Returning the payload alone would
+        # hand the model a JSON blob holding every fetched entity instead.
+        # Apps hosts read ``structured_content`` and ignore this block.
+        return ToolResult(
+            content=[TextContent(type="text", text=format_dashboard_text(payload))],
+            structured_content=payload,
+        )

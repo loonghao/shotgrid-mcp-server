@@ -58,8 +58,8 @@ as `text/html;profile=mcp-app`.
 ## Graceful degradation
 
 Hosts that did not negotiate the Apps extension never see the HTML. The server
-detects this with `client_supports_apps()` and returns the same summary as
-plain text instead:
+detects this with `client_supports_apps()` and returns the summary as the tool's
+text content, so it is rendered as plain text:
 
 ```text
 ShotGrid Task status overview — 4 entities
@@ -67,6 +67,10 @@ ShotGrid Task status overview — 4 entities
   In Progress: 2 (50.0%)
   Approved: 1 (25.0%)
 ```
+
+The tool always returns the complete payload as `structuredContent`; Apps hosts
+read the UI data from there and ignore the text block. `apps_supported` in the
+payload reports whether the caller negotiated the extension.
 
 ## Single-file HTML
 
@@ -96,9 +100,12 @@ python scripts/verify_mcp_app.py
 ```
 
 The script starts a real HTTP MCP server and drives it with raw JSON-RPC
-(`initialize`, `resources/list`, `tools/list`, `resources/read`), then asserts
-the tool meta, the resource MIME type, and that the bundle has no external
-asset references. Pass `--no-apps` to exercise the text fallback.
+(`initialize`, `resources/list`, `tools/list`, `resources/read`, `tools/call`),
+then asserts the tool meta, the resource MIME type, that the bundle has no
+external asset references, that the `ui://` resource coexists with the
+`shotgrid://schema/*` ones, and that `tools/call` returns the plain-text summary
+rather than a JSON dump. Pass `--no-apps` to omit the Apps capability and check
+the degradation path.
 
 ## Coexistence with schema resources
 
