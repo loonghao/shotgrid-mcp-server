@@ -1,3 +1,9 @@
+## v0.17.0 (2026-09-22)
+
+### Feat
+
+- add ShotGrid status dashboard as the first MCP App (#161)
+
 ## v0.16.0 (2026-09-22)
 
 ### Feat
