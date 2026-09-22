@@ -1,3 +1,9 @@
+## v0.16.0 (2026-09-22)
+
+### Feat
+
+- expose Agent Skills over MCP with the skills extension (#162)
+
 ## v0.15.4 (2026-01-28)
 
 ### Fix
