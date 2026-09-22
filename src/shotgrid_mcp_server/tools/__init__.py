@@ -8,6 +8,7 @@ from typing import Any  # noqa
 
 from shotgun_api3.lib.mockgun import Shotgun
 
+from shotgrid_mcp_server.apps import register_apps
 from shotgrid_mcp_server.schema_resources import register_schema_resources
 from shotgrid_mcp_server.tools.api_tools import register_api_tools
 from shotgrid_mcp_server.tools.create_tools import register_create_tools
@@ -47,3 +48,6 @@ def register_all_tools(server: FastMCPType, sg: Shotgun) -> None:
 
     # Register schema-related MCP resources
     register_schema_resources(server, sg)
+
+    # Register MCP Apps (interactive UI) tools and resources
+    register_apps(server, sg)

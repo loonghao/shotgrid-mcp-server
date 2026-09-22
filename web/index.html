@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShotGrid Status Dashboard</title>
+  </head>
+  <body>
+    <div id="root">
+      <header class="app-header">
+        <div class="app-header__title">
+          <h1>ShotGrid Dashboard</h1>
+          <p id="subtitle" class="app-header__subtitle">Waiting for data…</p>
+        </div>
+        <div class="app-controls">
+          <label class="visually-hidden" for="entity-type">Entity type</label>
+          <select id="entity-type" class="select"></select>
+          <button id="refresh" class="button button--primary" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="summary" class="summary" aria-label="Status summary"></section>
+
+        <section class="panel" aria-label="Status distribution">
+          <h2 class="panel__title">Status distribution</h2>
+          <div id="bar" class="bar" role="img" aria-label="Status distribution bar"></div>
+          <ul id="legend" class="legend"></ul>
+        </section>
+
+        <section class="panel" aria-label="Entities">
+          <h2 class="panel__title">
+            Entities <span id="entity-count" class="panel__badge"></span>
+          </h2>
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer id="footer" class="app-footer"></footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
