@@ -273,6 +273,10 @@ async def test_non_utf8_text_file_is_served_as_a_blob(tmp_path: Path) -> None:
         assert served == legacy
         assert len(served) == entry.size
         assert hashlib.sha256(served).hexdigest() == entry.digest.removeprefix("sha256:")
+        # Pinned: ``mimeType`` describes what the file *is*, while ``blob``
+        # signals base64 transport. Switching it to application/octet-stream
+        # would drop the rendering hint and tempt a lossy text re-decode.
+        assert block.mimeType == "text/markdown"
 
 
 def test_supporting_files_are_manifested(tmp_path: Path) -> None:

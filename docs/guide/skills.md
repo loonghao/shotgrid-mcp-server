@@ -66,6 +66,12 @@ verify every file it reads by `size` and SHA-256 `digest`, and compare the
 `SKILL.md` frontmatter field-by-field. Text files are served byte for byte —
 a skill authored with CRLF line endings is served with CRLF.
 
+A `text/*` file that is not valid UTF-8 (latin-1, UTF-16, ...) has no lossless
+text form, so it is delivered as a base64 `blob` instead of failing the read.
+The `mimeType` still says what the file *is* (`text/markdown`); `blob` is the
+transport signal. Decode it as bytes, not as UTF-8 text — `size` and `digest`
+refer to those exact bytes.
+
 To reproduce the end-to-end evidence against a live server:
 
 ```bash
