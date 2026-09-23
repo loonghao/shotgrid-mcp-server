@@ -35,3 +35,20 @@ jobs:
           UV_PYTHON: ${{ matrix.python-version }}
       - name: lint
         run: vx just lint
+
+  skills-extension:
+    # Wire-level contract check: starts the real server and drives it with raw
+    # JSON-RPC, which is the only check that sees the serialized field names.
+    name: skills extension (wire-level)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup vx
+        uses: loonghao/vx@vx-v0.6.13
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup development environment
+        run: vx setup
+      - name: Verify the Skills extension contract
+        run: vx just verify-skills

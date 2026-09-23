@@ -77,6 +77,11 @@ prints the `server/discover`, `skills/list`, `skills/get` and `resources/read`
 responses together with a list of contract violations (empty when everything
 passes).
 
+CI runs it on every pull request (`vx just verify-skills`). It is the only
+check that sees the serialized field names: the unit tests read Python
+attributes, so they stay green if the camelCase wire names (`ttlMs`,
+`cacheScope`) stop being emitted.
+
 ## Host support
 
 **Server-side support is complete and conformant.** Host support for Skills
