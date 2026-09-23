@@ -48,6 +48,28 @@ def tests(session: nox.Session) -> None:
     session.run("pytest", *default_args, *pytest_args, env=env)
 
 
+@nox.session(name="verify-skills")
+def verify_skills(session: nox.Session) -> None:
+    """Assert the MCP Skills contract against a live server over raw JSON-RPC.
+
+    ``scripts/verify_skills_extension.py`` starts the real server on the
+    Streamable HTTP transport and drives it with hand-built JSON-RPC, so the
+    wire names a host actually reads (``resultType``, ``ttlMs``,
+    ``cacheScope``) are covered. The unit tests read Python attributes, so
+    they stay green when those camelCase names stop being emitted — dropping
+    the inherited ``to_camel`` alias generator is invisible to them.
+    """
+
+    session.install("-r", "requirements-test.txt")
+
+    # Ensure src/ is on PYTHONPATH so the script can import the package
+    # without installing it.
+    src_root = os.path.join(ROOT, "src")
+    env = {"PYTHONPATH": os.pathsep.join([src_root, THIS_ROOT.as_posix()])}
+
+    session.run("python", "scripts/verify_skills_extension.py", env=env)
+
+
 @nox.session(name="lint")
 def lint_check(session: nox.Session) -> None:
     """Run the linter."""

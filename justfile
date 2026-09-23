@@ -22,6 +22,10 @@ lint-fix:
 test *args='':
     vx uvx nox -s tests -- {{args}}
 
+# Verify the MCP Skills extension against a live server (raw JSON-RPC)
+verify-skills:
+    vx uvx nox -s verify-skills
+
 # Run ruff check
 check:
     vx uvx ruff check .

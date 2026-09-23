@@ -66,6 +66,10 @@ uv run python scripts/verify_skills_extension.py
 `server/discover`、`skills/list`、`skills/get` 与 `resources/read` 的响应，
 并列出违反规范的条目（全部通过时为空）。
 
+每个 pull request 的 CI 都会执行它（`vx just verify-skills`）。它是唯一能看到
+序列化字段名的检查：单元测试读的是 Python 属性，因此即使 camelCase 线上字段名
+（`ttlMs`、`cacheScope`）不再出现，单测依然全绿。
+
 ## Host 支持情况
 
 **服务端实现已完整且符合规范。** MCP Skills 的 host 侧支持仍在各 MCP 客户端
