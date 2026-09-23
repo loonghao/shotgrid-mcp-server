@@ -298,7 +298,10 @@ def _parse_frontmatter(content: str) -> dict[str, Any]:
     if not content.startswith("---"):
         return {}
 
-    match = re.search(r"\n---\s*\n", content[3:])
+    # The closing delimiter also ends the file when the frontmatter is
+    # followed by nothing: ``---\nname: x\n---`` with no trailing newline is
+    # still a frontmatter block, not a file without one.
+    match = re.search(r"\n---\s*(?:\n|$)", content[3:])
     if not match:
         return {}
 
@@ -461,7 +464,15 @@ class SkillFileResource(Resource):
     async def read(self) -> str | bytes:
         raw = self.absolute_path.read_bytes()
         if self.mime_type and self.mime_type.startswith("text/"):
-            return raw.decode("utf-8")
+            try:
+                return raw.decode("utf-8")
+            except UnicodeDecodeError:
+                # A text/* file that is not UTF-8 (latin-1, UTF-16, ...) has no
+                # lossless text rendering, but the manifest already promises
+                # these exact bytes. Serve them as a base64 blob instead of
+                # failing the read and describing bytes nobody receives.
+                logger.warning("Serving %s as a base64 blob: the file is not valid UTF-8", self.uri)
+                return raw
         return raw
 
 

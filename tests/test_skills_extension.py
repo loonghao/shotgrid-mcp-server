@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import os
 from pathlib import Path
@@ -161,6 +162,23 @@ def test_invalid_skill_directories_are_skipped(tmp_path: Path, scenario: str) ->
     assert catalog.skipped, f"{scenario} should have been skipped with a reason"
 
 
+def test_frontmatter_ending_at_end_of_file_is_parsed(tmp_path: Path) -> None:
+    """A SKILL.md whose frontmatter ends at EOF is valid, not 'no frontmatter'.
+
+    Regression: the closing-delimiter regex required a newline after the final
+    ``---``, so a file ending exactly at the delimiter was skipped with the
+    misleading reason "has no YAML frontmatter".
+    """
+    skill_dir = _write_skill(tmp_path, "eof-skill")
+    _write(skill_dir / "SKILL.md", "---\nname: eof-skill\ndescription: Ends at the delimiter\n---")
+
+    catalog = SkillCatalog(tmp_path)
+
+    assert catalog.skipped == ()
+    (skill,) = catalog.skills
+    assert skill.frontmatter == {"name": "eof-skill", "description": "Ends at the delimiter"}
+
+
 def test_files_outside_the_skill_directory_are_not_manifested(tmp_path: Path) -> None:
     """A symlink escaping the skill directory is dropped, not published."""
     skill_dir = _write_skill(tmp_path, "escaping-skill")
@@ -228,6 +246,33 @@ async def test_crlf_skill_is_served_byte_for_byte(tmp_path: Path) -> None:
         assert b"\r\n" in raw
         assert len(raw) == manifest_file.size
         assert hashlib.sha256(raw).hexdigest() == manifest_file.digest.removeprefix("sha256:")
+
+
+@pytest.mark.asyncio
+async def test_non_utf8_text_file_is_served_as_a_blob(tmp_path: Path) -> None:
+    """A text/* file that is not UTF-8 is delivered as base64, not an error.
+
+    Regression: ``read()`` decoded every text/* file as UTF-8, so a latin-1
+    reference file turned ``resources/read`` into a UnicodeDecodeError while
+    the manifest still advertised the bytes as deliverable.
+    """
+    skill_dir = _write_skill(tmp_path, "latin-skill")
+    (skill_dir / "references").mkdir()
+    legacy = "# Caf\u00e9 filters\n".encode("latin-1")  # 0xe9 is not valid UTF-8
+    (skill_dir / "references" / "legacy.md").write_bytes(legacy)
+    uri = "skill://latin-skill/references/legacy.md"
+
+    server: FastMCP = FastMCP(name="test")
+    extension = register_skills(server, roots=[tmp_path])
+    (skill,) = extension.catalog.skills
+    (entry,) = [file for file in skill.files if file.uri == uri]
+
+    async with Client(server) as client:
+        (block,) = await client.read_resource(uri)
+        served = base64.b64decode(block.blob)  # type: ignore[union-attr]
+        assert served == legacy
+        assert len(served) == entry.size
+        assert hashlib.sha256(served).hexdigest() == entry.digest.removeprefix("sha256:")
 
 
 def test_supporting_files_are_manifested(tmp_path: Path) -> None:
