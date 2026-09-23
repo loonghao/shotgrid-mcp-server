@@ -1,3 +1,9 @@
+## v0.17.1 (2026-09-23)
+
+### Fix
+
+- **skills**: deliver non-UTF-8 text files as blobs and accept frontmatter at EOF (#166)
+
 ## v0.17.0 (2026-09-22)
 
 ### Feat
