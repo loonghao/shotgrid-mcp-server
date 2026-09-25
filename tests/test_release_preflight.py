@@ -8,6 +8,7 @@ in the package, so they are imported from disk by path.
 
 # Import built-in modules
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -92,50 +93,41 @@ class TestReleaseWindowGit:
 
     @staticmethod
     def _git(repo, *args):
+        # Inherit the real environment: git needs PATH to find its own helpers
+        # and, on Windows, SYSTEMROOT as well. Only the commit identity is
+        # overridden, so the fixtures do not depend on the caller's git config.
         subprocess.run(
             ["git", *args],
             cwd=repo,
             check=True,
             capture_output=True,
             env={
+                **os.environ,
                 "GIT_AUTHOR_NAME": "test",
                 "GIT_AUTHOR_EMAIL": "test@example.com",
                 "GIT_COMMITTER_NAME": "test",
                 "GIT_COMMITTER_EMAIL": "test@example.com",
-                "PATH": "/usr/bin:/bin",
             },
         )
 
-    @staticmethod
-    def _commit(repo, message):
+    @classmethod
+    def _commit(cls, repo, message):
         (repo / "file.txt").write_text(message, encoding="utf-8")
-        subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", message],
-            cwd=repo,
-            check=True,
-            capture_output=True,
-            env={
-                "GIT_AUTHOR_NAME": "test",
-                "GIT_AUTHOR_EMAIL": "test@example.com",
-                "GIT_COMMITTER_NAME": "test",
-                "GIT_COMMITTER_EMAIL": "test@example.com",
-                "PATH": "/usr/bin:/bin",
-            },
-        )
+        cls._git(repo, "add", "file.txt")
+        cls._git(repo, "commit", "-m", message)
 
     @pytest.fixture()
     def repo(self, tmp_path):
-        if not subprocess.run(["git", "--version"], capture_output=True).returncode == 0:
+        if subprocess.run(["git", "--version"], capture_output=True).returncode != 0:
             pytest.skip("git is not available")
         repo = tmp_path / "repo"
         repo.mkdir()
-        subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True, capture_output=True)
+        self._git(repo, "init", "-q", "-b", "main")
         return repo
 
     def test_window_covers_only_commits_since_the_last_tag(self, repo):
         self._commit(repo, "feat: first")
-        subprocess.run(["git", "tag", "v0.1.0"], cwd=repo, check=True, capture_output=True)
+        self._git(repo, "tag", "v0.1.0")
         self._commit(repo, "docs: only documentation after the tag")
 
         assert check_releasable.resolve_range(cwd=repo) == "v0.1.0..HEAD"
