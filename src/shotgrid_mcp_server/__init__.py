@@ -4,7 +4,7 @@ This package provides a Model Context Protocol (MCP) server for ShotGrid,
 allowing AI assistants to interact with ShotGrid data.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.17.1"  # x-release-please-version
 
 # Define exported symbols
 __all__ = [

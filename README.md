@@ -228,7 +228,7 @@ See the [/docs](docs/) directory for detailed documentation.
 
 ## Contributing
 
-Contributions welcome! Please follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) and write tests.
+Contributions welcome! Please follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html), write tests, and use [Conventional Commits](https://www.conventionalcommits.org/) — commit messages drive versioning and the changelog. See [RELEASE.md](RELEASE.md) for how releases are cut.
 
 ## License
 

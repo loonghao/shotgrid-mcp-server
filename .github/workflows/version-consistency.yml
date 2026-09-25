@@ -1,0 +1,95 @@
+name: Version Consistency
+
+# .release-please-manifest.json is the single source of truth for the version.
+# Every other version-bearing file must agree with it, otherwise release-please
+# bumps from a stale base and silently ships the wrong number.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - ".release-please-manifest.json"
+      - "release-please-config.json"
+      - "src/shotgrid_mcp_server/__init__.py"
+      - ".github/workflows/version-consistency.yml"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  version-consistency:
+    name: Check version consistency across files
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Check version consistency
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          errors = []
+
+          manifest_path = Path(".release-please-manifest.json")
+          if not manifest_path.exists():
+              print("::error::.release-please-manifest.json is missing")
+              sys.exit(1)
+
+          manifest_version = json.loads(manifest_path.read_text(encoding="utf-8")).get(".")
+          if not manifest_version:
+              print("::error::missing root package version in .release-please-manifest.json")
+              sys.exit(1)
+
+          print(f"Manifest version (source of truth): {manifest_version}")
+
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          pyproject_version = pyproject.get("project", {}).get("version")
+          if pyproject_version != manifest_version:
+              errors.append(
+                  f"pyproject.toml project.version={pyproject_version!r} != manifest {manifest_version!r}"
+              )
+          else:
+              print(f"  pyproject.toml: {pyproject_version} OK")
+
+          init_source = Path("src/shotgrid_mcp_server/__init__.py").read_text(encoding="utf-8")
+          match = re.search(r'^__version__\s*=\s*"([^"]+)"', init_source, re.MULTILINE)
+          if not match:
+              errors.append("src/shotgrid_mcp_server/__init__.py declares no __version__")
+          elif match.group(1) != manifest_version:
+              errors.append(
+                  f"__init__.py __version__={match.group(1)!r} != manifest {manifest_version!r}"
+              )
+          else:
+              print(f"  __init__.py: {match.group(1)} OK")
+
+          # release-please only rewrites lines carrying this marker, so an
+          # unmarked __version__ would silently drift forever.
+          version_line = (
+              re.search(r"^__version__.*$", init_source, re.MULTILINE).group(0) if match else ""
+          )
+          if match and "x-release-please-version" not in version_line:
+              errors.append(
+                  "src/shotgrid_mcp_server/__init__.py __version__ is missing the "
+                  "'# x-release-please-version' marker, so release-please will not update it"
+              )
+          else:
+              print("  __init__.py release-please marker OK")
+
+          for error in errors:
+              print(f"::error::{error}")
+          sys.exit(1 if errors else 0)
+          PY

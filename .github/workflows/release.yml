@@ -1,0 +1,257 @@
+name: Release
+
+# Conventional commits drive the whole release:
+#
+#   push to main -> release-please opens/updates a "chore(main): release X.Y.Z"
+#   PR           -> merging that PR creates the vX.Y.Z tag + GitHub Release
+#                -> this workflow builds the wheel/sdist and publishes to PyPI
+#
+# The build/publish/attach jobs live in the same workflow as release-please on
+# purpose. GitHub never starts a workflow from a tag, release, or commit that
+# was created with the default GITHUB_TOKEN, so a separate "on: push: tags: v*"
+# workflow would silently stop releasing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Backfill an existing tag (e.g. v0.17.2). Leave empty to only run release-please."
+        required: false
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}${{ inputs.tag_name && format('-{0}', inputs.tag_name) || '' }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  # ── Guard: only ask release-please for a release when there is something ───
+  # to release. release-please treats every commit on main as release input, so
+  # a workflow that re-generates files on main (lock sync, formatting) would
+  # otherwise keep the release PR alive on chore/ci/docs commits alone.
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      releasable: ${{ steps.check.outputs.releasable }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check for releasable commits since the last release tag
+        id: check
+        run: |
+          set -euo pipefail
+
+          # A manual backfill is always allowed to proceed.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "workflow_dispatch: skipping the releasable-commit gate"
+            echo "releasable=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last_tag="$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)"
+          if [ -z "$last_tag" ]; then
+            range="HEAD"
+            echo "No v* tag found; scanning the whole history"
+          else
+            range="${last_tag}..HEAD"
+            echo "Scanning $range"
+          fi
+
+          # Only these conventional-commit types move the version. Everything
+          # else (chore/ci/docs/test/style/build) is release-neutral.
+          # Fail open: an unexpected error leaves the gate on.
+          releasable=false
+          if git log --no-merges --format='%s%n%b' "$range" \
+              | grep -Eq '^(feat|fix|perf|refactor|revert)(\([^)]*\))?!?:|^BREAKING CHANGE:'; then
+            releasable=true
+          fi
+
+          echo "releasable=$releasable" >> "$GITHUB_OUTPUT"
+
+  # ── Release Please — creates/updates the release PR, then the release ─────
+  release-please:
+    needs: [preflight]
+    if: needs.preflight.outputs.releasable == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name || inputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          # A PAT is required: with GITHUB_TOKEN, GitHub does not fire
+          # pull_request workflows for the release PR, so it would carry no CI
+          # status, and the tag/release it creates cannot trigger other
+          # workflows either.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.PERSONAL_ACCESS_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # ── Build wheel + sdist for the release ──────────────────────────────────
+  build:
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag_name != '')
+    runs-on: ubuntu-latest
+    steps:
+      # A backfill must build the tagged source, not whatever main points at,
+      # otherwise another version's artifacts would be published under the
+      # requested tag.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.sha }}
+          persist-credentials: false
+
+      - name: Setup vx
+        uses: loonghao/vx@vx-v0.6.13
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup development environment
+        run: vx setup
+
+      - name: Build wheel and sdist
+        run: vx uvx --from build pyproject-build --sdist --wheel --outdir dist
+
+      - name: Verify wheel and sdist were produced
+        run: |
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          ls -la dist/
+          if [ ${#wheels[@]} -eq 0 ] || [ ${#sdists[@]} -eq 0 ]; then
+            echo "::error::the build produced no wheel and/or sdist; refusing to report a passing release gate"
+            exit 1
+          fi
+          echo "OK: ${#wheels[@]} wheel(s), ${#sdists[@]} sdist(s)"
+
+      # PyPI uploads cannot be overwritten, so the artifacts must belong to the
+      # version this release is about to publish.
+      - name: Verify dist matches the release version
+        env:
+          RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          version = ""
+          if os.environ.get("EVENT_NAME") == "workflow_dispatch":
+              version = (os.environ.get("TAG_NAME") or "").strip().lstrip("vV")
+          if not version:
+              version = (os.environ.get("RELEASE_VERSION") or "").strip()
+          if not version:
+              print("No release version resolved; skipping the tag/artifact check")
+              sys.exit(0)
+
+          artifacts = sorted(Path("dist").glob("*.whl")) + sorted(Path("dist").glob("*.tar.gz"))
+          # Anchor on the separator after the version so "0.17.2" cannot match
+          # "shotgrid_mcp_server-0.17.20-...".
+          expected = ("shotgrid_mcp_server-%s-" % version, "shotgrid_mcp_server-%s.tar.gz" % version)
+          mismatched = [p.name for p in artifacts if not p.name.startswith(expected)]
+          if mismatched:
+              print("::error::dist artifacts do not match version %s: %s" % (version, ", ".join(mismatched)))
+              sys.exit(1)
+          print("OK: %d artifact(s) match version %s" % (len(artifacts), version))
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  # ── Publish to PyPI ──────────────────────────────────────────────────────
+  publish:
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag_name != '')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/shotgrid-mcp-server
+    permissions:
+      id-token: write # required for PyPI trusted publishing (OIDC)
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: List dist
+        run: ls -la dist/
+
+      # No credentials: PyPI trusted publishing is configured for this repo.
+      - name: Publish to PyPI (Trusted Publisher)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          verbose: true
+          print-hash: true
+
+  # ── Attach the artifacts to the GitHub Release ───────────────────────────
+  attach-release-assets:
+    needs: [release-please, publish]
+    if: needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag_name != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Attach wheel and sdist to the GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name || inputs.tag_name }}
+          files: dist/*
+
+  # ── Alarm: a release without artifacts is not a shipped release ──────────
+  verify-release-assets:
+    needs: [release-please, publish, attach-release-assets]
+    if: always() && (needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag_name != ''))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Assert the release carries a wheel and an sdist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name || inputs.tag_name }}
+        run: |
+          set -euo pipefail
+          assets="$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '[.assets[].name] | join("\n")')"
+          echo "Assets on $TAG_NAME:"
+          echo "$assets"
+
+          missing=0
+          if ! echo "$assets" | grep -q '\.whl$'; then
+            echo "::error::$TAG_NAME has no .whl attached"
+            missing=1
+          fi
+          if ! echo "$assets" | grep -q '\.tar\.gz$'; then
+            echo "::error::$TAG_NAME has no sdist (.tar.gz) attached"
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::Release $TAG_NAME shipped without wheel/sdist; pip install -U shotgrid-mcp-server will not pick it up. See the build, publish and attach jobs above."
+            exit 1
+          fi
+          echo "OK: $TAG_NAME carries a wheel and an sdist"
