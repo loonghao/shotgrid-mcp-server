@@ -46,6 +46,16 @@
       "hidden": false
     },
     {
+      "type": "revert",
+      "section": "Reverts",
+      "hidden": false
+    },
+    {
+      "type": "deps",
+      "section": "Dependencies",
+      "hidden": false
+    },
+    {
       "type": "docs",
       "section": "Documentation",
       "hidden": false

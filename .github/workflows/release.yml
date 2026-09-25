@@ -2,8 +2,8 @@ name: Release
 
 # Conventional commits drive the whole release:
 #
-#   push to main -> release-please opens/updates a "chore(main): release X.Y.Z"
-#   PR           -> merging that PR creates the vX.Y.Z tag + GitHub Release
+#   push to main -> release-please opens/updates a "chore: release vX.Y.Z" PR
+#                -> merging that PR creates the vX.Y.Z tag + GitHub Release
 #                -> this workflow builds the wheel/sdist and publishes to PyPI
 #
 # The build/publish/attach jobs live in the same workflow as release-please on
@@ -23,12 +23,17 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}${{ inputs.tag_name && format('-{0}', inputs.tag_name) || '' }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # Never cancel a push run. release-please creates the tag and the GitHub
+  # Release early in the run; cancelling after that point leaves a release with
+  # no assets, and every job that could publish them or raise the alarm is
+  # skipped by its own `if`, so nothing goes red. Later push runs queue behind
+  # this one instead, and their preflight then sees nothing left to release.
+  # Manual backfills may cancel each other: they are short and idempotent.
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
+# Least privilege by default; each job asks for what it needs.
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write
+  contents: read
 
 jobs:
   # ── Guard: only ask release-please for a release when there is something ───
@@ -47,41 +52,31 @@ jobs:
 
       - name: Check for releasable commits since the last release tag
         id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
 
           # A manual backfill is always allowed to proceed.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "workflow_dispatch: skipping the releasable-commit gate"
             echo "releasable=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          last_tag="$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)"
-          if [ -z "$last_tag" ]; then
-            range="HEAD"
-            echo "No v* tag found; scanning the whole history"
-          else
-            range="${last_tag}..HEAD"
-            echo "Scanning $range"
-          fi
-
-          # Only these conventional-commit types move the version. Everything
-          # else (chore/ci/docs/test/style/build) is release-neutral.
-          # Fail open: an unexpected error leaves the gate on.
-          releasable=false
-          if git log --no-merges --format='%s%n%b' "$range" \
-              | grep -Eq '^(feat|fix|perf|refactor|revert)(\([^)]*\))?!?:|^BREAKING CHANGE:'; then
-            releasable=true
-          fi
-
-          echo "releasable=$releasable" >> "$GITHUB_OUTPUT"
+          # Only feat/fix/perf/refactor/revert and BREAKING CHANGE: move the
+          # version here; chore/ci/docs/test/style/build are release-neutral.
+          # The script fails open, so a broken range never suppresses a release.
+          python3 scripts/ci/check_releasable_commits.py --github-output "$GITHUB_OUTPUT"
 
   # ── Release Please — creates/updates the release PR, then the release ─────
   release-please:
     needs: [preflight]
     if: needs.preflight.outputs.releasable == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag + GitHub Release
+      pull-requests: write # the release PR itself
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name || inputs.tag_name }}
@@ -143,30 +138,11 @@ jobs:
           TAG_NAME: ${{ inputs.tag_name }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
-          python3 - <<'PY'
-          import os
-          import sys
-          from pathlib import Path
-
-          version = ""
-          if os.environ.get("EVENT_NAME") == "workflow_dispatch":
-              version = (os.environ.get("TAG_NAME") or "").strip().lstrip("vV")
-          if not version:
-              version = (os.environ.get("RELEASE_VERSION") or "").strip()
-          if not version:
-              print("No release version resolved; skipping the tag/artifact check")
-              sys.exit(0)
-
-          artifacts = sorted(Path("dist").glob("*.whl")) + sorted(Path("dist").glob("*.tar.gz"))
-          # Anchor on the separator after the version so "0.17.2" cannot match
-          # "shotgrid_mcp_server-0.17.20-...".
-          expected = ("shotgrid_mcp_server-%s-" % version, "shotgrid_mcp_server-%s.tar.gz" % version)
-          mismatched = [p.name for p in artifacts if not p.name.startswith(expected)]
-          if mismatched:
-              print("::error::dist artifacts do not match version %s: %s" % (version, ", ".join(mismatched)))
-              sys.exit(1)
-          print("OK: %d artifact(s) match version %s" % (len(artifacts), version))
-          PY
+          python3 scripts/ci/verify_release_dist.py \
+            --dist-dir dist \
+            --version "$RELEASE_VERSION" \
+            --tag-name "$TAG_NAME" \
+            --event-name "$EVENT_NAME"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -194,13 +170,19 @@ jobs:
       - name: List dist
         run: ls -la dist/
 
-      # No credentials: PyPI trusted publishing is configured for this repo.
       - name: Publish to PyPI (Trusted Publisher)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
           verbose: true
           print-hash: true
+          # PyPI filenames are immutable, so re-uploading a version that is
+          # already there fails. Without this, a backfill of a release whose
+          # files reached PyPI but whose assets were never attached could never
+          # attach them: `publish` would fail and `attach-release-assets`
+          # depends on it. Treating an existing file as success keeps the
+          # recovery path usable.
+          skip-existing: true
 
   # ── Attach the artifacts to the GitHub Release ───────────────────────────
   attach-release-assets:
