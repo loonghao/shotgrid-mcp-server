@@ -82,6 +82,6 @@ mypy.ini
 codecov.yml
 renovate.json
 run_pycharm.bat
-copy_schema.py
+scripts/copy_schema.py
 test_http_request.py
 nox_actions/

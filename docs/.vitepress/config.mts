@@ -40,6 +40,14 @@ export default defineConfig({
                 { text: 'TimeLog Statistics', link: '/guide/demos/timelog-statistics' },
                 { text: 'WeCom Integration', link: '/guide/demos/wecom-integration' },
               ]
+            },
+            {
+              text: 'Development',
+              items: [
+                { text: 'Release Process', link: '/guide/RELEASE' },
+                { text: 'API Coverage Analysis', link: '/guide/API_COVERAGE_ANALYSIS' },
+                { text: 'ASGI Feature Summary', link: '/guide/FEATURE_ASGI_SUMMARY' },
+              ]
             }
           ],
           '/api/': [
