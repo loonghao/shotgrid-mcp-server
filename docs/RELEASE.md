@@ -8,7 +8,7 @@ Nobody bumps a version by hand and nobody pushes a `v*` tag by hand.
 
 1. Feature and fix work lands on `main` with conventional commit messages, for
    example `feat(status): add a dashboard` or `fix(skills): handle non-UTF-8 files`.
-2. On every push to `main`, the [Release workflow](.github/workflows/release.yml)
+2. On every push to `main`, the [Release workflow](../.github/workflows/release.yml)
    runs release-please. When there is something to release it opens (or updates)
    a release PR titled `chore(main): release X.Y.Z`. That PR contains the
    `CHANGELOG.md` entry, the bumped `pyproject.toml` version and the bumped
@@ -42,7 +42,7 @@ regenerates `uv.lock` or reformats code on `main`. `preflight` exists precisely
 to stop that.
 
 The gate is implemented in
-[`scripts/ci/check_releasable_commits.py`](scripts/ci/check_releasable_commits.py)
+[`scripts/ci/check_releasable_commits.py`](../scripts/ci/check_releasable_commits.py)
 and covered by `tests/test_release_preflight.py`. It deliberately fails open: if
 the commit range cannot be resolved it reports `releasable=true`, because a
 release silently suppressed is worse than an unwanted release PR.
@@ -62,7 +62,7 @@ mirror that release-please rewrites:
 | `src/shotgrid_mcp_server/__init__.py` | `__version__` (the line carries a `# x-release-please-version` marker, which is what release-please looks for) |
 | `CHANGELOG.md` | new entries are inserted above the legacy section |
 
-Do not edit these by hand. The [Version Consistency](.github/workflows/version-consistency.yml)
+Do not edit these by hand. The [Version Consistency](../.github/workflows/version-consistency.yml)
 workflow fails a PR when any of them disagree with the manifest.
 
 The `extra-files` entries in `release-please-config.json` partly repeat what the
