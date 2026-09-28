@@ -1,0 +1,66 @@
+name: Vx Lock Guard
+
+# Fails when vx.lock is missing or no longer matches vx.toml.
+#
+# vx resolves tool versions from vx.lock ahead of vx.toml, so a [tools] edit
+# that forgets to refresh the lock silently changes what every consumer gets.
+#
+# `vx lock --check` exits 0 when the lock file does not exist (it only prints
+# an error), so the file's presence is asserted separately.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vx.toml"
+      - "vx.lock"
+      - ".github/workflows/vx-lock-guard.yml"
+  pull_request:
+    paths:
+      - "vx.toml"
+      - "vx.lock"
+      - ".github/workflows/vx-lock-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vx-lock-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vx-lock:
+    name: vx.lock is committed and current
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # The action's `version` input defaults to `latest` and ignores the action
+      # ref, so the vx binary has to be pinned explicitly. An unpinned run resolves
+      # through a cache key that can restore an older vx, and older vx rejects the
+      # lock format written by current vx.
+      - name: Setup vx
+        uses: loonghao/vx@v0.9.33
+        with:
+          version: 0.9.33
+          # The action restores its cache under a shared prefix, so a cache entry
+          # written by an older vx can satisfy the restore even with the version
+          # pinned. install.sh skips the download when a vx binary is present, so
+          # the stale binary is what runs. This job needs no tool cache.
+          cache: false
+
+      - name: Verify vx.lock matches vx.toml
+        run: |
+          set -euo pipefail
+
+          if [ ! -f vx.lock ]; then
+            echo "::error::vx.lock is missing. Run 'vx lock' and commit the result."
+            exit 1
+          fi
+
+          vx lock --check
