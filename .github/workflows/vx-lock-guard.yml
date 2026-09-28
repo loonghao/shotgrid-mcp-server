@@ -40,8 +40,14 @@ jobs:
         with:
           persist-credentials: false
 
+      # The action's `version` input defaults to `latest` and ignores the action
+      # ref, so the vx binary has to be pinned explicitly. An unpinned run resolves
+      # through a cache key that can restore an older vx, and older vx rejects the
+      # lock format written by current vx.
       - name: Setup vx
         uses: loonghao/vx@v0.9.33
+        with:
+          version: 0.9.33
 
       - name: Verify vx.lock matches vx.toml
         run: |
