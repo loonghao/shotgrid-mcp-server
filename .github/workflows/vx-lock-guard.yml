@@ -1,0 +1,55 @@
+name: Vx Lock Guard
+
+# Fails when vx.lock is missing or no longer matches vx.toml.
+#
+# vx resolves tool versions from vx.lock ahead of vx.toml, so a [tools] edit
+# that forgets to refresh the lock silently changes what every consumer gets.
+#
+# `vx lock --check` exits 0 when the lock file does not exist (it only prints
+# an error), so the file's presence is asserted separately.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "vx.toml"
+      - "vx.lock"
+      - ".github/workflows/vx-lock-guard.yml"
+  pull_request:
+    paths:
+      - "vx.toml"
+      - "vx.lock"
+      - ".github/workflows/vx-lock-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vx-lock-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vx-lock:
+    name: vx.lock is committed and current
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup vx
+        uses: loonghao/vx@v0.9.33
+
+      - name: Verify vx.lock matches vx.toml
+        run: |
+          set -euo pipefail
+
+          if [ ! -f vx.lock ]; then
+            echo "::error::vx.lock is missing. Run 'vx lock' and commit the result."
+            exit 1
+          fi
+
+          vx lock --check
