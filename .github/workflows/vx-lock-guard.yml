@@ -48,6 +48,11 @@ jobs:
         uses: loonghao/vx@v0.9.33
         with:
           version: 0.9.33
+          # The action restores its cache under a shared prefix, so a cache entry
+          # written by an older vx can satisfy the restore even with the version
+          # pinned. install.sh skips the download when a vx binary is present, so
+          # the stale binary is what runs. This job needs no tool cache.
+          cache: false
 
       - name: Verify vx.lock matches vx.toml
         run: |
