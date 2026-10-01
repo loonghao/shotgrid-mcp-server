@@ -45,7 +45,7 @@ jobs:
       # through a cache key that can restore an older vx, and older vx rejects the
       # lock format written by current vx.
       - name: Setup vx
-        uses: loonghao/vx@v0.9.33
+        uses: loonghao/vx@v0.9.34
         with:
           version: 0.9.33
           # The action restores its cache under a shared prefix, so a cache entry
