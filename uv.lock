@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1120,8 +1120,8 @@ name = "httpcore2"
 version = "2.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "h11", marker = "python_full_version < '3.12' or python_full_version >= '3.14' or sys_platform != 'emscripten'" },
-    { name = "truststore", marker = "python_full_version < '3.12' or python_full_version >= '3.14' or sys_platform != 'emscripten'" },
+    { name = "h11" },
+    { name = "truststore" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/15/8c/e925b1c92018abb3a1863ce1549d76d2381e334d21d65d4ac8f65dabd78a/httpcore2-2.13.0.tar.gz", hash = "sha256:2adc8be4fb285fbcd6d894298db3b52c177e74b6674eda3a76bd36be3292a3db", size = 67740, upload-time = "2026-09-14T14:18:04.717Z" }
 wheels = [
@@ -2228,14 +2228,14 @@ wheels = [
 
 [[package]]
 name = "python-slugify"
-version = "8.0.4"
+version = "9.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "text-unidecode" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/c7/5e1547c44e31da50a460df93af11a535ace568ef89d7a811069ead340c4a/python-slugify-8.0.4.tar.gz", hash = "sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856", size = 10921, upload-time = "2024-02-08T18:32:45.488Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/e8/26b1af09d728d604dc16427a39f53985b22a170dbd61addac3f48db73f03/python_slugify-9.1.3.tar.gz", hash = "sha256:90e997f2e0987239ce95e12f700086eb18e1d1d3ee22624fbbdbd095afca42b6", size = 66093, upload-time = "2026-10-07T01:06:20.101Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/62/02da182e544a51a5c3ccf4b03ab79df279f9c60c5e82d5e8bec7ca26ac11/python_slugify-8.0.4-py2.py3-none-any.whl", hash = "sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8", size = 10051, upload-time = "2024-02-08T18:32:43.911Z" },
+    { url = "https://files.pythonhosted.org/packages/47/67/5598c98725332a6a4084c7b622d5a1ebe7d6745c1d2f434c9e4e89e04cba/python_slugify-9.1.3-py3-none-any.whl", hash = "sha256:9aced0670e54c5603e2335c0fa9a4011ad4bc41ecb3c46e8097294c46fd60ed4", size = 16032, upload-time = "2026-10-07T01:06:18.891Z" },
 ]
 
 [[package]]
@@ -2580,8 +2580,8 @@ name = "secretstorage"
 version = "3.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "python_full_version < '3.12' or python_full_version >= '3.14' or sys_platform != 'emscripten'" },
-    { name = "jeepney", marker = "python_full_version < '3.12' or python_full_version >= '3.14' or sys_platform != 'emscripten'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/32/8a/ed6747b1cc723c81f526d4c12c1b1d43d07190e1e8258dbf934392fc850e/secretstorage-3.4.1.tar.gz", hash = "sha256:a799acf5be9fb93db609ebaa4ab6e8f1f3ed5ae640e0fa732bfea59e9c3b50e8", size = 19871, upload-time = "2025-11-11T11:30:23.798Z" }
 wheels = [
@@ -2590,7 +2590,7 @@ wheels = [
 
 [[package]]
 name = "shotgrid-mcp-server"
-version = "0.15.4"
+version = "0.17.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2665,7 +2665,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=4.0.0" },
     { name = "pytest-mock", marker = "extra == 'test'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "python-slugify", specifier = ">=8.0.4,<9.0.0" },
+    { name = "python-slugify", specifier = ">=9.1.3,<9.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "pyyaml", marker = "extra == 'test'" },
     { name = "requests", specifier = ">=2.32.4" },
