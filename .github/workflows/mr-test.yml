@@ -20,6 +20,17 @@ jobs:
           - os: 'windows-latest'
             triple: 'x86_64-pc-windows-msvc'
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        # Test lanes are a subset of the matrix: every OS runs pytest on the
+        # lowest and highest supported Python version, so Windows and macOS
+        # have real CI evidence without paying for 15 full test runs.
+        run-tests: [false]
+        include:
+          - { target: { os: 'ubuntu-latest', triple: 'x86_64-unknown-linux-gnu' }, python-version: "3.10", run-tests: true }
+          - { target: { os: 'ubuntu-latest', triple: 'x86_64-unknown-linux-gnu' }, python-version: "3.14", run-tests: true }
+          - { target: { os: 'macos-latest', triple: 'x86_64-apple-darwin' }, python-version: "3.10", run-tests: true }
+          - { target: { os: 'macos-latest', triple: 'x86_64-apple-darwin' }, python-version: "3.14", run-tests: true }
+          - { target: { os: 'windows-latest', triple: 'x86_64-pc-windows-msvc' }, python-version: "3.10", run-tests: true }
+          - { target: { os: 'windows-latest', triple: 'x86_64-pc-windows-msvc' }, python-version: "3.14", run-tests: true }
       fail-fast: false
     runs-on: ${{ matrix.target.os }}
     steps:
@@ -35,6 +46,9 @@ jobs:
           UV_PYTHON: ${{ matrix.python-version }}
       - name: lint
         run: vx just lint
+      - name: test
+        if: matrix.run-tests
+        run: vx just test
 
   skills-extension:
     # Wire-level contract check: starts the real server and drives it with raw
