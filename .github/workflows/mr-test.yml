@@ -23,7 +23,11 @@ jobs:
         # Test lanes are a subset of the matrix: every OS runs pytest on the
         # lowest and highest supported Python version, so Windows and macOS
         # have real CI evidence without paying for 15 full test runs.
-        run-tests: [false]
+        # `run-tests` is deliberately not a base axis: an `include` entry that
+        # overwrites a base value creates a new job instead of merging into the
+        # existing one, which would grow the matrix to 21 jobs. Omitting the
+        # base axis lets the entries below merge into these 15 jobs, and the
+        # unmatched lanes leave `matrix.run-tests` empty so `if:` skips them.
         include:
           - { target: { os: 'ubuntu-latest', triple: 'x86_64-unknown-linux-gnu' }, python-version: "3.10", run-tests: true }
           - { target: { os: 'ubuntu-latest', triple: 'x86_64-unknown-linux-gnu' }, python-version: "3.14", run-tests: true }
