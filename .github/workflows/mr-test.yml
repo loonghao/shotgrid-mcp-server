@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Setup vx
-        uses: loonghao/vx@vx-v0.6.13
+        uses: loonghao/vx@v0.9.35
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup development environment
@@ -45,7 +45,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Setup vx
-        uses: loonghao/vx@vx-v0.6.13
+        uses: loonghao/vx@v0.9.35
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup development environment
