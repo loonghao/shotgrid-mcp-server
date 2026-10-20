@@ -15,7 +15,7 @@ jobs:
           with-owner: 'true'
           string-case: 'uppercase'
       - name: Setup vx
-        uses: loonghao/vx@v0.9.35
+        uses: loonghao/vx@v0.9.37
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup development environment

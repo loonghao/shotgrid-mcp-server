@@ -108,7 +108,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup vx
-        uses: loonghao/vx@v0.9.35
+        uses: loonghao/vx@v0.9.37
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
