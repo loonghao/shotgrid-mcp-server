@@ -39,7 +39,7 @@ jobs:
     runs-on: ${{ matrix.target.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup vx
         uses: loonghao/vx@vx-v0.9.37
         with:
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup vx
         uses: loonghao/vx@vx-v0.9.37
         with:
